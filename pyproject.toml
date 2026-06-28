@@ -8,17 +8,13 @@ version = "0.1.0"
 description = "Local release monitor and resale premium radar for Lolita and Japanese fashion items"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = []
-
-[project.optional-dependencies]
-browser = ["playwright>=1.40"]
+dependencies = ["PyYAML>=6.0"]
 
 [project.scripts]
-lolita-premium-radar = "tb_new_arrival_alert.cli:main"
-tb-new-arrival-alert = "tb_new_arrival_alert.cli:main"
+lolita-premium-radar = "lolita_radar.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-tb_new_arrival_alert = ["web_assets/*"]
+lolita_radar = ["py.typed"]

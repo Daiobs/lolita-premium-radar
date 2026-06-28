@@ -1,5 +1,0 @@
-brand_name,series_name,item_name,category,colorway,original_price_jpy,jpy_to_cny,japan_domestic_shipping_cny,international_shipping_cny,proxy_fee_cny,tax_or_buffer_cny,release_signal_score,item_source_url,release_date,sample_source_type,listed_price_cny,sold_price_cny,listing_status,confidence,sample_title,sample_source_url
-Angelic Pretty,Sample Print,JSK,JSK,Pink,32780,0.05,80,160,100,60,85,https://example.com/release,2026-07-15,xianyu,2800,,listed,0.8,AP Sample Print JSK Pink,https://example.com/xianyu-1
-Angelic Pretty,Sample Print,JSK,JSK,Pink,32780,0.05,80,160,100,60,85,https://example.com/release,2026-07-15,mercari,,3000,sold,0.85,AP Sample Print JSK Pink sold,https://example.com/mercari-1
-BABY THE STARS SHINE BRIGHT,Sample Frill,OP,OP,Black,36080,0.05,80,180,120,60,75,https://example.com/baby-release,2026-07-20,xianyu,2600,,listed,0.75,BABY Sample Frill OP Black,https://example.com/xianyu-2
-BABY THE STARS SHINE BRIGHT,Sample Frill,OP,OP,Black,36080,0.05,80,180,120,60,75,https://example.com/baby-release,2026-07-20,taobao,3200,,listed,0.7,BABY Sample Frill OP Black Taobao,https://example.com/taobao-1

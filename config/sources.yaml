@@ -1,0 +1,23 @@
+sources:
+  metamorphose:
+    type: metamorphose
+    enabled: true
+    url: "https://metamorphose.gr.jp/en/news"
+    keywords: []
+    options:
+      timeout_seconds: 20
+
+  taobao_proxy_sample:
+    type: generic_page
+    enabled: false
+    url: "https://example.com/public-shop-page"
+    keywords:
+      - Lolita
+      - JSK
+      - OP
+      - 预约
+      - 现货
+      - 再贩
+    options:
+      title: "Taobao proxy public page"
+      timeout_seconds: 20

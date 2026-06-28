@@ -3,6 +3,8 @@
 .browser-profile/
 __pycache__/
 *.pyc
+*.egg-info/
 .pytest_cache/
 config.json
+.env
 .tmp-test-data/

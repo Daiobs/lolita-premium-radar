@@ -1,0 +1,32 @@
+name: Check sources
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Restore monitor state
+        uses: actions/cache@v4
+        with:
+          path: .data
+          key: lolita-radar-state-${{ github.run_id }}
+          restore-keys: |
+            lolita-radar-state-
+      - name: Install
+        run: python -m pip install -e .
+      - name: Run checks
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python -m lolita_radar.cli check --all
