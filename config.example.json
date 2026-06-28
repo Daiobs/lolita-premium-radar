@@ -1,0 +1,42 @@
+{
+  "poll_interval_seconds": 90,
+  "notify_on_first_scan": false,
+  "data_dir": ".data",
+  "fetcher": {
+    "type": "http",
+    "timeout_seconds": 20,
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36"
+  },
+  "notifications": [
+    {
+      "type": "console",
+      "enabled": true
+    },
+    {
+      "type": "webhook",
+      "enabled": false,
+      "url": "https://example.com/notify"
+    }
+  ],
+  "targets": [
+    {
+      "name": "example-taobao-shop",
+      "enabled": true,
+      "url": "https://shop.example.taobao.com/search.htm?orderType=newOn_desc",
+      "include_keywords": [
+        "lolita",
+        "JSK",
+        "OP",
+        "现货",
+        "预约"
+      ],
+      "exclude_keywords": [
+        "尾款",
+        "定金单独"
+      ],
+      "price_min": null,
+      "price_max": 2000
+    }
+  ]
+}
+

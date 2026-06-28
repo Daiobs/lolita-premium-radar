@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lolita-premium-radar"
+version = "0.1.0"
+description = "Local release monitor and resale premium radar for Lolita and Japanese fashion items"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+browser = ["playwright>=1.40"]
+
+[project.scripts]
+lolita-premium-radar = "tb_new_arrival_alert.cli:main"
+tb-new-arrival-alert = "tb_new_arrival_alert.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tb_new_arrival_alert = ["web_assets/*"]

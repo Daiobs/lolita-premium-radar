@@ -1,0 +1,39 @@
+{
+  "poll_interval_seconds": 90,
+  "notify_on_first_scan": true,
+  "data_dir": "../../.tmp-test-data",
+  "fetcher": {
+    "type": "file",
+    "timeout_seconds": 20,
+    "user_agent": "",
+    "wait_seconds": 5,
+    "user_data_dir": ".browser-profile"
+  },
+  "notifications": [
+    {
+      "type": "console",
+      "enabled": true
+    },
+    {
+      "type": "webhook",
+      "enabled": false,
+      "url": ""
+    }
+  ],
+  "targets": [
+    {
+      "name": "sample-fixture-shop",
+      "enabled": true,
+      "url": "tests/fixtures/sample_shop.html",
+      "include_keywords": [
+        "JSK",
+        "OP"
+      ],
+      "exclude_keywords": [
+        "尾款"
+      ],
+      "price_min": null,
+      "price_max": 500
+    }
+  ]
+}
