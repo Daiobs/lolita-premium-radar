@@ -1190,7 +1190,9 @@ INDEX_HTML = r"""<!doctype html>
       .sample-plan-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .sample-plan-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
       .sample-plan-meta, .sample-plan-links, .sample-plan-keywords { display: flex; flex-wrap: wrap; gap: 6px; }
-      .sample-plan-keywords span { display: inline-flex; align-items: center; min-height: 23px; padding: 0 7px; border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line)); border-radius: 999px; background: rgba(255,253,251,.72); color: var(--muted); font-size: 12px; }
+      .sample-plan-keywords span, .sample-plan-keywords button { display: inline-flex; align-items: center; min-height: 23px; padding: 0 7px; border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line)); border-radius: 999px; background: rgba(255,253,251,.72); box-shadow: none; color: var(--muted); font: inherit; font-size: 12px; }
+      .sample-plan-keywords button { cursor: pointer; }
+      .sample-plan-keywords button:hover { color: var(--brand-accent, var(--rose)); background: #fff; }
       .sample-plan-card button { justify-self: start; min-height: 30px; }
       .sample-plan-summary {
         grid-column: 1 / -1;
@@ -2883,7 +2885,7 @@ INDEX_HTML = r"""<!doctype html>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(samplePlanProgress(entry))}%"></span></div>
           <p class="muted">${escapeHtml(t("samplePlanProgress"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)} · ${escapeHtml(t("samplePlanMissing"))} ${escapeHtml(entry.missing_samples)} · ${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)}</p>
           <div class="sample-plan-keywords">
-            ${(entry.market_keywords || []).length ? entry.market_keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("profileNoKeywords"))}</span>`}
+            ${(entry.market_keywords || []).length ? entry.market_keywords.map((keyword) => `<button type="button" data-sample-plan-keyword="${escapeHtml(keyword)}" data-sample-plan-keyword-brand="${escapeHtml(entry.alias)}">${escapeHtml(keyword)}</button>`).join("") : `<span>${escapeHtml(t("profileNoKeywords"))}</span>`}
           </div>
           <div class="sample-plan-links search-links">
             ${(entry.watch_urls || []).slice(0, 3).map((link) => safeUrl(link.url) ? `<a href="${escapeHtml(safeUrl(link.url))}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>` : "").join("")}
@@ -4540,6 +4542,11 @@ INDEX_HTML = r"""<!doctype html>
         if (sampleButton) prepareMarketSample(sampleButton.dataset.coverageSample);
       });
       $("samplePlan").addEventListener("click", (event) => {
+        const keywordButton = event.target.closest("[data-sample-plan-keyword]");
+        if (keywordButton) {
+          prepareKeywordSample(keywordButton.dataset.samplePlanKeywordBrand, keywordButton.dataset.samplePlanKeyword);
+          return;
+        }
         const sampleButton = event.target.closest("[data-sample-plan]");
         if (sampleButton) {
           prepareMarketSample(sampleButton.dataset.samplePlan);

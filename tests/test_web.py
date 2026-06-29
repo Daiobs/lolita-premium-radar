@@ -250,6 +250,8 @@ sources:
         self.assertIn("csvFromSamplePlanRows", INDEX_HTML)
         self.assertIn("lolita-sample-plan.csv", INDEX_HTML)
         self.assertIn("data-sample-plan", INDEX_HTML)
+        self.assertIn("data-sample-plan-keyword", INDEX_HTML)
+        self.assertIn("data-sample-plan-keyword-brand", INDEX_HTML)
         self.assertIn("samplePlanSeed", INDEX_HTML)
         self.assertIn("tuningActionHtml", INDEX_HTML)
         self.assertIn("data-tuning-sample", INDEX_HTML)
