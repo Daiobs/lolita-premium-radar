@@ -105,7 +105,9 @@ brand crown queue sits underneath it and ranks the highest-priority labels by
 brand weight, release hits, resale premium, sample evidence, and signature style
 terms such as AP shell keywords, with direct actions for adding brand samples,
 prefilling pattern samples, or jumping to the release queue; each crown card also
-shows an evidence confidence badge and the queue can be exported as
+shows an evidence confidence badge plus the formula target, weight delta, and
+formula confidence, so suggested weight moves can be applied as unsaved drafts
+directly from the first-screen queue. The same queue can be exported as
 `lolita-brand-crown.csv` for daily brand-weight review.
 Brand weights, scorecards, core watch gaps, and sample plans are also summarized
 into a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style

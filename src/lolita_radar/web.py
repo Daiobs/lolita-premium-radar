@@ -7558,6 +7558,9 @@ INDEX_HTML = r"""<!doctype html>
           ["confidence", "confidence_label_text"],
           ["action", "action_label_text"],
           ["brand_weight", "brand_weight"],
+          ["target_weight", "target_weight"],
+          ["weight_delta", "weight_delta"],
+          ["formula_confidence", "formula_confidence"],
           ["avg_premium_rate", "avg_premium_rate"],
           ["sample_count", "sample_count"],
           ["target_samples", "target_samples"],
@@ -8779,6 +8782,8 @@ INDEX_HTML = r"""<!doctype html>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.crown_score)}%"></span></div>
           <div class="crown-meta">
             <span>${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</span>
+            <span>${escapeHtml(t("formulaTarget"))} ${escapeHtml(entry.target_weight)} ${escapeHtml(formatDelta(entry.weight_delta))}</span>
+            <span>${escapeHtml(t("formulaConfidence"))} ${escapeHtml(entry.formula_confidence)}%</span>
             <span>${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</span>
             <span>${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)}</span>
             <span>${escapeHtml(t("crownReleaseSignals"))} ${escapeHtml(entry.release_score)}</span>
@@ -8790,6 +8795,7 @@ INDEX_HTML = r"""<!doctype html>
           <div class="crown-actions">
             <button type="button" data-crown-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("crownSample"))}</button>
             <button type="button" data-crown-keyword-sample="${escapeHtml(entry.alias)}" data-crown-keyword="${escapeHtml(entry.primary_keyword || entry.keywords?.[0] || entry.alias)}">${escapeHtml(t("crownKeywordSample"))}</button>
+            ${Number(entry.weight_delta) ? `<button type="button" data-crown-apply="${escapeHtml(entry.alias)}" data-crown-target="${escapeHtml(entry.target_weight)}">${escapeHtml(t("formulaApplyDraft"))}</button>` : ""}
             ${entry.release_score ? `<button type="button" data-crown-jump="releaseWatchQueue">${escapeHtml(t("crownOpenRelease"))}</button>` : ""}
             ${links.map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
           </div>
@@ -8798,6 +8804,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function brandCrownRows(rows) {
         const releases = releaseWatchRows(rows);
+        const formulaByAlias = new Map(buildBrandWeightFormula(rows, Number.POSITIVE_INFINITY).map((entry) => [entry.alias, entry]));
         const releaseByAlias = new Map();
         releases.forEach((entry) => {
           const current = releaseByAlias.get(entry.alias);
@@ -8807,10 +8814,12 @@ INDEX_HTML = r"""<!doctype html>
         });
         return (rows || []).map((entry) => {
           const release = releaseByAlias.get(entry.alias) || {};
+          const formula = formulaByAlias.get(entry.alias) || {};
           const weight = Number(entry.brand_weight) || 0;
           const premium = Number(entry.avg_premium_rate) || 0;
           const sampleCount = Number(entry.sample_count) || 0;
           const targetSamples = sampleTarget(weight, entry.tier);
+          const targetWeight = Number(formula.target_weight ?? weight) || 0;
           const releaseScore = Number(release.release_score) || 0;
           const keywords = (entry.market_keywords || []).slice(0, 4);
           const sampleGapBonus = sampleCount < 2 && weight >= 75 ? 9 : 0;
@@ -8831,6 +8840,9 @@ INDEX_HTML = r"""<!doctype html>
             primary_keyword: release.primary_keyword || keywords[0] || entry.alias,
             keywords,
             crown_score: crownScore,
+            target_weight: targetWeight,
+            weight_delta: targetWeight - weight,
+            formula_confidence: Number(formula.confidence ?? formulaConfidence(entry)) || 0,
             confidence_score: confidenceScore,
             confidence_band: crownConfidenceBand(confidenceScore),
             confidence_label: crownConfidenceLabel(confidenceScore),
@@ -9876,6 +9888,11 @@ INDEX_HTML = r"""<!doctype html>
         const keywordButton = event.target.closest("[data-crown-keyword-sample]");
         if (keywordButton) {
           prepareKeywordSample(keywordButton.dataset.crownKeywordSample, keywordButton.dataset.crownKeyword);
+          return;
+        }
+        const applyButton = event.target.closest("[data-crown-apply]");
+        if (applyButton) {
+          applyFormulaDraft(applyButton.dataset.crownApply, applyButton.dataset.crownTarget);
           return;
         }
         const jumpButton = event.target.closest("[data-crown-jump]");
