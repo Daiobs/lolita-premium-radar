@@ -1,0 +1,58 @@
+import tempfile
+import unittest
+from pathlib import Path
+
+from lolita_radar.models import ItemStatus, RadarItem
+from lolita_radar.storage import connect, diff_and_store
+from lolita_radar.web import get_dashboard_state
+
+
+class WebTests(unittest.TestCase):
+    def test_dashboard_state_includes_sources_items_and_events(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "sources.yaml"
+            db_path = root / "radar.sqlite"
+            config_path.write_text(
+                """
+sources:
+  metamorphose:
+    type: metamorphose
+    enabled: true
+    url: "https://metamorphose.gr.jp/en/news"
+    keywords:
+      - "JSK"
+      - "OP"
+""".strip(),
+                encoding="utf-8",
+            )
+
+            connection = connect(db_path)
+            try:
+                diff_and_store(
+                    connection,
+                    [
+                        RadarItem(
+                            source="metamorphose",
+                            title="New Arrival: Rose JSK",
+                            url="https://example.com/news/rose",
+                            status=ItemStatus.NEW_ARRIVAL,
+                        )
+                    ],
+                )
+            finally:
+                connection.close()
+
+            state = get_dashboard_state(config_path=config_path, db_path=db_path)
+
+            self.assertTrue(state["ok"])
+            self.assertEqual(state["counts"]["sources"], 1)
+            self.assertEqual(state["counts"]["items"], 1)
+            self.assertEqual(state["counts"]["events"], 1)
+            self.assertEqual(state["sources"][0]["name"], "metamorphose")
+            self.assertEqual(state["items"][0]["title"], "New Arrival: Rose JSK")
+            self.assertEqual(state["events"][0]["event_type"], "new_item")
+
+
+if __name__ == "__main__":
+    unittest.main()

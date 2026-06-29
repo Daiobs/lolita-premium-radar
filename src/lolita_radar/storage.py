@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from .models import EventType, RadarEvent, RadarItem, utc_now_iso
 
@@ -149,3 +149,39 @@ def insert_event(connection: sqlite3.Connection, event: RadarEvent) -> None:
             event.created_at or utc_now_iso(),
         ),
     )
+
+
+def list_items(connection: sqlite3.Connection, limit: int = 100) -> list[dict[str, Any]]:
+    rows = connection.execute(
+        """
+        SELECT
+            source, item_hash, title, url, status, published_at,
+            first_seen_at, last_seen_at
+        FROM items
+        ORDER BY last_seen_at DESC, id DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def list_events(connection: sqlite3.Connection, limit: int = 100) -> list[dict[str, Any]]:
+    rows = connection.execute(
+        """
+        SELECT
+            source, item_hash, event_type, title, url, status,
+            previous_title, previous_status, created_at
+        FROM events
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def storage_counts(connection: sqlite3.Connection) -> dict[str, int]:
+    item_count = int(connection.execute("SELECT COUNT(*) AS count FROM items").fetchone()["count"])
+    event_count = int(connection.execute("SELECT COUNT(*) AS count FROM events").fetchone()["count"])
+    return {"items": item_count, "events": event_count}
