@@ -77,6 +77,10 @@ sources:
         self.assertIn("renderBrandRadarMatrix", INDEX_HTML)
         self.assertIn("buildBrandRadarMatrix", INDEX_HTML)
         self.assertIn("matrixAction", INDEX_HTML)
+        self.assertIn("data-matrix-filter", INDEX_HTML)
+        self.assertIn("matrixSort", INDEX_HTML)
+        self.assertIn("sortMatrixRows", INDEX_HTML)
+        self.assertIn("filterMatrixRows", INDEX_HTML)
         self.assertIn("opportunityRadar", INDEX_HTML)
         self.assertIn("opportunitySummary", INDEX_HTML)
         self.assertIn("data-opportunity-filter", INDEX_HTML)
@@ -94,6 +98,8 @@ sources:
         self.assertIn("buildDraftOpportunityRadar", INDEX_HTML)
         self.assertIn("scoreDelta", INDEX_HTML)
         self.assertIn("formatDelta", INDEX_HTML)
+        self.assertIn("hasScoreDelta", INDEX_HTML)
+        self.assertIn("opportunityPriorityScore", INDEX_HTML)
         self.assertIn("priorityScore", INDEX_HTML)
 
     def test_market_observation_post_appends_sample(self) -> None:

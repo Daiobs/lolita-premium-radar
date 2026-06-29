@@ -96,10 +96,11 @@ The UI defaults to Chinese and includes a `中文 / EN` language switch. It also
 includes a Lolita secondary-market view with brand weights, status mix, and a
 simple premium-signal score for prioritizing attention. The brand radar matrix
 puts weight, average resale premium, sample count, radar score, and next action
-in one scan-friendly view. The opportunity radar turns brand weights, sample
-counts, and resale-premium rates into watch actions such as tracking releases,
-collecting more price samples, or cooling down a brand, with band counts,
-filters, and score breakdowns for scanning each action tier.
+in one scan-friendly view, with focused filters and sorting by score, premium,
+weight, sample count, or draft-score movement. The opportunity radar turns brand
+weights, sample counts, and resale-premium rates into watch actions such as
+tracking releases, collecting more price samples, or cooling down a brand, with
+band counts, filters, and score breakdowns for scanning each action tier.
 
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,

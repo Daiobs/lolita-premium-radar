@@ -422,6 +422,10 @@ INDEX_HTML = r"""<!doctype html>
       .market-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; padding: 12px; }
       .market-list { display: grid; gap: 9px; }
       .matrix-board { margin: 0 20px 14px; }
+      .matrix-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 10px; align-items: center; }
+      .matrix-tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
+      .matrix-sort { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+      .matrix-sort select { min-height: 32px; border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; background: #fffdfb; color: var(--text); font: inherit; }
       .radar-matrix { display: grid; gap: 6px; padding: 12px; }
       .matrix-row {
         display: grid;
@@ -500,7 +504,8 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
-        .opportunity-toolbar { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar { grid-template-columns: 1fr; }
+        .matrix-tools { justify-content: flex-start; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
         .brand-tools { align-items: flex-start; flex-direction: column; }
@@ -549,10 +554,28 @@ INDEX_HTML = r"""<!doctype html>
       </div>
     </section>
     <section class="panel matrix-board">
-      <div class="toolbar">
+      <div class="toolbar matrix-toolbar">
         <div>
           <h2 data-i18n="brandRadarMatrix">品牌雷达矩阵</h2>
           <span class="muted" data-i18n="matrixHint">把权重、溢价、样本和动作放在一起看</span>
+        </div>
+        <div class="matrix-tools">
+          <div id="matrixFilters" class="segmented" role="group" aria-label="Matrix filter">
+            <button type="button" data-matrix-filter="all" data-i18n="matrixFilterAll">全部</button>
+            <button type="button" data-matrix-filter="lead" data-i18n="matrixFilterLead">重点</button>
+            <button type="button" data-matrix-filter="needs_samples" data-i18n="matrixFilterNeedsSamples">缺样本</button>
+            <button type="button" data-matrix-filter="core" data-i18n="matrixFilterCore">核心</button>
+          </div>
+          <label class="matrix-sort">
+            <span data-i18n="matrixSortLabel">排序</span>
+            <select id="matrixSort">
+              <option value="score" data-i18n="matrixSortScore">雷达分</option>
+              <option value="premium" data-i18n="matrixSortPremium">均值溢价</option>
+              <option value="weight" data-i18n="matrixSortWeight">品牌权重</option>
+              <option value="samples" data-i18n="matrixSortSamples">样本数</option>
+              <option value="delta" data-i18n="matrixSortDelta">草稿变化</option>
+            </select>
+          </label>
         </div>
       </div>
       <div id="brandRadarMatrix" class="radar-matrix"></div>
@@ -677,6 +700,16 @@ INDEX_HTML = r"""<!doctype html>
           matrixPremium: "均值溢价",
           matrixSamples: "样本",
           matrixAction: "动作",
+          matrixFilterAll: "全部",
+          matrixFilterLead: "重点",
+          matrixFilterNeedsSamples: "缺样本",
+          matrixFilterCore: "核心",
+          matrixSortLabel: "排序",
+          matrixSortScore: "雷达分",
+          matrixSortPremium: "均值溢价",
+          matrixSortWeight: "品牌权重",
+          matrixSortSamples: "样本数",
+          matrixSortDelta: "草稿变化",
           opportunityRadar: "机会雷达",
           opportunityHint: "基于品牌权重与二手溢价生成关注建议",
           filterAll: "全部",
@@ -800,6 +833,16 @@ INDEX_HTML = r"""<!doctype html>
           matrixPremium: "avg premium",
           matrixSamples: "samples",
           matrixAction: "action",
+          matrixFilterAll: "All",
+          matrixFilterLead: "Lead",
+          matrixFilterNeedsSamples: "Needs samples",
+          matrixFilterCore: "Core",
+          matrixSortLabel: "sort",
+          matrixSortScore: "radar score",
+          matrixSortPremium: "avg premium",
+          matrixSortWeight: "brand weight",
+          matrixSortSamples: "samples",
+          matrixSortDelta: "draft delta",
           opportunityRadar: "Opportunity Radar",
           opportunityHint: "Attention suggestions from brand weight and resale premium",
           filterAll: "All",
@@ -901,6 +944,8 @@ INDEX_HTML = r"""<!doctype html>
       let currentState = null;
       let currentLanguage = localStorage.getItem("radarLanguage") || "zh";
       let activeOpportunityFilter = "all";
+      let activeMatrixFilter = "all";
+      let activeMatrixSort = "score";
       let previewingDraftWeights = false;
       if (!translations[currentLanguage]) currentLanguage = "zh";
 
@@ -988,7 +1033,7 @@ INDEX_HTML = r"""<!doctype html>
             <span class="pill ${opportunityPill(entry.band)}">${escapeHtml(valueLabel("opportunityBand", entry.band))}</span>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(entry.priority_score) || 0}%"></span></div>
-          <p class="muted">${previewingDraftWeights ? `<span class="pill gold">${escapeHtml(t("draftPreview"))}</span> · ` : ""}${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}${previewingDraftWeights ? ` · ${escapeHtml(t("scoreDelta"))} ${escapeHtml(formatDelta(entry.score_delta))}` : ""}</p>
+          <p class="muted">${previewingDraftWeights ? `<span class="pill gold">${escapeHtml(t("draftPreview"))}</span> · ` : ""}${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}${previewingDraftWeights && hasScoreDelta(entry.score_delta) ? ` · ${escapeHtml(t("scoreDelta"))} ${escapeHtml(formatDelta(entry.score_delta))}` : ""}</p>
           ${renderScoreBreakdown(entry.score_breakdown)}
           <p class="muted">${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
           <p class="muted">${escapeHtml(reasonLabels(entry.reason_codes).join(" · "))}</p>
@@ -996,7 +1041,9 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function renderBrandRadarMatrix(rows) {
-        $("brandRadarMatrix").innerHTML = rows.length ? [
+        syncMatrixControls();
+        const visible = filterMatrixRows(sortMatrixRows(rows));
+        $("brandRadarMatrix").innerHTML = visible.length ? [
           `<div class="matrix-row header" aria-hidden="true">
             <span>${escapeHtml(t("matrixBrand"))}</span>
             <span>${escapeHtml(t("matrixScore"))}</span>
@@ -1005,13 +1052,13 @@ INDEX_HTML = r"""<!doctype html>
             <span>${escapeHtml(t("matrixSamples"))}</span>
             <span>${escapeHtml(t("matrixAction"))}</span>
           </div>`,
-          ...rows.map((entry) => `<article class="matrix-row">
+          ...visible.map((entry) => `<article class="matrix-row">
             <div class="matrix-brand">
               <strong>${escapeHtml(entry.alias)}</strong>
               <span>${escapeHtml(entry.name)}</span>
             </div>
             <div class="matrix-score">
-              <strong>${escapeHtml(entry.priority_score)}${previewingDraftWeights ? ` ${escapeHtml(formatDelta(entry.score_delta))}` : ""}</strong>
+              <strong>${escapeHtml(entry.priority_score)}${previewingDraftWeights && hasScoreDelta(entry.score_delta) ? ` ${escapeHtml(formatDelta(entry.score_delta))}` : ""}</strong>
               <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(entry.priority_score) || 0}%"></span></div>
             </div>
             <span>${escapeHtml(entry.brand_weight)}</span>
@@ -1020,6 +1067,41 @@ INDEX_HTML = r"""<!doctype html>
             <span class="pill ${opportunityPill(entry.band)}">${escapeHtml(valueLabel("opportunityBand", entry.band))}</span>
           </article>`),
         ].join("") : `<div class="row">${escapeHtml(t("noOpportunity"))}</div>`;
+      }
+
+      function syncMatrixControls() {
+        document.querySelectorAll("[data-matrix-filter]").forEach((button) => {
+          const active = button.dataset.matrixFilter === activeMatrixFilter;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+        const sort = $("matrixSort");
+        if (sort && sort.value !== activeMatrixSort) sort.value = activeMatrixSort;
+      }
+
+      function sortMatrixRows(rows) {
+        const sorted = [...rows];
+        const sorters = {
+          score: (row) => Number(row.priority_score) || 0,
+          premium: (row) => Number(row.avg_premium_rate) || 0,
+          weight: (row) => Number(row.brand_weight) || 0,
+          samples: (row) => Number(row.sample_count) || 0,
+          delta: (row) => Math.abs(Number(row.score_delta) || 0),
+        };
+        const sorter = sorters[activeMatrixSort] || sorters.score;
+        return sorted.sort((a, b) => (
+          sorter(b) - sorter(a)
+          || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+          || String(a.alias).localeCompare(String(b.alias))
+        ));
+      }
+
+      function filterMatrixRows(rows) {
+        if (activeMatrixFilter === "lead") return rows.filter((entry) => entry.band === "lead" || entry.band === "watch");
+        if (activeMatrixFilter === "needs_samples") return rows.filter((entry) => (entry.reason_codes || []).includes("needs_samples"));
+        if (activeMatrixFilter === "core") return rows.filter((entry) => entry.tier === "core" || Number(entry.brand_weight) >= 90);
+        return rows;
       }
 
       function renderScoreBreakdown(breakdown = {}) {
@@ -1236,7 +1318,9 @@ INDEX_HTML = r"""<!doctype html>
           const maxPremiumRate = Number(market.max_premium_rate) || 0;
           const weight = clampScore(draftWeights.get(brand.alias) ?? brand.weight);
           const breakdown = premiumScoreBreakdown(avgPremiumRate, weight, sampleCount);
-          const priorityScore = Math.max(0, Math.min(100, Math.round(breakdown.premium_points + breakdown.brand_points + breakdown.sample_points)));
+          const priorityScore = opportunityPriorityScore(breakdown);
+          const savedBreakdown = premiumScoreBreakdown(avgPremiumRate, brand.weight, sampleCount);
+          const savedPriorityScore = opportunityPriorityScore(savedBreakdown);
           return {
             name: brand.name,
             alias: brand.alias,
@@ -1247,7 +1331,7 @@ INDEX_HTML = r"""<!doctype html>
             avg_premium_rate: avgPremiumRate,
             max_premium_rate: maxPremiumRate,
             priority_score: priorityScore,
-            score_delta: priorityScore - savedOpportunityScore(brand.alias),
+            score_delta: priorityScore - savedPriorityScore,
             score_breakdown: breakdown,
             band: opportunityBand(priorityScore, avgPremiumRate, sampleCount, weight),
             reason_codes: opportunityReasons(avgPremiumRate, sampleCount, weight),
@@ -1266,6 +1350,14 @@ INDEX_HTML = r"""<!doctype html>
           brand_points: Math.round(clampScore(brandWeight) * 0.4),
           sample_points: Math.round(Math.min(10, Math.max(0, Number(sampleCount) || 0) * 2)),
         };
+      }
+
+      function opportunityPriorityScore(breakdown) {
+        return Math.max(0, Math.min(100, Math.round(
+          (Number(breakdown.premium_points) || 0)
+          + (Number(breakdown.brand_points) || 0)
+          + (Number(breakdown.sample_points) || 0)
+        )));
       }
 
       function opportunityBand(score, avgPremiumRate, sampleCount, brandWeight) {
@@ -1291,14 +1383,13 @@ INDEX_HTML = r"""<!doctype html>
         return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
       }
 
-      function savedOpportunityScore(alias) {
-        const saved = (currentState?.opportunity_radar || []).find((entry) => entry.alias === alias);
-        return Number(saved?.priority_score) || 0;
-      }
-
       function formatDelta(value) {
         const number = Number(value) || 0;
         return number > 0 ? `+${number}` : String(number);
+      }
+
+      function hasScoreDelta(value) {
+        return (Number(value) || 0) !== 0;
       }
 
       function setBusy(busy) {
@@ -1384,6 +1475,9 @@ INDEX_HTML = r"""<!doctype html>
         document.querySelectorAll("[data-i18n]").forEach((node) => {
           node.textContent = t(node.dataset.i18n);
         });
+        document.querySelectorAll("option[data-i18n]").forEach((option) => {
+          option.textContent = t(option.dataset.i18n);
+        });
         document.querySelectorAll("[data-language]").forEach((button) => {
           const active = button.dataset.language === currentLanguage;
           button.classList.toggle("active", active);
@@ -1397,6 +1491,16 @@ INDEX_HTML = r"""<!doctype html>
       $("brandWeights").addEventListener("input", handleWeightInput);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);
+      $("matrixFilters").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-matrix-filter]");
+        if (!button) return;
+        activeMatrixFilter = button.dataset.matrixFilter || "all";
+        renderBrandRadarMatrix(buildBrandRadarMatrix());
+      });
+      $("matrixSort").addEventListener("change", (event) => {
+        activeMatrixSort = event.target.value || "score";
+        renderBrandRadarMatrix(buildBrandRadarMatrix());
+      });
       $("opportunityFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-opportunity-filter]");
         if (!button) return;
