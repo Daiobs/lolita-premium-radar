@@ -102,7 +102,9 @@ weights, sample counts, and resale-premium rates into watch actions such as
 tracking releases, collecting more price samples, or cooling down a brand, with
 band counts, filters, and score breakdowns for scanning each action tier. A
 sample-coverage panel shows how much price evidence backs the radar and which
-high-weight brands need samples next.
+high-weight brands need samples next. A weight-profile panel summarizes average
+weight, tier distribution, market-evidence coverage, and the highest-priority
+sample gaps so brand weights are easier to audit before saving.
 
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,

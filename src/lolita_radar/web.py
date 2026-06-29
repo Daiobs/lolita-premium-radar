@@ -390,6 +390,26 @@ INDEX_HTML = r"""<!doctype html>
       .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); }
       .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .focus-card strong { color: var(--wine); }
+      .weight-snapshot-board { margin: 0 20px 14px; }
+      .weight-snapshot { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(260px, 1.3fr) minmax(260px, 1fr); gap: 12px; padding: 12px; }
+      .weight-hero, .weight-metric, .weight-lane, .weight-gap-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .weight-hero { display: grid; gap: 9px; align-content: start; padding: 12px; background: linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)); }
+      .weight-hero strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .weight-hero p, .weight-metric span, .weight-lane span, .weight-gap-card p { margin: 0; color: var(--muted); }
+      .weight-metrics { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 8px; }
+      .weight-metric { display: grid; gap: 5px; min-height: 72px; padding: 10px; }
+      .weight-metric strong { color: var(--wine); font: 650 24px/1 Georgia, "Times New Roman", serif; }
+      .weight-lanes { display: grid; gap: 7px; }
+      .weight-lane { display: grid; grid-template-columns: 74px 1fr 54px; gap: 8px; align-items: center; min-height: 40px; padding: 8px 10px; }
+      .weight-lane strong { color: var(--wine); }
+      .weight-gaps { display: grid; gap: 8px; }
+      .weight-gap-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 10px; }
+      .weight-gap-card strong { color: var(--wine); }
+      .weight-gap-card button { min-height: 30px; padding-inline: 10px; }
       .signal-strip { display: grid; gap: 8px; align-content: start; }
       .signal-bar { height: 11px; overflow: hidden; border-radius: 999px; background: var(--lace); box-shadow: inset 0 0 0 1px rgba(97,27,49,.06); }
       .signal-bar span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--teal), var(--rose), var(--gold)); }
@@ -555,7 +575,7 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
@@ -604,6 +624,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
         <div id="brandWeights" class="watch-grid"></div>
       </div>
+    </section>
+    <section class="panel weight-snapshot-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="weightSnapshot">权重画像</h2>
+          <span class="muted" data-i18n="weightSnapshotHint">把品牌档位、价格证据和样本缺口放在一起校准</span>
+        </div>
+      </div>
+      <div id="weightSnapshot" class="weight-snapshot"></div>
     </section>
     <section class="panel matrix-board">
       <div class="toolbar matrix-toolbar">
@@ -812,6 +841,18 @@ INDEX_HTML = r"""<!doctype html>
           weightIntentCore: "新品、预约、淘宝上新优先提醒",
           weightIntentWatch: "结合溢价和样本决定是否升级",
           weightIntentArchive: "先补二手样本，异常溢价再上调",
+          weightSnapshot: "权重画像",
+          weightSnapshotHint: "把品牌档位、价格证据和样本缺口放在一起校准",
+          weightAverage: "平均权重",
+          weightCoreAverage: "核心均值",
+          weightEvidenceCoverage: "证据覆盖",
+          weightNeedsEvidence: "待补证据",
+          weightDistribution: "权重分布",
+          weightCoreCount: "核心档",
+          weightWatchCount: "观察档",
+          weightArchiveCount: "档案档",
+          weightTopGap: "优先补样本",
+          weightNoGap: "样本缺口已清空",
           weightTuning: "权重校准建议",
           weightTuningHint: "把溢价、样本和当前权重翻译成下一步动作",
           noWeightTuning: "暂无校准建议",
@@ -989,6 +1030,18 @@ INDEX_HTML = r"""<!doctype html>
           weightIntentCore: "prioritize release, preorder, and Taobao alerts",
           weightIntentWatch: "promote when premium and samples support it",
           weightIntentArchive: "collect resale samples before raising weight",
+          weightSnapshot: "Weight Profile",
+          weightSnapshotHint: "Calibrate brand tiers, price evidence, and sample gaps together",
+          weightAverage: "average weight",
+          weightCoreAverage: "core average",
+          weightEvidenceCoverage: "evidence coverage",
+          weightNeedsEvidence: "needs evidence",
+          weightDistribution: "weight distribution",
+          weightCoreCount: "core tier",
+          weightWatchCount: "watch tier",
+          weightArchiveCount: "archive tier",
+          weightTopGap: "sample next",
+          weightNoGap: "sample gaps cleared",
           weightTuning: "Weight Tuning",
           weightTuningHint: "Turn premium, sample count, and current weight into next actions",
           noWeightTuning: "No tuning suggestions yet",
@@ -1316,6 +1369,70 @@ INDEX_HTML = r"""<!doctype html>
           thin,
           missing,
           percent: Math.round(((ready + thin) / total) * 100),
+        };
+      }
+
+      function renderWeightSnapshot(rows) {
+        const stats = weightSnapshotStats(rows);
+        const lanes = [
+          ["weightCoreCount", stats.core.count, stats.core.avg],
+          ["weightWatchCount", stats.watch.count, stats.watch.avg],
+          ["weightArchiveCount", stats.archive.count, stats.archive.avg],
+        ];
+        $("weightSnapshot").innerHTML = `
+          <article class="weight-hero">
+            <strong>${escapeHtml(stats.average)}</strong>
+            <p>${escapeHtml(t("weightAverage"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.average)}%"></span></div>
+          </article>
+          <div class="weight-metrics">
+            <article class="weight-metric"><strong>${escapeHtml(stats.core.avg)}</strong><span>${escapeHtml(t("weightCoreAverage"))}</span></article>
+            <article class="weight-metric"><strong>${escapeHtml(stats.evidencePercent)}%</strong><span>${escapeHtml(t("weightEvidenceCoverage"))}</span></article>
+            <article class="weight-metric"><strong>${escapeHtml(stats.needsEvidence)}</strong><span>${escapeHtml(t("weightNeedsEvidence"))}</span></article>
+            <article class="weight-metric"><strong>${escapeHtml(stats.total)}</strong><span>${escapeHtml(t("weightDistribution"))}</span></article>
+          </div>
+          <div class="weight-lanes">
+            ${lanes.map(([label, count, avg]) => `<article class="weight-lane">
+              <strong>${escapeHtml(count)}</strong>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(avg)}%"></span></div>
+              <span>${escapeHtml(t(label))}</span>
+            </article>`).join("")}
+            <p class="muted">${escapeHtml(t("weightTopGap"))}</p>
+            <div class="weight-gaps">
+              ${stats.gaps.length ? stats.gaps.map((entry) => `<article class="weight-gap-card">
+                <div>
+                  <strong>${escapeHtml(entry.alias)}</strong>
+                  <p>${escapeHtml(entry.name)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
+                </div>
+                <button type="button" class="secondary" data-weight-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("tuningAddSample"))}</button>
+              </article>`).join("") : `<div class="row">${escapeHtml(t("weightNoGap"))}</div>`}
+            </div>
+          </div>
+        `;
+      }
+
+      function weightSnapshotStats(rows) {
+        const total = rows.length || 0;
+        const average = total ? Math.round(rows.reduce((sum, row) => sum + (Number(row.brand_weight) || 0), 0) / total) : 0;
+        const group = (predicate) => {
+          const matches = rows.filter(predicate);
+          const avg = matches.length ? Math.round(matches.reduce((sum, row) => sum + (Number(row.brand_weight) || 0), 0) / matches.length) : 0;
+          return { count: matches.length, avg };
+        };
+        const evidenceRows = rows.filter((entry) => Number(entry.sample_count) >= 2);
+        const gaps = rows
+          .filter((entry) => Number(entry.sample_count) < 2)
+          .sort((a, b) => (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0))
+          .slice(0, 3);
+        return {
+          total,
+          average,
+          core: group((entry) => Number(entry.brand_weight) >= 90),
+          watch: group((entry) => Number(entry.brand_weight) >= 70 && Number(entry.brand_weight) < 90),
+          archive: group((entry) => Number(entry.brand_weight) < 70),
+          evidencePercent: total ? Math.round((evidenceRows.length / total) * 100) : 0,
+          needsEvidence: rows.filter((entry) => Number(entry.sample_count) < 2 && Number(entry.brand_weight) >= 70).length,
+          gaps,
         };
       }
 
@@ -1652,6 +1769,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
+        renderWeightSnapshot(rows);
         renderBrandRadarMatrix(rows);
         renderSampleCoverage(rows);
         renderWeightTuning(rows);
@@ -1876,6 +1994,10 @@ INDEX_HTML = r"""<!doctype html>
       $("sampleCoverage").addEventListener("click", (event) => {
         const sampleButton = event.target.closest("[data-coverage-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.coverageSample);
+      });
+      $("weightSnapshot").addEventListener("click", (event) => {
+        const sampleButton = event.target.closest("[data-weight-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.weightSample);
       });
       $("matrixFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-matrix-filter]");
