@@ -1823,6 +1823,53 @@ INDEX_HTML = r"""<!doctype html>
       .scorecard-score strong { font: 650 26px/1 Georgia, "Times New Roman", serif; }
       .scorecard-parts { display: grid; gap: 5px; }
       .scorecard-parts .profile-row { grid-template-columns: 74px 1fr 42px; }
+      .scorecard-ledger {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 7px;
+      }
+      .scorecard-ledger-item {
+        position: relative;
+        min-height: 74px;
+        display: grid;
+        gap: 3px;
+        align-content: start;
+        padding: 8px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, var(--line));
+        border-radius: 7px;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 11%, transparent), transparent 44%),
+          rgba(255,253,251,.7);
+        overflow: hidden;
+      }
+      .scorecard-ledger-item::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .scorecard-ledger-item span {
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .scorecard-ledger-item strong {
+        color: var(--wine);
+        font: 650 17px/1.05 Georgia, "Times New Roman", serif;
+        overflow-wrap: anywhere;
+      }
+      .scorecard-ledger-item small {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+      .scorecard-ledger-item.gold { border-color: color-mix(in srgb, var(--gold) 34%, var(--line)); }
+      .scorecard-ledger-item.rose { border-color: color-mix(in srgb, var(--rose) 34%, var(--line)); }
+      .scorecard-ledger-item.warn { border-color: color-mix(in srgb, var(--warn) 26%, var(--line)); }
+      .scorecard-ledger-item.off { opacity: .82; }
       .scorecard-actions { display: flex; flex-wrap: wrap; gap: 7px; }
       .scorecard-actions button { min-height: 30px; padding-inline: 10px; }
       .focus-list { display: grid; gap: 8px; }
@@ -3229,6 +3276,7 @@ INDEX_HTML = r"""<!doctype html>
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
         .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .style-premium-grid, .style-premium-list, .pattern-queue-grid, .pattern-queue-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-salon, .weight-salon-list, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .scorecard-ledger { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -4152,6 +4200,11 @@ INDEX_HTML = r"""<!doctype html>
           scorecardCurrent: "当前",
           scorecardTarget: "目标",
           scorecardVerdict: "结论",
+          scorecardLedger: "权重依据票据",
+          scorecardTierBasis: "档位",
+          scorecardPremiumBasis: "溢价",
+          scorecardEvidenceBasis: "证据",
+          scorecardTermsBasis: "款式词",
           scorecardNoRows: "暂无权重评分卡",
           exportScorecardsCsv: "导出评分卡 CSV",
           exportedScorecardsCsv: "权重评分卡已导出",
@@ -4977,6 +5030,11 @@ INDEX_HTML = r"""<!doctype html>
           scorecardCurrent: "current",
           scorecardTarget: "target",
           scorecardVerdict: "verdict",
+          scorecardLedger: "weight evidence tickets",
+          scorecardTierBasis: "tier",
+          scorecardPremiumBasis: "premium",
+          scorecardEvidenceBasis: "evidence",
+          scorecardTermsBasis: "terms",
           scorecardNoRows: "No weight scorecards yet",
           exportScorecardsCsv: "export scorecards CSV",
           exportedScorecardsCsv: "weight scorecards exported",
@@ -6044,11 +6102,56 @@ INDEX_HTML = r"""<!doctype html>
             ${formulaPartBar(t("formulaKeywords"), entry.parts.keywords, 4)}
             ${formulaPartBar(t("formulaWatchability"), entry.parts.watchability, 4)}
           </div>
+          <div class="scorecard-ledger" aria-label="${escapeHtml(t("scorecardLedger"))}">
+            ${scorecardLedgerRows(entry).map(scorecardLedgerItemHtml).join("")}
+          </div>
           <p>${escapeHtml(t("formulaConfidence"))} ${escapeHtml(entry.confidence)}% · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
           <div class="scorecard-actions">
             ${Number(entry.delta) ? `<button type="button" class="secondary" data-scorecard-apply="${escapeHtml(entry.alias)}" data-scorecard-target="${escapeHtml(entry.target_weight)}">${escapeHtml(t("formulaApplyDraft"))}</button>` : ""}
             ${Number(entry.sample_count) < 2 ? `<button type="button" class="secondary" data-scorecard-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("tuningAddSample"))}</button>` : ""}
           </div>
+        </article>`;
+      }
+
+      function scorecardLedgerRows(entry) {
+        const weight = Number(entry.brand_weight) || 0;
+        const samples = Number(entry.sample_count) || 0;
+        const targetSamples = sampleTarget(weight, entry.tier);
+        const premium = Number(entry.avg_premium_rate) || 0;
+        const keywords = entry.market_keywords || [];
+        return [
+          {
+            label: "scorecardTierBasis",
+            value: tierLabel(entry.tier),
+            detail: valueLabel("weightRole", weightRoleKey(weight)),
+            tone: weight >= 90 ? "rose" : weight >= 70 ? "gold" : "off",
+          },
+          {
+            label: "scorecardPremiumBasis",
+            value: formatPercent(premium),
+            detail: valueLabel("premiumBand", entry.premium_band || premiumBand(premium)),
+            tone: premium >= 0.25 ? "rose" : premium < 0 ? "warn" : "off",
+          },
+          {
+            label: "scorecardEvidenceBasis",
+            value: `${samples}/${targetSamples}`,
+            detail: valueLabel("evidenceLevel", entry.evidence_level || evidenceLevel(samples)),
+            tone: samples >= targetSamples ? "rose" : samples >= 2 ? "gold" : "warn",
+          },
+          {
+            label: "scorecardTermsBasis",
+            value: String(keywords.length),
+            detail: keywords.slice(0, 2).join(" / ") || t("noMarketKeywords"),
+            tone: keywords.length >= 3 ? "rose" : keywords.length ? "gold" : "off",
+          },
+        ];
+      }
+
+      function scorecardLedgerItemHtml(row) {
+        return `<article class="scorecard-ledger-item ${escapeHtml(row.tone || "")}">
+          <span>${escapeHtml(t(row.label))}</span>
+          <strong>${escapeHtml(row.value)}</strong>
+          <small>${escapeHtml(row.detail)}</small>
         </article>`;
       }
 
