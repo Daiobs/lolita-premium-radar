@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -38,6 +39,14 @@ class InspectResult:
     items: list[RadarItem]
     error_message: str = ""
     warnings: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class CheckLoopResult:
+    cycle: int
+    ok: bool
+    event_count: int
+    error_message: str = ""
 
 
 def build_adapter(config: SourceConfig) -> SourceAdapter:
@@ -171,6 +180,29 @@ def latest_source_health(config_path: Path, db_path: Path) -> list[dict[str, obj
             }
         )
     return rows
+
+
+def run_check_loop(
+    config_path: Path,
+    db_path: Path,
+    cycles: int = 288,
+    interval_seconds: int = 300,
+    notify: bool = False,
+) -> list[CheckLoopResult]:
+    total_cycles = max(1, int(cycles))
+    sleep_seconds = max(0, int(interval_seconds))
+    results: list[CheckLoopResult] = []
+    for index in range(total_cycles):
+        cycle = index + 1
+        try:
+            events = check_sources(config_path=config_path, db_path=db_path, source_name=None, notify=notify)
+        except Exception as exc:
+            results.append(CheckLoopResult(cycle=cycle, ok=False, event_count=0, error_message=str(exc)))
+        else:
+            results.append(CheckLoopResult(cycle=cycle, ok=True, event_count=len(events)))
+        if cycle < total_cycles and sleep_seconds:
+            time.sleep(sleep_seconds)
+    return results
 
 
 def select_sources(sources: dict[str, SourceConfig], source_name: str | None) -> list[SourceConfig]:

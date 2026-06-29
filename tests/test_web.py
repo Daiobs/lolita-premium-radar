@@ -8,11 +8,11 @@ from pathlib import Path
 
 from lolita_radar.models import ItemStatus, RadarItem
 from lolita_radar.storage import connect, diff_and_store
-from lolita_radar.web import FEED_INDEX_HTML, INDEX_HTML, get_dashboard_state, make_handler
+from lolita_radar.web import FEED_INDEX_HTML, INDEX_HTML, get_feed_state, make_handler
 
 
 class WebTests(unittest.TestCase):
-    def test_dashboard_state_includes_sources_items_and_events(self) -> None:
+    def test_feed_state_includes_sources_items_and_events(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config_path = root / "sources.yaml"
@@ -47,7 +47,7 @@ sources:
             finally:
                 connection.close()
 
-            state = get_dashboard_state(config_path=config_path, db_path=db_path)
+            state = get_feed_state(config_path=config_path, db_path=db_path)
 
             self.assertTrue(state["ok"])
             self.assertEqual(state["counts"]["sources"], 1)

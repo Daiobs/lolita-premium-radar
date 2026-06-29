@@ -7,7 +7,7 @@ from pathlib import Path
 from .brands import default_brand_weights_path
 from .config import default_config_path
 from .market import default_market_observations_path
-from .runner import InspectResult, check_sources, inspect_sources, latest_source_health
+from .runner import CheckLoopResult, InspectResult, check_sources, inspect_sources, latest_source_health, run_check_loop
 from .web import DEFAULT_WEB_PORT, run_web
 
 
@@ -48,6 +48,13 @@ def main(argv: list[str] | None = None) -> int:
     health_parser.add_argument("--config", type=Path, default=default_config_path())
     health_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
 
+    loop_parser = subparsers.add_parser("run-loop", help="run repeated feed checks for long-running operation")
+    loop_parser.add_argument("--config", type=Path, default=default_config_path())
+    loop_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+    loop_parser.add_argument("--cycles", type=int, default=288, help="number of check cycles; 288 at 5 minutes covers 24h")
+    loop_parser.add_argument("--interval-seconds", type=int, default=300)
+    loop_parser.add_argument("--notify", action="store_true", help="send notifications during the loop")
+
     web_parser = subparsers.add_parser("web", help="start the local feed app")
     web_parser.add_argument("--config", type=Path, default=default_config_path())
     web_parser.add_argument("--brands", type=Path, default=default_brand_weights_path())
@@ -79,6 +86,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "health":
         print(format_health_rows(latest_source_health(config_path=args.config, db_path=args.db)))
         return 0
+    if args.command == "run-loop":
+        results = run_check_loop(
+            config_path=args.config,
+            db_path=args.db,
+            cycles=args.cycles,
+            interval_seconds=args.interval_seconds,
+            notify=args.notify,
+        )
+        print(format_loop_results(results))
+        return 0 if all(result.ok for result in results) else 1
     if args.command == "web":
         return run_web(
             config_path=args.config,
@@ -139,6 +156,22 @@ def format_health_rows(rows: list[dict[str, object]]) -> str:
                     str(row["event_count"]),
                     str(row["checked_at"] or "-"),
                     str(row["error_message"] or ""),
+                ]
+            )
+        )
+    return "\n".join(lines)
+
+
+def format_loop_results(results: list[CheckLoopResult]) -> str:
+    lines = ["cycle | ok | event_count | error_message"]
+    for result in results:
+        lines.append(
+            " | ".join(
+                [
+                    str(result.cycle),
+                    "ok" if result.ok else "failed",
+                    str(result.event_count),
+                    result.error_message,
                 ]
             )
         )

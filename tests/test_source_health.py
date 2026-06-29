@@ -1,8 +1,11 @@
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+import io
 from pathlib import Path
 
 import lolita_radar.runner as runner
+from lolita_radar.cli import main
 from lolita_radar.models import ItemStatus, RadarItem
 from lolita_radar.storage import connect, list_source_runs
 
@@ -80,6 +83,38 @@ class SourceHealthTests(unittest.TestCase):
             self.assertTrue(by_source["good"]["ok"])
             self.assertFalse(by_source["bad"]["ok"])
             self.assertIn("adapter boom", by_source["bad"]["error_message"])
+
+    def test_run_loop_runs_multiple_cycles_without_notifications(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            original = dict(runner.ADAPTERS)
+            stdout = io.StringIO()
+            try:
+                runner.ADAPTERS.update({"fake_good": FakeGoodAdapter})
+                with redirect_stdout(stdout):
+                    exit_code = main(
+                        [
+                            "run-loop",
+                            "--config",
+                            str(config_path),
+                            "--db",
+                            str(db_path),
+                            "--cycles",
+                            "2",
+                            "--interval-seconds",
+                            "0",
+                        ]
+                    )
+            finally:
+                runner.ADAPTERS.clear()
+                runner.ADAPTERS.update(original)
+
+            output = stdout.getvalue()
+            self.assertEqual(exit_code, 0)
+            self.assertIn("1 | ok", output)
+            self.assertIn("2 | ok", output)
 
     def write_config(self, root: Path, sources: dict[str, str]) -> Path:
         body = ["sources:"]

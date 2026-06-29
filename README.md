@@ -157,6 +157,16 @@ Show latest source health:
 python -m lolita_radar.cli health
 ```
 
+Run a 24-hour lightweight check loop:
+
+```bash
+python -m lolita_radar.cli run-loop --cycles 288 --interval-seconds 300
+```
+
+The loop keeps notifications off by default and records source health every
+cycle. Add `--notify` only when you intentionally want live alerts during the
+long run.
+
 Start the local feed app:
 
 ```bash
@@ -165,7 +175,7 @@ python -m lolita_radar.cli web
 
 Then open [http://127.0.0.1:8766](http://127.0.0.1:8766). The home page is a
 feed stream with Release Feed, Drop Feed, Trend Feed, and Alert Feed filters.
-It keeps the product focused on daily scanning instead of a dashboard.
+It keeps the product focused on daily scanning instead of heavy analysis panels.
 The feed app renders four lightweight streams:
 
 - Release Feed: brand release, preorder, and restock events from AP, BABY, AATP, Meta, and MMM.
