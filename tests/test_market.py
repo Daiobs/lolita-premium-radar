@@ -8,6 +8,7 @@ from lolita_radar.market import (
     build_opportunity_radar,
     load_market_observations,
     premium_priority_score,
+    premium_score_breakdown,
     summarize_market_observations,
 )
 
@@ -87,6 +88,14 @@ class MarketTests(unittest.TestCase):
 
         self.assertGreater(high_weight_score, low_weight_score)
 
+    def test_premium_score_breakdown_explains_total_score(self) -> None:
+        breakdown = premium_score_breakdown(0.4, brand_weight=100, sample_count=3)
+
+        self.assertEqual(breakdown["premium_points"], 22)
+        self.assertEqual(breakdown["brand_points"], 40)
+        self.assertEqual(breakdown["sample_points"], 6)
+        self.assertEqual(premium_priority_score(0.4, brand_weight=100, sample_count=3), 68)
+
     def test_build_opportunity_radar_labels_next_action(self) -> None:
         opportunities = build_opportunity_radar(
             brand_weights=[
@@ -101,6 +110,7 @@ class MarketTests(unittest.TestCase):
 
         self.assertEqual(opportunities[0]["alias"], "AP")
         self.assertEqual(opportunities[0]["band"], "lead")
+        self.assertIn("score_breakdown", opportunities[0])
         self.assertIn("strong_premium", opportunities[0]["reason_codes"])
         self.assertEqual(opportunities[1]["band"], "watch")
 

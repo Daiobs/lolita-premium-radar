@@ -440,6 +440,10 @@ INDEX_HTML = r"""<!doctype html>
       }
       .opportunity-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .opportunity-card strong { color: var(--wine); }
+      .score-breakdown { display: grid; gap: 5px; }
+      .score-row { display: grid; grid-template-columns: 52px 1fr 26px; gap: 7px; align-items: center; color: var(--muted); font-size: 12px; }
+      .score-track { height: 7px; overflow: hidden; border-radius: 999px; background: var(--lace); }
+      .score-track span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--rose), var(--gold)); }
       .market-card {
         border: 1px solid var(--line);
         border-radius: 8px;
@@ -648,6 +652,9 @@ INDEX_HTML = r"""<!doctype html>
           avgPremium: "均值",
           maxPremium: "最高",
           priorityScore: "权重修正分",
+          premiumPoints: "溢价",
+          brandPoints: "品牌",
+          samplePoints: "样本",
           retailPrice: "原价",
           resalePrice: "二手价",
           brandAlias: "品牌",
@@ -754,6 +761,9 @@ INDEX_HTML = r"""<!doctype html>
           avgPremium: "avg",
           maxPremium: "max",
           priorityScore: "weighted score",
+          premiumPoints: "premium",
+          brandPoints: "brand",
+          samplePoints: "samples",
           retailPrice: "retail",
           resalePrice: "resale",
           brandAlias: "brand",
@@ -906,9 +916,23 @@ INDEX_HTML = r"""<!doctype html>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(entry.priority_score) || 0}%"></span></div>
           <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</p>
+          ${renderScoreBreakdown(entry.score_breakdown)}
           <p class="muted">${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
           <p class="muted">${escapeHtml(reasonLabels(entry.reason_codes).join(" · "))}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noOpportunity"))}</div>`;
+      }
+
+      function renderScoreBreakdown(breakdown = {}) {
+        const rows = [
+          [t("premiumPoints"), breakdown.premium_points || 0, 55],
+          [t("brandPoints"), breakdown.brand_points || 0, 40],
+          [t("samplePoints"), breakdown.sample_points || 0, 10],
+        ];
+        return `<div class="score-breakdown">${rows.map(([label, value, max]) => `<div class="score-row">
+          <span>${escapeHtml(label)}</span>
+          <div class="score-track" aria-hidden="true"><span style="--score: ${Math.min(100, Math.round((Number(value) || 0) / max * 100))}%"></span></div>
+          <span>${escapeHtml(value)}</span>
+        </div>`).join("")}</div>`;
       }
 
       function renderOpportunitySummary(opportunities) {

@@ -140,6 +140,7 @@ def build_opportunity_radar(
                 "avg_premium_rate": round(avg_premium_rate, 4),
                 "max_premium_rate": round(max_premium_rate, 4),
                 "priority_score": score,
+                "score_breakdown": premium_score_breakdown(avg_premium_rate, weight, sample_count),
                 "band": band,
                 "reason_codes": opportunity_reasons(avg_premium_rate, sample_count, weight),
             }
@@ -194,10 +195,20 @@ def positive_float(value: Any) -> float:
 
 
 def premium_priority_score(premium_rate: float, brand_weight: int, sample_count: int) -> int:
+    breakdown = premium_score_breakdown(premium_rate, brand_weight, sample_count)
+    total = breakdown["premium_points"] + breakdown["brand_points"] + breakdown["sample_points"]
+    return max(0, min(100, round(total)))
+
+
+def premium_score_breakdown(premium_rate: float, brand_weight: int, sample_count: int) -> dict[str, int]:
     premium_points = max(0, premium_rate) * 55
     brand_points = clamp_int(brand_weight, default=50) * 0.4
     sample_points = min(10, max(0, sample_count) * 2)
-    return max(0, min(100, round(premium_points + brand_points + sample_points)))
+    return {
+        "premium_points": round(premium_points),
+        "brand_points": round(brand_points),
+        "sample_points": round(sample_points),
+    }
 
 
 def clamp_int(value: Any, default: int) -> int:
