@@ -87,14 +87,19 @@ def main(argv: list[str] | None = None) -> int:
         print(format_health_rows(latest_source_health(config_path=args.config, db_path=args.db)))
         return 0
     if args.command == "run-loop":
-        results = run_check_loop(
-            config_path=args.config,
-            db_path=args.db,
-            cycles=args.cycles,
-            interval_seconds=args.interval_seconds,
-            notify=args.notify,
-        )
-        print(format_loop_results(results))
+        print("cycle | ok | event_count | error_message", flush=True)
+        try:
+            results = run_check_loop(
+                config_path=args.config,
+                db_path=args.db,
+                cycles=args.cycles,
+                interval_seconds=args.interval_seconds,
+                notify=args.notify,
+                on_result=lambda result: print(format_loop_result_line(result), flush=True),
+            )
+        except KeyboardInterrupt:
+            print("interrupted", file=sys.stderr)
+            return 130
         return 0 if all(result.ok for result in results) else 1
     if args.command == "web":
         return run_web(
@@ -165,17 +170,19 @@ def format_health_rows(rows: list[dict[str, object]]) -> str:
 def format_loop_results(results: list[CheckLoopResult]) -> str:
     lines = ["cycle | ok | event_count | error_message"]
     for result in results:
-        lines.append(
-            " | ".join(
-                [
-                    str(result.cycle),
-                    "ok" if result.ok else "failed",
-                    str(result.event_count),
-                    result.error_message,
-                ]
-            )
-        )
+        lines.append(format_loop_result_line(result))
     return "\n".join(lines)
+
+
+def format_loop_result_line(result: CheckLoopResult) -> str:
+    return " | ".join(
+        [
+            str(result.cycle),
+            "ok" if result.ok else "failed",
+            str(result.event_count),
+            result.error_message,
+        ]
+    )
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 from .adapters import (
     AliceAndThePiratesAdapter,
@@ -188,6 +189,7 @@ def run_check_loop(
     cycles: int = 288,
     interval_seconds: int = 300,
     notify: bool = False,
+    on_result: Callable[[CheckLoopResult], None] | None = None,
 ) -> list[CheckLoopResult]:
     total_cycles = max(1, int(cycles))
     sleep_seconds = max(0, int(interval_seconds))
@@ -197,9 +199,12 @@ def run_check_loop(
         try:
             events = check_sources(config_path=config_path, db_path=db_path, source_name=None, notify=notify)
         except Exception as exc:
-            results.append(CheckLoopResult(cycle=cycle, ok=False, event_count=0, error_message=str(exc)))
+            result = CheckLoopResult(cycle=cycle, ok=False, event_count=0, error_message=str(exc))
         else:
-            results.append(CheckLoopResult(cycle=cycle, ok=True, event_count=len(events)))
+            result = CheckLoopResult(cycle=cycle, ok=True, event_count=len(events))
+        results.append(result)
+        if on_result is not None:
+            on_result(result)
         if cycle < total_cycles and sleep_seconds:
             time.sleep(sleep_seconds)
     return results

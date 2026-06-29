@@ -5,7 +5,8 @@ import io
 from pathlib import Path
 
 import lolita_radar.runner as runner
-from lolita_radar.cli import main
+from lolita_radar.cli import format_loop_results, main
+from lolita_radar.runner import CheckLoopResult
 from lolita_radar.models import ItemStatus, RadarItem
 from lolita_radar.storage import connect, list_source_runs
 
@@ -113,8 +114,21 @@ class SourceHealthTests(unittest.TestCase):
 
             output = stdout.getvalue()
             self.assertEqual(exit_code, 0)
+            self.assertIn("cycle | ok | event_count | error_message", output)
             self.assertIn("1 | ok", output)
             self.assertIn("2 | ok", output)
+
+    def test_loop_result_formatter_keeps_audit_table_shape(self) -> None:
+        output = format_loop_results(
+            [
+                CheckLoopResult(cycle=1, ok=True, event_count=2),
+                CheckLoopResult(cycle=2, ok=False, event_count=0, error_message="boom"),
+            ]
+        )
+
+        self.assertIn("cycle | ok | event_count | error_message", output)
+        self.assertIn("1 | ok | 2 |", output)
+        self.assertIn("2 | failed | 0 | boom", output)
 
     def write_config(self, root: Path, sources: dict[str, str]) -> Path:
         body = ["sources:"]
