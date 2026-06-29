@@ -446,6 +446,32 @@ INDEX_HTML = r"""<!doctype html>
       .language-switch button { min-height: 32px; padding: 0 10px; border-radius: 5px; background: transparent; color: #c9d6dc; }
       .language-switch button.active { background: #fff; color: #14242d; }
       .metrics { display: grid; grid-template-columns: repeat(5, minmax(132px, 1fr)); gap: 12px; padding: 22px 20px 12px; }
+      .radar-nav {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        padding: 8px 20px 10px;
+        overflow-x: auto;
+        background:
+          linear-gradient(180deg, rgba(244,238,233,.95), rgba(244,238,233,.86)),
+          var(--bg);
+        border-bottom: 1px solid rgba(97,27,49,.1);
+        backdrop-filter: blur(8px);
+      }
+      .radar-nav button {
+        min-height: 32px;
+        flex: 0 0 auto;
+        padding: 0 10px;
+        border: 1px solid rgba(97,27,49,.12);
+        border-radius: 999px;
+        background: rgba(255,253,251,.78);
+        box-shadow: var(--pearl-shadow);
+        color: var(--wine);
+      }
+      .radar-nav button:hover { background: #fff; }
       .metric, .panel, .atelier {
         background:
           radial-gradient(circle at 16px 16px, rgba(255,255,255,.88) 0 2px, transparent 2px) 0 0 / 22px 22px,
@@ -1098,6 +1124,14 @@ INDEX_HTML = r"""<!doctype html>
       </div>
     </header>
     <section class="metrics" id="metrics"></section>
+    <nav class="radar-nav" aria-label="Radar navigation">
+      <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
+      <button type="button" data-radar-jump="brandIdentityMatrix" data-i18n="navIdentity">身份</button>
+      <button type="button" data-radar-jump="brandRadarMatrix" data-i18n="navMatrix">矩阵</button>
+      <button type="button" data-radar-jump="marketForm" data-i18n="navPremium">溢价</button>
+      <button type="button" data-radar-jump="evidenceHealth" data-i18n="navEvidence">证据</button>
+      <button type="button" data-radar-jump="sources" data-i18n="navSources">监控源</button>
+    </nav>
     <section class="atelier">
       <div class="signal-strip">
         <h2 data-i18n="marketSignal">溢价信号</h2>
@@ -1385,6 +1419,12 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualWeight: "品牌权重",
           heroVisualPremium: "溢价热度",
           heroVisualEvidence: "样本证据",
+          navWeights: "权重",
+          navIdentity: "身份",
+          navMatrix: "矩阵",
+          navPremium: "溢价",
+          navEvidence: "证据",
+          navSources: "监控源",
           checkAll: "检查全部",
           refresh: "刷新",
           sourcesHeading: "监控源",
@@ -1724,6 +1764,12 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualWeight: "brand weight",
           heroVisualPremium: "premium heat",
           heroVisualEvidence: "sample evidence",
+          navWeights: "Weights",
+          navIdentity: "Identity",
+          navMatrix: "Matrix",
+          navPremium: "Premium",
+          navEvidence: "Evidence",
+          navSources: "Sources",
           checkAll: "Check All",
           refresh: "Refresh",
           sourcesHeading: "Watch Sources",
@@ -3599,7 +3645,19 @@ INDEX_HTML = r"""<!doctype html>
         if (currentState) render(currentState);
       }
 
+      function jumpToRadarSection(targetId) {
+        const target = $(targetId);
+        const section = target?.closest("section, main") || target;
+        if (!section) return;
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
       $("checkAllBtn").addEventListener("click", () => runCheck(null));
+      document.querySelector(".radar-nav").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-radar-jump]");
+        if (!button) return;
+        jumpToRadarSection(button.dataset.radarJump);
+      });
       $("marketForm").addEventListener("submit", addMarketObservation);
       ["marketBrand", "marketRetail", "marketResale", "marketCurrency"].forEach((id) => {
         $(id).addEventListener("input", renderSamplePreview);

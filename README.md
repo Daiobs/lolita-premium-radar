@@ -100,7 +100,9 @@ feels closer to a Lolita market desk without depending on remote media. Brand
 weight cards use Lolita-style visual cues such as themed brand cameos, tier
 ribbons, market-keyword pearls, and per-brand visual identity metadata for
 palette, motif, and radar cue, while keeping the weight sliders and saved draft
-state visible for fast tuning. The brand radar matrix
+state visible for fast tuning. A sticky radar navigation strip jumps between
+weights, brand identity, matrix, premium, evidence, and source sections so the
+long dashboard stays usable. The brand radar matrix
 puts weight, average resale premium, sample count, radar score, and next action
 in one scan-friendly view, with focused filters and sorting by score, premium,
 weight, sample count, or draft-score movement. The opportunity radar turns brand
