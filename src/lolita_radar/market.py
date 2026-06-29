@@ -278,6 +278,57 @@ def build_brand_weight_profile(
     )
 
 
+def build_sample_collection_plan(
+    brand_weights: list[dict[str, Any]],
+    market_brands: list[dict[str, Any]],
+    limit: int = 9,
+) -> list[dict[str, Any]]:
+    market_by_alias = {text(row.get("brand_alias")).upper(): row for row in market_brands}
+    plan = []
+    for brand in brand_weights:
+        alias = text(brand.get("alias"))
+        if not alias:
+            continue
+        weight = clamp_int(brand.get("weight"), default=50)
+        tier = text(brand.get("tier")) or weight_band(weight)
+        market = market_by_alias.get(alias.upper(), {})
+        sample_count = clamp_int(market.get("sample_count"), default=0)
+        target = sample_target(weight, tier)
+        missing = max(0, target - sample_count)
+        avg_premium_rate = float(market.get("avg_premium_rate") or 0)
+        if missing <= 0 and avg_premium_rate < 0.25:
+            continue
+        plan.append(
+            {
+                "name": text(brand.get("name")) or alias,
+                "alias": alias,
+                "tier": tier,
+                "style": text(brand.get("style")) or "general",
+                "brand_weight": weight,
+                "sample_count": sample_count,
+                "target_samples": target,
+                "missing_samples": missing,
+                "avg_premium_rate": round(avg_premium_rate, 4),
+                "urgency": sample_plan_urgency(missing, weight, sample_count),
+                "next_action": sample_plan_action(missing, sample_count),
+                "priority_score": sample_plan_score(weight, missing, avg_premium_rate, sample_count),
+                "market_keywords": [text(keyword) for keyword in brand.get("market_keywords") or [] if text(keyword)][:4],
+                "watch_urls": brand.get("watch_urls") if isinstance(brand.get("watch_urls"), list) else [],
+                "visual": brand.get("visual") if isinstance(brand.get("visual"), dict) else {},
+            }
+        )
+    return sorted(
+        plan,
+        key=lambda row: (
+            sample_plan_rank(text(row.get("urgency"))),
+            int(row["priority_score"]),
+            int(row["brand_weight"]),
+            int(row["missing_samples"]),
+        ),
+        reverse=True,
+    )[:limit]
+
+
 def build_market_alerts(
     brand_weights: list[dict[str, Any]],
     market_summary: dict[str, Any],
@@ -587,6 +638,46 @@ def sample_alert_reason(band: str, priority_score: int, quality_score: int) -> s
 
 def alert_rank(severity: str) -> int:
     return {"critical": 3, "watch": 2, "sample_gap": 1}.get(severity, 0)
+
+
+def sample_target(weight: int, tier: str) -> int:
+    if tier == "core" or weight >= 90:
+        return 5
+    if tier == "watch" or weight >= 70:
+        return 3
+    return 2
+
+
+def sample_plan_urgency(missing: int, weight: int, sample_count: int) -> str:
+    if missing <= 0:
+        return "complete"
+    if weight >= 90 and sample_count < 2:
+        return "critical"
+    if weight >= 70:
+        return "watch"
+    return "backfill"
+
+
+def sample_plan_action(missing: int, sample_count: int) -> str:
+    if missing <= 0:
+        return "complete"
+    if sample_count <= 0:
+        return "seed"
+    if sample_count < 2:
+        return "pair"
+    return "roundout"
+
+
+def sample_plan_rank(urgency: str) -> int:
+    return {"critical": 4, "watch": 3, "backfill": 2, "complete": 1}.get(urgency, 0)
+
+
+def sample_plan_score(weight: int, missing: int, avg_premium_rate: float, sample_count: int) -> int:
+    weight_points = clamp_int(weight, default=50) * 0.5
+    gap_points = max(0, missing) * 8
+    premium_points = max(0.0, avg_premium_rate) * 35
+    seed_bonus = 10 if sample_count == 0 and weight >= 90 else 0
+    return max(0, min(100, round(weight_points + gap_points + premium_points + seed_bonus)))
 
 
 def positive_float(value: Any) -> float:

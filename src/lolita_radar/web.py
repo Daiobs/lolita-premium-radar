@@ -18,6 +18,7 @@ from .market import (
     build_market_momentum,
     build_opportunity_radar,
     build_pattern_radar,
+    build_sample_collection_plan,
     default_market_observations_path,
     load_market_observations,
     summarize_market_observations,
@@ -228,6 +229,7 @@ def get_dashboard_state(
             "summary": market_summary,
             "momentum": build_market_momentum(market_observations, brand_weights),
             "patterns": build_pattern_radar(brand_weights, market_observations),
+            "sample_plan": build_sample_collection_plan(brand_weights, market_summary["brands"]),
         },
         "sources": [source_to_dict(source) for source in sources.values()],
         "items": items,
@@ -1158,6 +1160,38 @@ INDEX_HTML = r"""<!doctype html>
       }
       .coverage-card strong { color: var(--wine); }
       .coverage-card button { min-height: 30px; padding-inline: 10px; }
+      .sample-plan-board { margin: 0 20px 14px; }
+      .sample-plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; padding: 12px; }
+      .sample-plan-card {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        min-height: 188px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 12px 16px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.88) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 12%, transparent), transparent 36%),
+          linear-gradient(135deg, rgba(255,247,232,.76), rgba(248,251,250,.92)),
+          #fffaf8;
+        overflow: hidden;
+      }
+      .sample-plan-card::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 7px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.34) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .sample-plan-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .sample-plan-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .sample-plan-meta, .sample-plan-links, .sample-plan-keywords { display: flex; flex-wrap: wrap; gap: 6px; }
+      .sample-plan-keywords span { display: inline-flex; align-items: center; min-height: 23px; padding: 0 7px; border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line)); border-radius: 999px; background: rgba(255,253,251,.72); color: var(--muted); font-size: 12px; }
+      .sample-plan-card button { justify-self: start; min-height: 30px; }
       .tuning-board { margin: 0 20px 14px; }
       .tuning-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 12px; }
       .tuning-card {
@@ -1312,6 +1346,7 @@ INDEX_HTML = r"""<!doctype html>
       <button type="button" data-radar-jump="brandRadarMatrix" data-i18n="navMatrix">矩阵</button>
       <button type="button" data-radar-jump="marketForm" data-i18n="navPremium">溢价</button>
       <button type="button" data-radar-jump="evidenceHealth" data-i18n="navEvidence">证据</button>
+      <button type="button" data-radar-jump="samplePlan" data-i18n="navSampling">采样</button>
       <button type="button" data-radar-jump="sources" data-i18n="navSources">监控源</button>
     </nav>
     <section class="atelier">
@@ -1473,6 +1508,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
       <div id="sampleCoverage" class="coverage-grid"></div>
     </section>
+    <section class="panel sample-plan-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="samplePlan">样本采集计划</h2>
+          <span class="muted" data-i18n="samplePlanHint">按品牌权重和证据缺口安排下一批二手价样本</span>
+        </div>
+      </div>
+      <div id="samplePlan" class="sample-plan-grid"></div>
+    </section>
     <section class="panel tuning-board">
       <div class="toolbar">
         <div>
@@ -1619,6 +1663,7 @@ INDEX_HTML = r"""<!doctype html>
           navMatrix: "矩阵",
           navPremium: "溢价",
           navEvidence: "证据",
+          navSampling: "采样",
           navSources: "监控源",
           checkAll: "检查全部",
           refresh: "刷新",
@@ -1852,6 +1897,21 @@ INDEX_HTML = r"""<!doctype html>
           tuningSampleReady: "已选中品牌，可补价格样本",
           sampleCoverage: "样本覆盖",
           sampleCoverageHint: "判断雷达分背后的价格证据厚度",
+          samplePlan: "样本采集计划",
+          samplePlanHint: "按品牌权重和证据缺口安排下一批二手价样本",
+          samplePlanTarget: "目标",
+          samplePlanMissing: "缺口",
+          samplePlanProgress: "采样进度",
+          samplePlanNoRows: "当前没有待采样品牌",
+          samplePlanSeed: "补首样本",
+          samplePlanPair: "补配对样本",
+          samplePlanRoundout: "补齐目标",
+          samplePlanComplete: "观察复核",
+          samplePlanCritical: "核心缺口",
+          samplePlanWatch: "重点补样",
+          samplePlanBackfill: "档案补样",
+          samplePlanDone: "已达标",
+          samplePlanSampleReady: "已选中采样品牌",
           coverageReady: "充分",
           coverageThin: "偏薄",
           coverageMissing: "缺样本",
@@ -1994,6 +2054,7 @@ INDEX_HTML = r"""<!doctype html>
           navMatrix: "Matrix",
           navPremium: "Premium",
           navEvidence: "Evidence",
+          navSampling: "Sampling",
           navSources: "Sources",
           checkAll: "Check All",
           refresh: "Refresh",
@@ -2227,6 +2288,21 @@ INDEX_HTML = r"""<!doctype html>
           tuningSampleReady: "brand selected for price sample",
           sampleCoverage: "Sample Coverage",
           sampleCoverageHint: "Show how much price evidence sits behind radar scores",
+          samplePlan: "Sample Collection Plan",
+          samplePlanHint: "Queue the next resale-price samples by brand weight and evidence gaps",
+          samplePlanTarget: "target",
+          samplePlanMissing: "missing",
+          samplePlanProgress: "sample progress",
+          samplePlanNoRows: "No brands need sampling right now",
+          samplePlanSeed: "seed first sample",
+          samplePlanPair: "add paired sample",
+          samplePlanRoundout: "round out target",
+          samplePlanComplete: "review",
+          samplePlanCritical: "core gap",
+          samplePlanWatch: "watch gap",
+          samplePlanBackfill: "archive backfill",
+          samplePlanDone: "covered",
+          samplePlanSampleReady: "sampling brand selected",
           coverageReady: "ready",
           coverageThin: "thin",
           coverageMissing: "missing",
@@ -2753,6 +2829,109 @@ INDEX_HTML = r"""<!doctype html>
           missing,
           percent: Math.round(((ready + thin) / total) * 100),
         };
+      }
+
+      function renderSamplePlan(rows) {
+        const plan = buildSamplePlanRows(rows);
+        $("samplePlan").innerHTML = plan.length ? plan.map((entry) => `<article class="sample-plan-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)}</strong>
+              <p class="muted">${escapeHtml(entry.name)}</p>
+            </div>
+            <span class="pill ${samplePlanPill(entry.urgency)}">${escapeHtml(t(samplePlanUrgencyLabel(entry.urgency)))}</span>
+          </header>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(samplePlanProgress(entry))}%"></span></div>
+          <p class="muted">${escapeHtml(t("samplePlanProgress"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)} · ${escapeHtml(t("samplePlanMissing"))} ${escapeHtml(entry.missing_samples)} · ${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)}</p>
+          <div class="sample-plan-keywords">
+            ${(entry.market_keywords || []).length ? entry.market_keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("profileNoKeywords"))}</span>`}
+          </div>
+          <div class="sample-plan-links search-links">
+            ${(entry.watch_urls || []).slice(0, 3).map((link) => safeUrl(link.url) ? `<a href="${escapeHtml(safeUrl(link.url))}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>` : "").join("")}
+          </div>
+          <button type="button" class="secondary" data-sample-plan="${escapeHtml(entry.alias)}">${escapeHtml(t(samplePlanActionLabel(entry.next_action)))}</button>
+        </article>`).join("") : `<div class="row">${escapeHtml(t("samplePlanNoRows"))}</div>`;
+      }
+
+      function buildSamplePlanRows(rows) {
+        return (rows || []).map((entry) => {
+          const weight = Number(entry.brand_weight) || 0;
+          const sampleCount = Number(entry.sample_count) || 0;
+          const target = sampleTarget(weight, entry.tier);
+          const missing = Math.max(0, target - sampleCount);
+          const premium = Number(entry.avg_premium_rate) || 0;
+          return {
+            ...entry,
+            target_samples: target,
+            missing_samples: missing,
+            urgency: samplePlanUrgency(missing, weight, sampleCount),
+            next_action: samplePlanAction(missing, sampleCount),
+            priority_score: samplePlanScore(weight, missing, premium, sampleCount),
+          };
+        }).filter((entry) => entry.missing_samples > 0 || Number(entry.avg_premium_rate) >= 0.25)
+          .sort((a, b) => (
+            samplePlanRank(b.urgency) - samplePlanRank(a.urgency)
+            || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+            || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+          )).slice(0, 9);
+      }
+
+      function sampleTarget(weight, tier) {
+        if (tier === "core" || Number(weight) >= 90) return 5;
+        if (tier === "watch" || Number(weight) >= 70) return 3;
+        return 2;
+      }
+
+      function samplePlanUrgency(missing, weight, sampleCount) {
+        if (Number(missing) <= 0) return "complete";
+        if (Number(weight) >= 90 && Number(sampleCount) < 2) return "critical";
+        if (Number(weight) >= 70) return "watch";
+        return "backfill";
+      }
+
+      function samplePlanAction(missing, sampleCount) {
+        if (Number(missing) <= 0) return "complete";
+        if (Number(sampleCount) <= 0) return "seed";
+        if (Number(sampleCount) < 2) return "pair";
+        return "roundout";
+      }
+
+      function samplePlanScore(weight, missing, premium, sampleCount) {
+        const seedBonus = Number(sampleCount) === 0 && Number(weight) >= 90 ? 10 : 0;
+        return clampScore((Number(weight) || 0) * .5 + Math.max(0, Number(missing) || 0) * 8 + Math.max(0, Number(premium) || 0) * 35 + seedBonus);
+      }
+
+      function samplePlanProgress(entry) {
+        return Math.min(100, Math.round((Number(entry.sample_count) || 0) / Math.max(1, Number(entry.target_samples) || 1) * 100));
+      }
+
+      function samplePlanRank(urgency) {
+        return { critical: 4, watch: 3, backfill: 2, complete: 1 }[urgency] || 0;
+      }
+
+      function samplePlanPill(urgency) {
+        if (urgency === "critical") return "rose";
+        if (urgency === "watch") return "gold";
+        if (urgency === "backfill") return "off";
+        return "";
+      }
+
+      function samplePlanUrgencyLabel(urgency) {
+        return {
+          critical: "samplePlanCritical",
+          watch: "samplePlanWatch",
+          backfill: "samplePlanBackfill",
+          complete: "samplePlanDone",
+        }[urgency] || "samplePlanWatch";
+      }
+
+      function samplePlanActionLabel(action) {
+        return {
+          seed: "samplePlanSeed",
+          pair: "samplePlanPair",
+          roundout: "samplePlanRoundout",
+          complete: "samplePlanComplete",
+        }[action] || "samplePlanSeed";
       }
 
       function renderWeightSnapshot(rows) {
@@ -3849,6 +4028,7 @@ INDEX_HTML = r"""<!doctype html>
         renderBrandIdentityMatrix(rows);
         renderBrandRadarMatrix(rows);
         renderSampleCoverage(rows);
+        renderSamplePlan(rows);
         renderWeightTuning(rows);
       }
 
@@ -4239,6 +4419,13 @@ INDEX_HTML = r"""<!doctype html>
       $("sampleCoverage").addEventListener("click", (event) => {
         const sampleButton = event.target.closest("[data-coverage-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.coverageSample);
+      });
+      $("samplePlan").addEventListener("click", (event) => {
+        const sampleButton = event.target.closest("[data-sample-plan]");
+        if (sampleButton) {
+          prepareMarketSample(sampleButton.dataset.samplePlan);
+          toast(`${sampleButton.dataset.samplePlan} ${t("samplePlanSampleReady")}`);
+        }
       });
       $("weightSnapshot").addEventListener("click", (event) => {
         const sampleButton = event.target.closest("[data-weight-sample]");

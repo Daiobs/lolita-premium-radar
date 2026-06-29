@@ -10,6 +10,7 @@ from lolita_radar.market import (
     build_market_momentum,
     build_opportunity_radar,
     build_pattern_radar,
+    build_sample_collection_plan,
     load_market_observations,
     premium_band,
     premium_priority_score,
@@ -169,6 +170,32 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(ap["watch_urls"][0]["label"], "闲鱼")
         self.assertIn("score_breakdown", ap)
         self.assertEqual(meta["evidence_level"], "missing")
+
+    def test_build_sample_collection_plan_prioritizes_core_gaps(self) -> None:
+        plan = build_sample_collection_plan(
+            brand_weights=[
+                {
+                    "alias": "AP",
+                    "name": "Angelic Pretty",
+                    "weight": 100,
+                    "tier": "core",
+                    "market_keywords": ["贝壳", "Holy Lantern"],
+                    "watch_urls": [{"label": "闲鱼", "url": "https://www.goofish.com/search?q=Angelic+Pretty"}],
+                },
+                {"alias": "Meta", "name": "Metamorphose", "weight": 80, "tier": "watch"},
+            ],
+            market_brands=[
+                {"brand_alias": "Meta", "sample_count": 2, "avg_premium_rate": 0.1},
+            ],
+        )
+
+        self.assertEqual(plan[0]["alias"], "AP")
+        self.assertEqual(plan[0]["target_samples"], 5)
+        self.assertEqual(plan[0]["missing_samples"], 5)
+        self.assertEqual(plan[0]["urgency"], "critical")
+        self.assertEqual(plan[0]["next_action"], "seed")
+        self.assertEqual(plan[0]["market_keywords"], ["贝壳", "Holy Lantern"])
+        self.assertEqual(plan[0]["watch_urls"][0]["label"], "闲鱼")
 
     def test_build_market_alerts_prioritizes_spikes_and_sample_gaps(self) -> None:
         summary = summarize_market_observations(

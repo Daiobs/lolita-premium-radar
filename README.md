@@ -193,6 +193,11 @@ Brand premium rows now include a price corridor with average retail/resale
 prices, observed price ranges, average spread, and a band label for the brand's
 average premium, making it easier to compare original-price anchors against
 secondary-market asking prices.
+The dashboard also builds a sample collection plan from brand weights and
+current evidence gaps: core brands target five resale samples, watch brands
+target three, and archive brands target two. Each task carries suggested market
+keywords, watch links, missing-sample counts, and a button to prefill the sample
+form for the next observation.
 Each sample
 also gets a quality score based on source, URL, observed date, condition, and
 notes. Each recorded sample also gets a `premium_band` so the dashboard can
