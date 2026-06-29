@@ -1294,6 +1294,7 @@ INDEX_HTML = r"""<!doctype html>
       }
       .core-watch-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
       .core-watch-card strong { color: var(--wine); }
+      .core-watch-side { display: grid; gap: 5px; justify-items: end; }
       .core-watch-score { font: 650 26px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
       .core-watch-reasons, .core-watch-terms, .core-watch-links { display: flex; flex-wrap: wrap; gap: 6px; }
       .core-watch-reasons span {
@@ -2452,6 +2453,11 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchAnchorReady: "锚点已建",
           coreWatchPriceStatusReady: "已建价格锚点",
           coreWatchPriceStatusMissing: "待补价格锚点",
+          coreWatchActionAnchor: "补价格锚点",
+          coreWatchActionPair: "补第二条样本",
+          coreWatchActionTrack: "继续追价差",
+          coreWatchActionReview: "复核折价",
+          coreWatchActionHold: "维持观察",
           exportCoreWatchCsv: "导出盯盘 CSV",
           exportedCoreWatchCsv: "核心盯盘清单已导出",
           noCoreWatchCsv: "暂无可导出的核心盯盘清单",
@@ -2955,6 +2961,11 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchAnchorReady: "anchors ready",
           coreWatchPriceStatusReady: "price anchor ready",
           coreWatchPriceStatusMissing: "price anchor needed",
+          coreWatchActionAnchor: "add price anchor",
+          coreWatchActionPair: "add second sample",
+          coreWatchActionTrack: "track spread",
+          coreWatchActionReview: "review discount",
+          coreWatchActionHold: "hold watch",
           exportCoreWatchCsv: "export watch CSV",
           exportedCoreWatchCsv: "core watch checklist exported",
           noCoreWatchCsv: "no core watch checklist to export",
@@ -4867,6 +4878,7 @@ INDEX_HTML = r"""<!doctype html>
           ["brand_weight", "brand_weight"],
           ["sample_count", "sample_count"],
           ["target_samples", "target_samples"],
+          ["next_action", "next_action"],
           ["price_anchor_status", "price_anchor_status"],
           ["avg_premium_rate", "avg_premium_rate"],
           ["avg_retail_price", "avg_retail_price"],
@@ -4887,6 +4899,7 @@ INDEX_HTML = r"""<!doctype html>
             ...row,
             primary_term: primaryTerm,
             watch_reasons: coreWatchReasons(row).map((reason) => t(reason.label)).join(" | "),
+            next_action: t(coreWatchNextAction(row).label),
             price_anchor_status: t(hasCoreWatchPriceAnchor(row) ? "coreWatchPriceStatusReady" : "coreWatchPriceStatusMissing"),
             watch_terms: (row.watch_terms || []).join(" | "),
             radar_cue: row.visual?.radar_cue || "",
@@ -5478,13 +5491,17 @@ INDEX_HTML = r"""<!doctype html>
         const terms = entry.watch_terms || [];
         const primaryTerm = terms[0] || entry.alias;
         const reasons = coreWatchReasons(entry);
+        const nextAction = coreWatchNextAction(entry);
         return `<article class="core-watch-card" style="${escapeHtml(brandVisualStyle(entry))}">
           <header>
             <div>
               <strong>${escapeHtml(entry.alias)} · ${escapeHtml(entry.name)}</strong>
               <p>${escapeHtml(t("coreWatchCue"))} · ${escapeHtml(entry.visual?.radar_cue || styleLabel(entry.style))}</p>
             </div>
-            <div class="core-watch-score">${escapeHtml(entry.watch_score)}</div>
+            <div class="core-watch-side">
+              <div class="core-watch-score">${escapeHtml(entry.watch_score)}</div>
+              <span class="pill ${escapeHtml(nextAction.tone)}">${escapeHtml(t(nextAction.label))}</span>
+            </div>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.watch_score)}%"></span></div>
           <p>${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</p>
@@ -5517,6 +5534,16 @@ INDEX_HTML = r"""<!doctype html>
 
       function hasCoreWatchPriceAnchor(entry) {
         return Number(entry.sample_count) > 0 && (Number(entry.avg_retail_price) > 0 || Number(entry.avg_resale_price) > 0);
+      }
+
+      function coreWatchNextAction(entry) {
+        const sampleCount = Number(entry.sample_count) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        if (!hasCoreWatchPriceAnchor(entry)) return { label: "coreWatchActionAnchor", tone: "gold" };
+        if (sampleCount < 2) return { label: "coreWatchActionPair", tone: "gold" };
+        if (premium < 0) return { label: "coreWatchActionReview", tone: "warn" };
+        if (premium >= 0.25) return { label: "coreWatchActionTrack", tone: "rose" };
+        return { label: "coreWatchActionHold", tone: "off" };
       }
 
       function coreWatchReasons(entry) {
