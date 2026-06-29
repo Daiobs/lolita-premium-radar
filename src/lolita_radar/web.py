@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .adapters import SourceConfig
+from .brands import build_focus_queue, default_brand_weights_path, load_brand_weights
 from .config import load_sources
 from .models import RadarEvent
 from .runner import check_sources
@@ -16,29 +17,22 @@ from .storage import connect, list_events, list_items, storage_counts
 
 
 DEFAULT_WEB_PORT = 8766
-BRAND_WEIGHTS: list[dict[str, Any]] = [
-    {"name": "Angelic Pretty", "alias": "AP", "weight": 100, "tier": "core", "style": "sweet print"},
-    {"name": "BABY, THE STARS SHINE BRIGHT", "alias": "BABY", "weight": 95, "tier": "core", "style": "classic sweet"},
-    {"name": "ALICE and the PIRATES", "alias": "AATP", "weight": 90, "tier": "core", "style": "gothic prince"},
-    {"name": "Metamorphose temps de fille", "alias": "Meta", "weight": 80, "tier": "watch", "style": "release/restock"},
-    {"name": "Moi-meme-Moitie", "alias": "MMM", "weight": 75, "tier": "watch", "style": "gothic"},
-    {"name": "Innocent World", "alias": "IW", "weight": 65, "tier": "archive", "style": "classic"},
-    {"name": "Victorian Maiden", "alias": "VM", "weight": 65, "tier": "archive", "style": "classic"},
-    {"name": "Mary Magdalene", "alias": "MM", "weight": 65, "tier": "archive", "style": "classic"},
-    {"name": "Juliette et Justine", "alias": "JetJ", "weight": 65, "tier": "archive", "style": "art print"},
-]
 
 
 def run_web(
     config_path: Path,
     db_path: Path,
+    brands_path: Path | None = None,
     host: str = "127.0.0.1",
     port: int = DEFAULT_WEB_PORT,
 ) -> int:
-    handler = make_handler(config_path=config_path, db_path=db_path)
+    if brands_path is None:
+        brands_path = default_brand_weights_path()
+    handler = make_handler(config_path=config_path, db_path=db_path, brands_path=brands_path)
     server = ThreadingHTTPServer((host, port), handler)
     print(f"Lolita Premium Radar web UI: http://{host}:{port}")
     print(f"Config: {config_path.resolve()}")
+    print(f"Brand weights: {brands_path.resolve()}")
     print(f"Database: {db_path.resolve()}")
     try:
         server.serve_forever()
@@ -49,7 +43,10 @@ def run_web(
     return 0
 
 
-def make_handler(config_path: Path, db_path: Path) -> type[BaseHTTPRequestHandler]:
+def make_handler(config_path: Path, db_path: Path, brands_path: Path | None = None) -> type[BaseHTTPRequestHandler]:
+    if brands_path is None:
+        brands_path = default_brand_weights_path()
+
     class WebHandler(BaseHTTPRequestHandler):
         server_version = "LolitaPremiumRadar/0.1"
 
@@ -64,7 +61,7 @@ def make_handler(config_path: Path, db_path: Path) -> type[BaseHTTPRequestHandle
                 elif parsed.path == "/api/health":
                     self.send_json({"ok": True})
                 elif parsed.path == "/api/state":
-                    self.send_json(get_dashboard_state(config_path, db_path))
+                    self.send_json(get_dashboard_state(config_path, db_path, brands_path))
                 else:
                     self.send_error(HTTPStatus.NOT_FOUND, "Not found")
             except Exception as exc:
@@ -80,7 +77,7 @@ def make_handler(config_path: Path, db_path: Path) -> type[BaseHTTPRequestHandle
                 source_name = text_value(payload.get("source")) or None
                 notify = bool(payload.get("notify", False))
                 events = check_sources(config_path=config_path, db_path=db_path, source_name=source_name, notify=notify)
-                state = get_dashboard_state(config_path, db_path)
+                state = get_dashboard_state(config_path, db_path, brands_path)
                 state.update(
                     {
                         "checked_source": source_name or "all",
@@ -122,8 +119,9 @@ def make_handler(config_path: Path, db_path: Path) -> type[BaseHTTPRequestHandle
     return WebHandler
 
 
-def get_dashboard_state(config_path: Path, db_path: Path) -> dict[str, Any]:
+def get_dashboard_state(config_path: Path, db_path: Path, brands_path: Path | None = None) -> dict[str, Any]:
     sources = load_sources(config_path)
+    brand_weights = load_brand_weights(brands_path)
     connection = connect(db_path)
     try:
         counts = storage_counts(connection)
@@ -135,12 +133,14 @@ def get_dashboard_state(config_path: Path, db_path: Path) -> dict[str, Any]:
         "ok": True,
         "config_path": str(config_path.resolve()),
         "db_path": str(db_path.resolve()),
+        "brands_path": str((brands_path or default_brand_weights_path()).resolve()),
         "counts": {
             **counts,
             "sources": len(sources),
             "enabled_sources": sum(1 for source in sources.values() if source.enabled),
         },
-        "brand_weights": BRAND_WEIGHTS,
+        "brand_weights": brand_weights,
+        "focus_queue": build_focus_queue(brand_weights, items, events),
         "sources": [source_to_dict(source) for source in sources.values()],
         "items": items,
         "events": events,
@@ -258,6 +258,10 @@ INDEX_HTML = r"""<!doctype html>
       .brand-chip { border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; background: var(--bg-soft); }
       .brand-chip strong { display: block; color: var(--wine); }
       .brand-chip span { color: var(--muted); font-size: 12px; }
+      .focus-list { display: grid; gap: 8px; }
+      .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff7f7; }
+      .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .focus-card strong { color: var(--wine); }
       .signal-strip { display: grid; gap: 8px; align-content: start; }
       .signal-bar { height: 11px; overflow: hidden; border-radius: 999px; background: var(--lace); }
       .signal-bar span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--teal), var(--rose), var(--gold)); }
@@ -317,6 +321,8 @@ INDEX_HTML = r"""<!doctype html>
         <p class="muted" id="signalSummary"></p>
         <div class="signal-bar" aria-hidden="true"><span id="signalBar" style="--score: 0%"></span></div>
         <div id="statusMix" class="status-list"></div>
+        <h2 data-i18n="focusQueue">重点关注队列</h2>
+        <div id="focusQueue" class="focus-list"></div>
       </div>
       <div>
         <h2 data-i18n="brandWeights">品牌权重</h2>
@@ -359,6 +365,7 @@ INDEX_HTML = r"""<!doctype html>
           trackedItemsHeading: "雷达条目",
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
+          focusQueue: "重点关注队列",
           metricSources: "数据源",
           metricTrackedItems: "跟踪条目",
           metricEvents: "事件",
@@ -370,6 +377,9 @@ INDEX_HTML = r"""<!doctype html>
           tierWatch: "观察",
           tierArchive: "档案",
           weightLabel: "权重",
+          radarScore: "雷达分",
+          observed: "已捕捉",
+          noFocusQueue: "暂无关注队列",
           noSources: "暂无配置数据源。",
           noEvents: "暂无事件。运行检查后会先建立基线。",
           noItems: "暂无跟踪条目。",
@@ -417,6 +427,7 @@ INDEX_HTML = r"""<!doctype html>
           trackedItemsHeading: "Radar Items",
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
+          focusQueue: "Focus Queue",
           metricSources: "Sources",
           metricTrackedItems: "Tracked Items",
           metricEvents: "Events",
@@ -428,6 +439,9 @@ INDEX_HTML = r"""<!doctype html>
           tierWatch: "watch",
           tierArchive: "archive",
           weightLabel: "weight",
+          radarScore: "radar score",
+          observed: "observed",
+          noFocusQueue: "No focus queue yet",
           noSources: "No sources configured.",
           noEvents: "No events yet. Run a check to build the baseline.",
           noItems: "No tracked items yet.",
@@ -493,6 +507,7 @@ INDEX_HTML = r"""<!doctype html>
           [t("metricLatestSource"), state.events?.[0]?.source || "-"],
         ].map(([label, value]) => `<article class="metric"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></article>`).join("");
         renderBrandWeights(state.brand_weights || []);
+        renderFocusQueue(state.focus_queue || []);
         renderMarketSignal(state.events || [], state.items || []);
         $("sources").innerHTML = state.sources.length ? state.sources.map(renderSource).join("") : `<div class="row">${escapeHtml(t("noSources"))}</div>`;
         $("eventCount").textContent = shownText(state.events.length);
@@ -508,6 +523,18 @@ INDEX_HTML = r"""<!doctype html>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.weight) || 0}%"></span></div>
           <p class="muted">${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)} · ${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(styleLabel(brand.style))}</p>
         </article>`).join("");
+      }
+
+      function renderFocusQueue(queue) {
+        $("focusQueue").innerHTML = queue.length ? queue.map((brand) => `<article class="focus-card">
+          <header>
+            <strong>${escapeHtml(brand.alias)}</strong>
+            <span class="pill rose">${escapeHtml(t("radarScore"))} ${escapeHtml(brand.score)}</span>
+          </header>
+          <p class="muted">${escapeHtml(brand.name)}</p>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.score) || 0}%"></span></div>
+          <p class="muted">${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)} · ${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(t("observed"))} ${escapeHtml(brand.item_count)}/${escapeHtml(brand.event_count)}</p>
+        </article>`).join("") : `<div class="row">${escapeHtml(t("noFocusQueue"))}</div>`;
       }
 
       function renderMarketSignal(events, items) {

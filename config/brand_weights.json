@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Angelic Pretty",
+    "alias": "AP",
+    "weight": 100,
+    "tier": "core",
+    "style": "sweet print",
+    "keywords": ["angelic pretty", "ap", "アンジェリックプリティ"]
+  },
+  {
+    "name": "BABY, THE STARS SHINE BRIGHT",
+    "alias": "BABY",
+    "weight": 95,
+    "tier": "core",
+    "style": "classic sweet",
+    "keywords": ["baby the stars shine bright", "btssb", "baby"]
+  },
+  {
+    "name": "ALICE and the PIRATES",
+    "alias": "AATP",
+    "weight": 90,
+    "tier": "core",
+    "style": "gothic prince",
+    "keywords": ["alice and the pirates", "aatp", "pirates"]
+  },
+  {
+    "name": "Metamorphose temps de fille",
+    "alias": "Meta",
+    "weight": 80,
+    "tier": "watch",
+    "style": "release/restock",
+    "keywords": ["metamorphose", "meta", "metamor"]
+  },
+  {
+    "name": "Moi-meme-Moitie",
+    "alias": "MMM",
+    "weight": 75,
+    "tier": "watch",
+    "style": "gothic",
+    "keywords": ["moi-meme-moitie", "moitie", "mmm"]
+  },
+  {
+    "name": "Innocent World",
+    "alias": "IW",
+    "weight": 65,
+    "tier": "archive",
+    "style": "classic",
+    "keywords": ["innocent world", "iw"]
+  },
+  {
+    "name": "Victorian Maiden",
+    "alias": "VM",
+    "weight": 65,
+    "tier": "archive",
+    "style": "classic",
+    "keywords": ["victorian maiden", "vm"]
+  },
+  {
+    "name": "Mary Magdalene",
+    "alias": "MM",
+    "weight": 65,
+    "tier": "archive",
+    "style": "classic",
+    "keywords": ["mary magdalene", "mm"]
+  },
+  {
+    "name": "Juliette et Justine",
+    "alias": "JetJ",
+    "weight": 65,
+    "tier": "archive",
+    "style": "art print",
+    "keywords": ["juliette et justine", "jetj"]
+  }
+]

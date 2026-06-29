@@ -96,6 +96,17 @@ The UI defaults to Chinese and includes a `中文 / EN` language switch. It also
 includes a Lolita secondary-market view with brand weights, status mix, and a
 simple premium-signal score for prioritizing attention.
 
+Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
+The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,
+and IW/VM/MM/JetJ 65. The dashboard also builds a focus queue from those weights
+and the currently observed items/events.
+
+Use another brand-weight file:
+
+```bash
+python -m lolita_radar.cli web --brands config/brand_weights.json
+```
+
 Use a custom database path:
 
 ```bash
