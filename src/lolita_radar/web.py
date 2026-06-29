@@ -2480,6 +2480,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="marketActionDesk">二级市场行动台</h2>
           <span class="muted" data-i18n="marketActionHint">把高权重款式词转成搜索和补样本任务</span>
         </div>
+        <button id="exportMarketActionsCsvBtn" type="button" class="secondary" data-i18n="exportMarketActionsCsv">导出行动 CSV</button>
       </div>
       <div id="marketActionDesk" class="action-grid"></div>
     </section>
@@ -3094,6 +3095,9 @@ INDEX_HTML = r"""<!doctype html>
           actionTaobao: "淘宝",
           actionMercari: "Mercari",
           actionYahoo: "雅虎拍卖",
+          exportMarketActionsCsv: "导出行动 CSV",
+          exportedMarketActionsCsv: "二级市场行动清单已导出",
+          noMarketActionsCsv: "暂无可导出的二级市场行动",
           evidenceHealth: "证据健康",
           evidenceHealthHint: "检查样本是否有来源、链接、日期和备注",
           qualityScore: "质量分",
@@ -3693,6 +3697,9 @@ INDEX_HTML = r"""<!doctype html>
           actionTaobao: "Taobao",
           actionMercari: "Mercari",
           actionYahoo: "Yahoo JP",
+          exportMarketActionsCsv: "export actions CSV",
+          exportedMarketActionsCsv: "market action checklist exported",
+          noMarketActionsCsv: "no market actions to export",
           evidenceHealth: "Evidence Health",
           evidenceHealthHint: "Check whether samples have source, link, date, and notes",
           qualityScore: "quality score",
@@ -6019,6 +6026,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedCoreWatchCsv"));
       }
 
+      function exportMarketActionsCsv() {
+        const rows = marketActions(currentState?.market?.patterns || []);
+        if (!rows.length) {
+          toast(t("noMarketActionsCsv"));
+          return;
+        }
+        const csv = csvFromMarketActionRows(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-market-actions.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedMarketActionsCsv"));
+      }
+
       function premiumCsvFilename() {
         const brand = activePremiumBrandFilter === "all" ? "all-brands" : activePremiumBrandFilter.toLowerCase();
         const band = activePremiumFilter === "all" ? "all-bands" : activePremiumFilter;
@@ -6159,6 +6185,43 @@ INDEX_HTML = r"""<!doctype html>
             taobao_url: searchLinkByLabel(links, "淘宝", "Taobao"),
             mercari_url: searchLinkByLabel(links, "Mercari"),
             yahoo_url: searchLinkByLabel(links, "雅虎", "Yahoo"),
+          };
+        });
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromMarketActionRows(rows) {
+        const fields = [
+          ["brand_alias", "alias"],
+          ["brand_name", "name"],
+          ["keyword", "keyword"],
+          ["action_query", "action_query"],
+          ["band", "band_label"],
+          ["priority_score", "priority_score"],
+          ["brand_weight", "brand_weight"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["sample_count", "sample_count"],
+          ["next_action", "next_action"],
+          ["goofish_url", "goofish_url"],
+          ["taobao_url", "taobao_url"],
+          ["mercari_url", "mercari_url"],
+          ["yahoo_url", "yahoo_url"],
+        ];
+        const enriched = (rows || []).map((row) => {
+          const links = marketSearchLinks(row);
+          return {
+            ...row,
+            action_query: actionQuery(row),
+            band_label: valueLabel("opportunityBand", row.band),
+            next_action: Number(row.sample_count) < 2 ? t("patternSample") : t("actionSearch"),
+            goofish_url: searchLinkByLabel(links, t("actionGoofish"), "Goofish", "闲鱼"),
+            taobao_url: searchLinkByLabel(links, t("actionTaobao"), "Taobao", "淘宝"),
+            mercari_url: searchLinkByLabel(links, t("actionMercari"), "Mercari"),
+            yahoo_url: searchLinkByLabel(links, t("actionYahoo"), "Yahoo", "雅虎"),
           };
         });
         const lines = [
@@ -7510,6 +7573,7 @@ INDEX_HTML = r"""<!doctype html>
       $("exportScenariosCsvBtn").addEventListener("click", exportWeightScenariosCsv);
       $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);
       $("exportCoreWatchCsvBtn").addEventListener("click", exportCoreWatchCsv);
+      $("exportMarketActionsCsvBtn").addEventListener("click", exportMarketActionsCsv);
       $("exportSamplePlanCsvBtn").addEventListener("click", exportSamplePlanCsv);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);
