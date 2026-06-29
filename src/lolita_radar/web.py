@@ -714,6 +714,21 @@ INDEX_HTML = r"""<!doctype html>
       }
       .weight-draft-stat strong { color: var(--wine); font: 650 20px/1 Georgia, "Times New Roman", serif; }
       .weight-draft-stat span { color: var(--muted); font-size: 11px; }
+      .weight-draft-warnings { display: grid; gap: 6px; }
+      .weight-draft-warning {
+        display: grid;
+        grid-template-columns: minmax(72px, auto) 1fr;
+        gap: 8px;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 8px;
+        border: 1px solid rgba(180,87,111,.18);
+        border-radius: 7px;
+        background: linear-gradient(90deg, rgba(255,243,246,.75), rgba(255,253,251,.84));
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .weight-draft-warning strong { color: var(--wine); }
       .weight-draft-head, .weight-draft-row {
         display: grid;
         grid-template-columns: minmax(110px, 1fr) 64px 64px 58px;
@@ -1380,6 +1395,7 @@ INDEX_HTML = r"""<!doctype html>
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
         .weight-draft-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .weight-draft-warning { grid-template-columns: 1fr; }
         .sample-plan-summary, .sample-plan-stats { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
@@ -1791,6 +1807,14 @@ INDEX_HTML = r"""<!doctype html>
           weightDraftRaised: "上调",
           weightDraftLowered: "下调",
           weightDraftMaxMove: "最大变化",
+          weightDraftRiskCoreDown: "核心下调",
+          weightDraftRiskThinRaise: "缺样本上调",
+          weightDraftRiskLargeMove: "大幅变化",
+          weightDraftRiskArchiveJump: "档案升权",
+          weightDraftRiskCoreDownHint: "核心品牌被明显下调，保存前复核发售和溢价证据",
+          weightDraftRiskThinRaiseHint: "样本不足却上调，建议先补原价和二手价",
+          weightDraftRiskLargeMoveHint: "变化幅度较大，适合先作为情景草稿观察",
+          weightDraftRiskArchiveJumpHint: "档案品牌升到观察档，确认是否有新溢价或新发售信号",
           draftPreview: "草稿预览",
           scoreDelta: "变化",
           weightsReset: "品牌权重已重置",
@@ -2214,6 +2238,14 @@ INDEX_HTML = r"""<!doctype html>
           weightDraftRaised: "raised",
           weightDraftLowered: "lowered",
           weightDraftMaxMove: "largest move",
+          weightDraftRiskCoreDown: "core lowered",
+          weightDraftRiskThinRaise: "thin evidence raise",
+          weightDraftRiskLargeMove: "large move",
+          weightDraftRiskArchiveJump: "archive promoted",
+          weightDraftRiskCoreDownHint: "core brand is lowered; review release and premium evidence before saving",
+          weightDraftRiskThinRaiseHint: "weight rises with thin samples; collect retail and resale evidence first",
+          weightDraftRiskLargeMoveHint: "large shift is better treated as a scenario draft first",
+          weightDraftRiskArchiveJumpHint: "archive brand moves into watch tier; confirm premium or release signals",
           draftPreview: "draft preview",
           scoreDelta: "delta",
           weightsReset: "brand weights reset",
@@ -4360,14 +4392,18 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function weightDraftRows() {
+        const marketRows = new Map((currentState?.market?.summary?.brands || []).map((row) => [normalizeAlias(row.brand_alias), row]));
         return Array.from(document.querySelectorAll("[data-brand-weight]")).map((input) => {
           const alias = input.dataset.brandWeight || "";
           const brand = brandByAlias(alias) || {};
+          const market = marketRows.get(normalizeAlias(alias)) || {};
           const savedWeight = Number(input.dataset.originalWeight) || 0;
           const draftWeight = Number(input.value) || 0;
           return {
             alias,
             name: brand.name || alias,
+            tier: brand.tier || "",
+            sample_count: Number(market.sample_count) || 0,
             saved_weight: savedWeight,
             draft_weight: draftWeight,
             delta: draftWeight - savedWeight,
@@ -4385,6 +4421,7 @@ INDEX_HTML = r"""<!doctype html>
         }
         audit.classList.remove("empty");
         const stats = weightDraftStats(rows);
+        const risks = weightDraftRisks(rows);
         audit.innerHTML = `
           <div class="weight-draft-summary">
             <article class="weight-draft-stat"><strong>${escapeHtml(formatDelta(stats.avgDelta))}</strong><span>${escapeHtml(t("weightDraftAvgDelta"))}</span></article>
@@ -4392,6 +4429,7 @@ INDEX_HTML = r"""<!doctype html>
             <article class="weight-draft-stat"><strong>${escapeHtml(stats.lowered)}</strong><span>${escapeHtml(t("weightDraftLowered"))}</span></article>
             <article class="weight-draft-stat"><strong>${escapeHtml(stats.maxAlias)} ${escapeHtml(formatDelta(stats.maxDelta))}</strong><span>${escapeHtml(t("weightDraftMaxMove"))}</span></article>
           </div>
+          ${risks.length ? `<div class="weight-draft-warnings">${risks.map((risk) => `<article class="weight-draft-warning"><strong>${escapeHtml(risk.alias)} · ${escapeHtml(t(risk.label))}</strong><span>${escapeHtml(t(risk.hint))}</span></article>`).join("")}</div>` : ""}
           <div class="weight-draft-head">
             <strong>${escapeHtml(t("weightDraftAudit"))}</strong>
             <span>${escapeHtml(t("weightDraftSaved"))}</span>
@@ -4420,6 +4458,29 @@ INDEX_HTML = r"""<!doctype html>
           maxAlias: strongest.alias || "-",
           maxDelta: Number(strongest.delta) || 0,
         };
+      }
+
+      function weightDraftRisks(rows) {
+        const risks = [];
+        rows.forEach((row) => {
+          const saved = Number(row.saved_weight) || 0;
+          const draft = Number(row.draft_weight) || 0;
+          const delta = Number(row.delta) || 0;
+          const isCore = row.tier === "core" || saved >= 90;
+          if (isCore && delta <= -10) {
+            risks.push({ alias: row.alias, label: "weightDraftRiskCoreDown", hint: "weightDraftRiskCoreDownHint", rank: 4 });
+          }
+          if ((Number(row.sample_count) || 0) < 2 && delta > 0) {
+            risks.push({ alias: row.alias, label: "weightDraftRiskThinRaise", hint: "weightDraftRiskThinRaiseHint", rank: 3 });
+          }
+          if (Math.abs(delta) >= 15) {
+            risks.push({ alias: row.alias, label: "weightDraftRiskLargeMove", hint: "weightDraftRiskLargeMoveHint", rank: 2 });
+          }
+          if (saved < 70 && draft >= 80) {
+            risks.push({ alias: row.alias, label: "weightDraftRiskArchiveJump", hint: "weightDraftRiskArchiveJumpHint", rank: 1 });
+          }
+        });
+        return risks.sort((a, b) => (Number(b.rank) || 0) - (Number(a.rank) || 0) || String(a.alias).localeCompare(String(b.alias))).slice(0, 4);
       }
 
       function buildDraftOpportunityRadar() {
