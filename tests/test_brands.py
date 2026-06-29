@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from lolita_radar.brands import build_focus_queue, keyword_matches, load_brand_weights
+from lolita_radar.brands import build_focus_queue, keyword_matches, load_brand_weights, save_brand_weights
 
 
 class BrandTests(unittest.TestCase):
@@ -24,6 +24,28 @@ class BrandTests(unittest.TestCase):
 
             self.assertEqual([brand["alias"] for brand in brands], ["AP", "Meta"])
             self.assertIn("ap", brands[0]["keywords"])
+
+    def test_save_brand_weights_updates_existing_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "brands.json"
+            path.write_text(
+                json.dumps(
+                    [
+                        {"name": "Meta", "alias": "Meta", "weight": 80, "tier": "watch", "keywords": ["metamorphose"]},
+                        {"name": "Angelic Pretty", "alias": "AP", "weight": 100, "tier": "core", "keywords": ["angelic pretty"]},
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            brands = save_brand_weights(path, [{"alias": "Meta", "weight": 94}])
+
+            meta = next(brand for brand in brands if brand["alias"] == "Meta")
+            self.assertEqual(meta["weight"], 94)
+            self.assertEqual(meta["tier"], "watch")
+            self.assertIn("metamorphose", meta["keywords"])
+            saved = load_brand_weights(path)
+            self.assertEqual(next(brand for brand in saved if brand["alias"] == "Meta")["weight"], 94)
 
     def test_short_alias_requires_word_boundary(self) -> None:
         self.assertFalse(keyword_matches("ap", "new arrival in april"))

@@ -74,6 +74,8 @@ sources:
         self.assertIn("marketPremium", INDEX_HTML)
         self.assertIn("marketForm", INDEX_HTML)
         self.assertIn("/api/market/observations", INDEX_HTML)
+        self.assertIn("/api/brand-weights", INDEX_HTML)
+        self.assertIn("saveWeightsBtn", INDEX_HTML)
         self.assertIn("priorityScore", INDEX_HTML)
 
     def test_market_observation_post_appends_sample(self) -> None:
@@ -119,6 +121,55 @@ sources:
                 self.assertEqual(payload["added_market_observation"]["premium_rate"], 0.5)
                 self.assertEqual(payload["market"]["summary"]["sample_count"], 1)
                 self.assertEqual(payload["market"]["summary"]["brands"][0]["brand_alias"], "AP")
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_brand_weights_put_updates_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "sources.yaml"
+            db_path = root / "radar.sqlite"
+            brands_path = root / "brands.json"
+            config_path.write_text(
+                """
+sources:
+  metamorphose:
+    type: metamorphose
+    enabled: true
+    url: "https://metamorphose.gr.jp/en/news"
+""".strip(),
+                encoding="utf-8",
+            )
+            brands_path.write_text(
+                json.dumps(
+                    [
+                        {"name": "Angelic Pretty", "alias": "AP", "weight": 100, "tier": "core", "keywords": ["angelic pretty"]},
+                        {"name": "Metamorphose", "alias": "Meta", "weight": 80, "tier": "watch", "keywords": ["metamorphose"]},
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            handler = make_handler(config_path=config_path, db_path=db_path, brands_path=brands_path)
+            server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = f"http://127.0.0.1:{server.server_port}/api/brand-weights"
+                request = urllib.request.Request(
+                    url,
+                    data=json.dumps({"weights": [{"alias": "Meta", "weight": 96}]}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="PUT",
+                )
+                with urllib.request.urlopen(request) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+
+                meta = next(brand for brand in payload["brand_weights"] if brand["alias"] == "Meta")
+                self.assertEqual(meta["weight"], 96)
+                saved = json.loads(brands_path.read_text(encoding="utf-8"))
+                self.assertEqual(next(brand for brand in saved if brand["alias"] == "Meta")["weight"], 96)
             finally:
                 server.shutdown()
                 server.server_close()

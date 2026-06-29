@@ -9,7 +9,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .adapters import SourceConfig
-from .brands import build_focus_queue, default_brand_weights_path, load_brand_weights
+from .brands import build_focus_queue, default_brand_weights_path, load_brand_weights, save_brand_weights
 from .config import load_sources
 from .market import (
     append_market_observation,
@@ -96,6 +96,16 @@ def make_handler(
             except Exception as exc:
                 self.send_exception(exc)
 
+        def do_PUT(self) -> None:
+            parsed = urlparse(self.path)
+            try:
+                if parsed.path == "/api/brand-weights":
+                    self.handle_brand_weights()
+                else:
+                    self.send_error(HTTPStatus.NOT_FOUND, "Not found")
+            except Exception as exc:
+                self.send_exception(exc)
+
         def handle_check(self) -> None:
             payload = self.read_json(default={})
             source_name = text_value(payload.get("source")) or None
@@ -117,6 +127,16 @@ def make_handler(
             state = get_dashboard_state(config_path, db_path, brands_path, market_path)
             state.update({"added_market_observation": observation})
             self.send_json(state, status=HTTPStatus.CREATED)
+
+        def handle_brand_weights(self) -> None:
+            payload = self.read_json(default={})
+            rows = payload.get("weights") if isinstance(payload, dict) else None
+            if not isinstance(rows, list):
+                raise ValueError("brand weight update must include a weights list")
+            updated = save_brand_weights(brands_path, rows)
+            state = get_dashboard_state(config_path, db_path, brands_path, market_path)
+            state.update({"updated_brand_weights": updated})
+            self.send_json(state)
 
         def read_json(self, default: Any | None = None) -> Any:
             length = int(self.headers.get("Content-Length", "0"))
@@ -356,6 +376,9 @@ INDEX_HTML = r"""<!doctype html>
       }
       .brand-chip strong { display: block; color: var(--wine); }
       .brand-chip span { color: var(--muted); font-size: 12px; }
+      .brand-chip input[type="range"] { width: 100%; accent-color: var(--rose-dark); }
+      .weight-control { display: grid; gap: 4px; margin-top: 7px; color: var(--muted); font-size: 12px; }
+      .brand-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
       .focus-list { display: grid; gap: 8px; }
       .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); }
       .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
@@ -423,6 +446,7 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
+        .brand-tools { align-items: flex-start; flex-direction: column; }
         .metrics, .watch-grid, .event-list, .item-list, .market-form { grid-template-columns: 1fr; }
         .market-form .wide { grid-column: span 1; }
       }
@@ -456,7 +480,10 @@ INDEX_HTML = r"""<!doctype html>
         <div id="focusQueue" class="focus-list"></div>
       </div>
       <div>
-        <h2 data-i18n="brandWeights">品牌权重</h2>
+        <div class="brand-tools">
+          <h2 data-i18n="brandWeights">品牌权重</h2>
+          <button id="saveWeightsBtn" type="button" class="secondary" data-i18n="saveWeights">保存权重</button>
+        </div>
         <div id="brandWeights" class="watch-grid"></div>
       </div>
     </section>
@@ -547,6 +574,8 @@ INDEX_HTML = r"""<!doctype html>
           trackedItemsHeading: "雷达条目",
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
+          saveWeights: "保存权重",
+          weightsSaved: "品牌权重已保存",
           focusQueue: "重点关注队列",
           marketPremium: "二手溢价观察",
           premiumByBrand: "品牌溢价排行",
@@ -627,6 +656,8 @@ INDEX_HTML = r"""<!doctype html>
           trackedItemsHeading: "Radar Items",
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
+          saveWeights: "Save Weights",
+          weightsSaved: "brand weights saved",
           focusQueue: "Focus Queue",
           marketPremium: "Resale Premium Watch",
           premiumByBrand: "Premium by Brand",
@@ -741,7 +772,11 @@ INDEX_HTML = r"""<!doctype html>
           <strong>${escapeHtml(brand.alias)}</strong>
           <span>${escapeHtml(brand.name)}</span>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.weight) || 0}%"></span></div>
-          <p class="muted">${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)} · ${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(styleLabel(brand.style))}</p>
+          <label class="weight-control">
+            <span data-weight-label>${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)}</span>
+            <input type="range" min="0" max="100" step="1" value="${escapeHtml(brand.weight)}" data-brand-weight="${escapeHtml(brand.alias)}">
+          </label>
+          <p class="muted">${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(styleLabel(brand.style))}</p>
         </article>`).join("");
       }
 
@@ -877,6 +912,34 @@ INDEX_HTML = r"""<!doctype html>
         }
       }
 
+      async function saveBrandWeights() {
+        setBusy(true);
+        try {
+          const weights = Array.from(document.querySelectorAll("[data-brand-weight]")).map((input) => ({
+            alias: input.dataset.brandWeight,
+            weight: Number(input.value) || 0,
+          }));
+          const nextState = await api("/api/brand-weights", { method: "PUT", body: JSON.stringify({ weights }) });
+          currentState = nextState;
+          render(nextState);
+          toast(t("weightsSaved"));
+        } catch (error) {
+          toast(error.message);
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      function handleWeightInput(event) {
+        const input = event.target.closest("[data-brand-weight]");
+        if (!input) return;
+        const card = input.closest(".brand-chip");
+        const label = card?.querySelector("[data-weight-label]");
+        const bar = card?.querySelector(".signal-bar span");
+        if (label) label.textContent = `${t("weightLabel")} ${input.value}`;
+        if (bar) bar.style.setProperty("--score", `${input.value}%`);
+      }
+
       function setBusy(busy) {
         document.querySelectorAll("button").forEach((button) => {
           button.disabled = busy || button.dataset.disabled === "true";
@@ -959,6 +1022,8 @@ INDEX_HTML = r"""<!doctype html>
 
       $("checkAllBtn").addEventListener("click", () => runCheck(null));
       $("marketForm").addEventListener("submit", addMarketObservation);
+      $("brandWeights").addEventListener("input", handleWeightInput);
+      $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("refreshBtn").addEventListener("click", () => loadState().then(() => toast(t("refreshed"))).catch((error) => toast(error.message)));
       $("sources").addEventListener("click", (event) => {
         const button = event.target.closest("button[data-source]");

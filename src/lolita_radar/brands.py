@@ -98,6 +98,29 @@ def load_brand_weights(path: Path | None = None) -> list[dict[str, Any]]:
     return normalize_brand_weights(raw)
 
 
+def save_brand_weights(path: Path | None, updates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if path is None:
+        path = default_brand_weights_path()
+    brands = load_brand_weights(path)
+    weights_by_alias = {
+        text(row.get("alias")).upper(): clamp_int(row.get("weight"), default=50)
+        for row in updates
+        if isinstance(row, dict) and text(row.get("alias"))
+    }
+    if not weights_by_alias:
+        raise ValueError("brand weight update must include at least one alias")
+    updated = []
+    for brand in brands:
+        alias_key = text(brand.get("alias")).upper()
+        if alias_key in weights_by_alias:
+            brand = {**brand, "weight": weights_by_alias[alias_key]}
+        updated.append(brand)
+    updated = normalize_brand_weights(updated)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(updated, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return updated
+
+
 def normalize_brand_weights(rows: list[Any]) -> list[dict[str, Any]]:
     brands: list[dict[str, Any]] = []
     for raw in rows:

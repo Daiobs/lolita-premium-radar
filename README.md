@@ -99,7 +99,8 @@ simple premium-signal score for prioritizing attention.
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,
 and IW/VM/MM/JetJ 65. The dashboard also builds a focus queue from those weights
-and the currently observed items/events.
+and the currently observed items/events. You can adjust existing brand weights
+from the web dashboard and save them back to the configured brand-weight file.
 
 Use another brand-weight file:
 
