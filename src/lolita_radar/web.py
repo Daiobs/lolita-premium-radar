@@ -561,6 +561,31 @@ INDEX_HTML = r"""<!doctype html>
       .weight-gap-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 10px; }
       .weight-gap-card strong { color: var(--wine); }
       .weight-gap-card button { min-height: 30px; padding-inline: 10px; }
+      .strategy-board { margin: 0 20px 14px; }
+      .strategy-grid { display: grid; grid-template-columns: minmax(210px, .72fr) minmax(260px, .9fr) minmax(300px, 1.38fr); gap: 12px; padding: 12px; }
+      .strategy-brief, .strategy-lane, .strategy-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .strategy-brief {
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(180,87,111,.12), transparent 36%),
+          linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+      }
+      .strategy-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .strategy-brief p, .strategy-lane p, .strategy-card p { margin: 0; color: var(--muted); }
+      .strategy-lanes, .strategy-list { display: grid; gap: 8px; }
+      .strategy-lane { display: grid; grid-template-columns: 76px 1fr 54px; gap: 8px; align-items: center; min-height: 46px; padding: 9px 10px; }
+      .strategy-lane strong, .strategy-card strong { color: var(--wine); }
+      .strategy-card { display: grid; gap: 8px; padding: 11px; }
+      .strategy-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .strategy-card .profile-row { grid-template-columns: 62px 1fr 32px; }
       .profile-board { margin: 0 20px 14px; }
       .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; padding: 12px; }
       .profile-card {
@@ -858,7 +883,7 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .action-grid, .quality-grid, .alert-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -926,6 +951,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="weightSnapshot" class="weight-snapshot"></div>
+    </section>
+    <section class="panel strategy-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandWeightStrategy">品牌权重策略台</h2>
+          <span class="muted" data-i18n="brandWeightStrategyHint">把权重档、溢价证据和草稿变化转成下一步校准动作</span>
+        </div>
+      </div>
+      <div id="brandWeightStrategy" class="strategy-grid"></div>
     </section>
     <section class="panel profile-board">
       <div class="toolbar">
@@ -1235,6 +1269,30 @@ INDEX_HTML = r"""<!doctype html>
           weightArchiveCount: "档案档",
           weightTopGap: "优先补样本",
           weightNoGap: "样本缺口已清空",
+          brandWeightStrategy: "品牌权重策略台",
+          brandWeightStrategyHint: "把权重档、溢价证据和草稿变化转成下一步校准动作",
+          strategyHeat: "策略温度",
+          strategyActionable: "待处理动作",
+          strategyCoverage: "证据覆盖",
+          strategyAvgWeight: "平均权重",
+          strategyCoreLane: "核心守门",
+          strategyWatchLane: "观察池",
+          strategyArchiveLane: "档案池",
+          strategyNextMoves: "下一步校准",
+          strategyCollect: "先补证据",
+          strategyRaise: "建议上调",
+          strategyCooldown: "降温复核",
+          strategyHold: "维持权重",
+          strategyBaseline: "低频观察",
+          strategyMonitor: "继续观察",
+          strategyReasonCoreGap: "高权重但价格样本不足",
+          strategyReasonPremiumRaise: "溢价已有样本支撑",
+          strategyReasonDiscountCool: "二手折价，需要复核权重",
+          strategyReasonHoldCore: "溢价和样本支撑当前权重",
+          strategyReasonArchiveGap: "低权重且证据不足",
+          strategyReasonMonitor: "权重、溢价和样本暂时平衡",
+          strategyTarget: "目标",
+          strategyNoMoves: "暂无校准动作",
           brandKeywordRadar: "热门款式词",
           brandKeywordHint: "把 AP 贝壳这类款式线索接到价格样本录入",
           marketKeywords: "二级市场词",
@@ -1518,6 +1576,30 @@ INDEX_HTML = r"""<!doctype html>
           weightArchiveCount: "archive tier",
           weightTopGap: "sample next",
           weightNoGap: "sample gaps cleared",
+          brandWeightStrategy: "Brand Weight Strategy",
+          brandWeightStrategyHint: "Turn tiers, premium evidence, and draft changes into tuning moves",
+          strategyHeat: "strategy heat",
+          strategyActionable: "open moves",
+          strategyCoverage: "evidence coverage",
+          strategyAvgWeight: "average weight",
+          strategyCoreLane: "core gate",
+          strategyWatchLane: "watch pool",
+          strategyArchiveLane: "archive pool",
+          strategyNextMoves: "next tuning moves",
+          strategyCollect: "collect evidence",
+          strategyRaise: "raise suggested",
+          strategyCooldown: "cooldown review",
+          strategyHold: "hold weight",
+          strategyBaseline: "low-frequency watch",
+          strategyMonitor: "keep watching",
+          strategyReasonCoreGap: "high weight with thin price evidence",
+          strategyReasonPremiumRaise: "premium is supported by samples",
+          strategyReasonDiscountCool: "discounted resale asks for review",
+          strategyReasonHoldCore: "premium and samples support this weight",
+          strategyReasonArchiveGap: "low weight and thin evidence",
+          strategyReasonMonitor: "weight, premium, and samples are balanced",
+          strategyTarget: "target",
+          strategyNoMoves: "No tuning moves yet",
           brandKeywordRadar: "Hot Pattern Keywords",
           brandKeywordHint: "Connect item-level signals such as AP shell to price-sample entry",
           marketKeywords: "market terms",
@@ -2054,6 +2136,53 @@ INDEX_HTML = r"""<!doctype html>
         `;
       }
 
+      function renderBrandWeightStrategy(rows) {
+        const stats = weightStrategyStats(rows);
+        const lanes = [
+          ["strategyCoreLane", stats.core],
+          ["strategyWatchLane", stats.watch],
+          ["strategyArchiveLane", stats.archive],
+        ];
+        const moves = brandWeightStrategyMoves(rows);
+        $("brandWeightStrategy").innerHTML = `
+          <article class="strategy-brief">
+            <strong>${escapeHtml(stats.heat)}</strong>
+            <p>${escapeHtml(t("strategyHeat"))} · ${escapeHtml(t("strategyAvgWeight"))} ${escapeHtml(stats.average)}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.heat)}%"></span></div>
+            <div class="coverage-stats">
+              <article class="coverage-stat"><strong>${escapeHtml(stats.actionable)}</strong><span class="muted">${escapeHtml(t("strategyActionable"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(stats.coverage)}%</strong><span class="muted">${escapeHtml(t("strategyCoverage"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(stats.total)}</strong><span class="muted">${escapeHtml(t("weightDistribution"))}</span></article>
+            </div>
+          </article>
+          <div class="strategy-lanes">
+            ${lanes.map(([label, lane]) => `<article class="strategy-lane">
+              <strong>${escapeHtml(lane.count)}</strong>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lane.avg)}%"></span></div>
+              <span class="muted">${escapeHtml(t(label))}</span>
+            </article>`).join("")}
+          </div>
+          <div class="strategy-list">
+            <p class="muted">${escapeHtml(t("strategyNextMoves"))}</p>
+            ${moves.length ? moves.map((move) => `<article class="strategy-card">
+              <header>
+                <div>
+                  <strong>${escapeHtml(move.alias)}</strong>
+                  <p>${escapeHtml(move.name)}</p>
+                </div>
+                <span class="pill ${strategyPill(move.action)}">${escapeHtml(t(move.label))}</span>
+              </header>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(move.priority_score)}%"></span></div>
+              <div class="score-breakdown">
+                ${profileBar(t("weightLabel"), move.brand_weight, 100)}
+                ${profileBar(t("strategyTarget"), move.target_weight, 100)}
+              </div>
+              <p>${escapeHtml(t(move.reason))} · ${escapeHtml(t("samples"))} ${escapeHtml(move.sample_count)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(move.avg_premium_rate))}</p>
+            </article>`).join("") : `<div class="row">${escapeHtml(t("strategyNoMoves"))}</div>`}
+          </div>
+        `;
+      }
+
       function renderBrandWeightProfile(rows) {
         const visible = [...rows]
           .sort((a, b) => (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0) || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0))
@@ -2128,6 +2257,66 @@ INDEX_HTML = r"""<!doctype html>
           needsEvidence: rows.filter((entry) => Number(entry.sample_count) < 2 && Number(entry.brand_weight) >= 70).length,
           gaps,
         };
+      }
+
+      function weightStrategyStats(rows) {
+        const total = rows.length || 0;
+        const average = total ? Math.round(rows.reduce((sum, row) => sum + (Number(row.brand_weight) || 0), 0) / total) : 0;
+        const group = (predicate) => {
+          const matches = rows.filter(predicate);
+          const avg = matches.length ? Math.round(matches.reduce((sum, row) => sum + (Number(row.brand_weight) || 0), 0) / matches.length) : 0;
+          return { count: matches.length, avg };
+        };
+        const coverage = total ? Math.round(rows.filter((entry) => Number(entry.sample_count) >= 2).length / total * 100) : 0;
+        const moves = brandWeightStrategyMoves(rows, rows.length || 0);
+        const actionable = moves.filter((move) => !["strategyHold", "strategyBaseline", "strategyMonitor"].includes(move.label)).length;
+        return {
+          total,
+          average,
+          coverage,
+          actionable,
+          heat: clampScore(Math.round((average * .45) + (coverage * .35) + (actionable * 8))),
+          core: group((entry) => Number(entry.brand_weight) >= 90),
+          watch: group((entry) => Number(entry.brand_weight) >= 70 && Number(entry.brand_weight) < 90),
+          archive: group((entry) => Number(entry.brand_weight) < 70),
+        };
+      }
+
+      function brandWeightStrategyMoves(rows, limit = 5) {
+        const moves = (rows || []).map((entry) => {
+          const weight = Number(entry.brand_weight) || 0;
+          const sampleCount = Number(entry.sample_count) || 0;
+          const premium = Number(entry.avg_premium_rate) || 0;
+          let move = { label: "strategyMonitor", reason: "strategyReasonMonitor", target_weight: weight, rank: 1 };
+          if (sampleCount < 2 && weight >= 85) {
+            move = { label: "strategyCollect", reason: "strategyReasonCoreGap", target_weight: weight, rank: 5 };
+          } else if (sampleCount >= 2 && premium >= 0.35 && weight < 90) {
+            move = { label: "strategyRaise", reason: "strategyReasonPremiumRaise", target_weight: Math.min(90, Math.max(70, weight + 10)), rank: 4 };
+          } else if (sampleCount >= 2 && premium < -0.05 && weight >= 70) {
+            move = { label: "strategyCooldown", reason: "strategyReasonDiscountCool", target_weight: Math.max(60, weight - 10), rank: 3 };
+          } else if (sampleCount >= 5 && premium >= 0.25) {
+            move = { label: "strategyHold", reason: "strategyReasonHoldCore", target_weight: weight, rank: 2 };
+          } else if (sampleCount < 2 && weight < 70) {
+            move = { label: "strategyBaseline", reason: "strategyReasonArchiveGap", target_weight: weight, rank: 1 };
+          }
+          return {
+            ...entry,
+            ...move,
+            action: move.label.replace("strategy", "").toLowerCase(),
+          };
+        }).sort((a, b) => (
+          (Number(b.rank) || 0) - (Number(a.rank) || 0)
+          || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+        ));
+        return moves.slice(0, limit);
+      }
+
+      function strategyPill(action) {
+        if (action === "collect") return "gold";
+        if (action === "raise" || action === "hold") return "rose";
+        if (action === "cooldown") return "warn";
+        return "off";
       }
 
       function renderWeightTuning(rows) {
@@ -2640,6 +2829,7 @@ INDEX_HTML = r"""<!doctype html>
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
         renderWeightSnapshot(rows);
+        renderBrandWeightStrategy(rows);
         renderBrandWeightProfile(rows);
         renderBrandRadarMatrix(rows);
         renderSampleCoverage(rows);
