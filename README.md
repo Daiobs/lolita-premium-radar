@@ -125,7 +125,10 @@ plotted by current weight with sample progress beside each label. A brand-weight
 lookbook adds a Lolita-style rack of the highest-fit labels, combining palette,
 motif, fit score, premium rate, sample count, and one-click sample/pattern
 actions so the dashboard reads more like a focused resale atelier while still
-explaining why each brand is weighted. A brand-weight
+explaining why each brand is weighted. A brand-weight scorecard turns the same
+formula into auditable tickets for each label, showing current weight, target
+weight, confidence, baseline, premium, evidence, keyword, and watchability parts
+with direct actions to apply a draft target or collect missing samples. A brand-weight
 strategy panel converts the current saved or draft weights into calibration
 moves such as collecting evidence, raising premium-supported brands, or cooling
 discounted brands. A weight-trajectory panel then turns the same evidence into

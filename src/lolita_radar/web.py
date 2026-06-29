@@ -1012,6 +1012,65 @@ INDEX_HTML = r"""<!doctype html>
         font-size: 12px;
       }
       .lookbook-actions button { min-height: 30px; padding-inline: 10px; }
+      .scorecard-board { margin: 0 20px 14px; }
+      .scorecard-grid { display: grid; grid-template-columns: minmax(220px, .62fr) minmax(360px, 1.38fr); gap: 12px; padding: 12px; }
+      .scorecard-brief, .scorecard-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .scorecard-brief {
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(15,103,96,.12), transparent 36%),
+          linear-gradient(135deg, rgba(248,251,250,.92), rgba(255,247,232,.78));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+      }
+      .scorecard-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .scorecard-brief p, .scorecard-card p { margin: 0; color: var(--muted); }
+      .scorecard-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .scorecard-stat {
+        display: grid;
+        gap: 3px;
+        min-height: 52px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+      }
+      .scorecard-stat strong { color: var(--wine); font: 650 20px/1 Georgia, "Times New Roman", serif; }
+      .scorecard-stat span { color: var(--muted); font-size: 11px; }
+      .scorecard-list { display: grid; gap: 9px; }
+      .scorecard-card {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        padding: 12px 12px 14px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 12%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 62%, #fff), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .scorecard-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .scorecard-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .scorecard-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .scorecard-score { display: grid; grid-template-columns: 60px 1fr 60px; gap: 8px; align-items: center; }
+      .scorecard-score strong { font: 650 26px/1 Georgia, "Times New Roman", serif; }
+      .scorecard-parts { display: grid; gap: 5px; }
+      .scorecard-parts .profile-row { grid-template-columns: 74px 1fr 42px; }
+      .scorecard-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+      .scorecard-actions button { min-height: 30px; padding-inline: 10px; }
       .focus-list { display: grid; gap: 8px; }
       .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); box-shadow: inset 3px 0 0 rgba(180,87,111,.22); }
       .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
@@ -1891,7 +1950,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .lookbook-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .lookbook-grid, .scorecard-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -1950,6 +2009,7 @@ INDEX_HTML = r"""<!doctype html>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
       <button type="button" data-radar-jump="brandLookbook" data-i18n="navLookbook">造型册</button>
+      <button type="button" data-radar-jump="brandWeightScorecard" data-i18n="navScorecard">评分卡</button>
       <button type="button" data-radar-jump="coreMarketWatch" data-i18n="navCoreWatch">盯盘</button>
       <button type="button" data-radar-jump="brandIdentityMatrix" data-i18n="navIdentity">身份</button>
       <button type="button" data-radar-jump="weightTrajectory" data-i18n="navTrajectory">轨迹</button>
@@ -1997,6 +2057,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="brandLookbook" class="lookbook-grid"></div>
+    </section>
+    <section class="panel scorecard-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandWeightScorecard">品牌权重评分卡</h2>
+          <span class="muted" data-i18n="brandWeightScorecardHint">把基线、溢价、证据、款式词和监控入口拆成可审计分项</span>
+        </div>
+      </div>
+      <div id="brandWeightScorecard" class="scorecard-grid"></div>
     </section>
     <section class="panel alert-board">
       <div class="toolbar">
@@ -2323,6 +2392,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "样本证据",
           navWeights: "权重",
           navLookbook: "造型册",
+          navScorecard: "评分卡",
           navCoreWatch: "盯盘",
           navIdentity: "身份",
           navTrajectory: "轨迹",
@@ -2403,6 +2473,16 @@ INDEX_HTML = r"""<!doctype html>
           lookbookActionReview: "复核折价",
           lookbookActionWatch: "继续观察",
           lookbookNoRows: "暂无品牌造型册",
+          brandWeightScorecard: "品牌权重评分卡",
+          brandWeightScorecardHint: "把基线、溢价、证据、款式词和监控入口拆成可审计分项",
+          scorecardTop: "最高目标",
+          scorecardAligned: "已对齐",
+          scorecardCollect: "待补证据",
+          scorecardAvgConfidence: "平均置信度",
+          scorecardCurrent: "当前",
+          scorecardTarget: "目标",
+          scorecardVerdict: "结论",
+          scorecardNoRows: "暂无权重评分卡",
           brandRadarMatrix: "品牌雷达矩阵",
           matrixHint: "把权重、溢价、样本和动作放在一起看",
           matrixBrand: "品牌",
@@ -2850,6 +2930,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "sample evidence",
           navWeights: "Weights",
           navLookbook: "Lookbook",
+          navScorecard: "Scorecard",
           navCoreWatch: "Watch",
           navIdentity: "Identity",
           navTrajectory: "Trajectory",
@@ -2930,6 +3011,16 @@ INDEX_HTML = r"""<!doctype html>
           lookbookActionReview: "review discount",
           lookbookActionWatch: "keep watching",
           lookbookNoRows: "No brand lookbook yet",
+          brandWeightScorecard: "Brand Weight Scorecard",
+          brandWeightScorecardHint: "Split baseline, premium, evidence, pattern terms, and watch links into auditable parts",
+          scorecardTop: "top target",
+          scorecardAligned: "aligned",
+          scorecardCollect: "needs evidence",
+          scorecardAvgConfidence: "avg confidence",
+          scorecardCurrent: "current",
+          scorecardTarget: "target",
+          scorecardVerdict: "verdict",
+          scorecardNoRows: "No weight scorecards yet",
           brandRadarMatrix: "Brand Radar Matrix",
           matrixHint: "Weight, premium, samples, and action in one view",
           matrixBrand: "brand",
@@ -3577,6 +3668,112 @@ INDEX_HTML = r"""<!doctype html>
         if (samples >= 2 && premium >= 0.25) return { label: "lookbookActionTrack" };
         if (samples >= 2 && premium < -0.05) return { label: "lookbookActionReview" };
         return { label: "lookbookActionWatch" };
+      }
+
+      function renderBrandWeightScorecard(rows) {
+        const target = $("brandWeightScorecard");
+        if (!target) return;
+        const cards = brandWeightScorecardRows(rows);
+        const stats = brandWeightScorecardStats(cards);
+        target.innerHTML = cards.length ? `
+          <article class="scorecard-brief">
+            <strong>${escapeHtml(stats.topTarget)}</strong>
+            <p>${escapeHtml(t("scorecardTop"))} · ${escapeHtml(t("scorecardAvgConfidence"))} ${escapeHtml(stats.avgConfidence)}%</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.avgConfidence)}%"></span></div>
+            <div class="scorecard-stats">
+              <article class="scorecard-stat"><strong>${escapeHtml(stats.aligned)}</strong><span>${escapeHtml(t("scorecardAligned"))}</span></article>
+              <article class="scorecard-stat"><strong>${escapeHtml(stats.collect)}</strong><span>${escapeHtml(t("scorecardCollect"))}</span></article>
+            </div>
+            <p>${escapeHtml(t("brandWeightScorecardHint"))}</p>
+          </article>
+          <div class="scorecard-list">
+            ${cards.map(brandWeightScorecardHtml).join("")}
+          </div>
+        ` : `<div class="row">${escapeHtml(t("scorecardNoRows"))}</div>`;
+      }
+
+      function brandWeightScorecardRows(rows) {
+        return buildBrandWeightFormula(rows, Number.POSITIVE_INFINITY).map((entry) => ({
+          ...entry,
+          scorecard_verdict: scorecardVerdict(entry),
+        })).sort((a, b) => (
+          scorecardRank(b.scorecard_verdict) - scorecardRank(a.scorecard_verdict)
+          || Math.abs(Number(b.delta) || 0) - Math.abs(Number(a.delta) || 0)
+          || (Number(b.confidence) || 0) - (Number(a.confidence) || 0)
+          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+        )).slice(0, 6);
+      }
+
+      function brandWeightScorecardStats(cards) {
+        const total = cards.length || 0;
+        return {
+          topTarget: cards[0]?.alias || "-",
+          aligned: cards.filter((entry) => entry.scorecard_verdict === "aligned").length,
+          collect: cards.filter((entry) => entry.scorecard_verdict === "collect").length,
+          avgConfidence: total ? Math.round(cards.reduce((sum, entry) => sum + (Number(entry.confidence) || 0), 0) / total) : 0,
+        };
+      }
+
+      function brandWeightScorecardHtml(entry) {
+        return `<article class="scorecard-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)} · ${escapeHtml(entry.name)}</strong>
+              <p>${escapeHtml(t("scorecardVerdict"))} · ${escapeHtml(t(scorecardVerdictLabel(entry.scorecard_verdict)))}</p>
+            </div>
+            <span class="pill ${scorecardVerdictPill(entry.scorecard_verdict)}">${escapeHtml(t(formulaLabel(entry.delta)))}</span>
+          </header>
+          <div class="scorecard-score">
+            <div>
+              <strong>${escapeHtml(entry.brand_weight)}</strong>
+              <p>${escapeHtml(t("scorecardCurrent"))}</p>
+            </div>
+            <div class="score-track" aria-hidden="true"><span style="--score: ${escapeHtml(Math.max(Number(entry.brand_weight) || 0, Number(entry.target_weight) || 0))}%"></span></div>
+            <div>
+              <strong>${escapeHtml(entry.target_weight)}</strong>
+              <p>${escapeHtml(t("scorecardTarget"))}</p>
+            </div>
+          </div>
+          <div class="scorecard-parts">
+            ${formulaPartBar(t("formulaBase"), entry.parts.base, 90)}
+            ${formulaPartBar(t("formulaPremium"), entry.parts.premium, 16)}
+            ${formulaPartBar(t("formulaEvidence"), entry.parts.evidence, 8)}
+            ${formulaPartBar(t("formulaKeywords"), entry.parts.keywords, 4)}
+            ${formulaPartBar(t("formulaWatchability"), entry.parts.watchability, 4)}
+          </div>
+          <p>${escapeHtml(t("formulaConfidence"))} ${escapeHtml(entry.confidence)}% · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
+          <div class="scorecard-actions">
+            ${Number(entry.delta) ? `<button type="button" class="secondary" data-scorecard-apply="${escapeHtml(entry.alias)}" data-scorecard-target="${escapeHtml(entry.target_weight)}">${escapeHtml(t("formulaApplyDraft"))}</button>` : ""}
+            ${Number(entry.sample_count) < 2 ? `<button type="button" class="secondary" data-scorecard-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("tuningAddSample"))}</button>` : ""}
+          </div>
+        </article>`;
+      }
+
+      function scorecardVerdict(entry) {
+        if (Number(entry.sample_count) < 2 && Number(entry.brand_weight) >= 70) return "collect";
+        if (Number(entry.delta) >= 5) return "raise";
+        if (Number(entry.delta) <= -5) return "lower";
+        return "aligned";
+      }
+
+      function scorecardRank(verdict) {
+        return { collect: 4, raise: 3, lower: 2, aligned: 1 }[verdict] || 0;
+      }
+
+      function scorecardVerdictLabel(verdict) {
+        return {
+          collect: "trajectoryCollect",
+          raise: "formulaRaise",
+          lower: "formulaLower",
+          aligned: "formulaAligned",
+        }[verdict] || "formulaAligned";
+      }
+
+      function scorecardVerdictPill(verdict) {
+        if (verdict === "collect") return "gold";
+        if (verdict === "raise") return "rose";
+        if (verdict === "lower") return "warn";
+        return "off";
       }
 
       function brandStyleLedgerRows() {
@@ -5761,6 +5958,7 @@ INDEX_HTML = r"""<!doctype html>
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
         renderBrandLookbook(rows);
+        renderBrandWeightScorecard(rows);
         renderWeightSnapshot(rows);
         renderBrandWeightStrategy(rows);
         renderWeightTrajectory(rows);
@@ -6331,6 +6529,15 @@ INDEX_HTML = r"""<!doctype html>
         }
         const sampleButton = event.target.closest("[data-lookbook-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.lookbookSample);
+      });
+      $("brandWeightScorecard").addEventListener("click", (event) => {
+        const applyButton = event.target.closest("[data-scorecard-apply]");
+        if (applyButton) {
+          applyFormulaDraft(applyButton.dataset.scorecardApply, applyButton.dataset.scorecardTarget);
+          return;
+        }
+        const sampleButton = event.target.closest("[data-scorecard-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.scorecardSample);
       });
       $("brandKeywordRadar").addEventListener("click", (event) => {
         const keywordButton = event.target.closest("[data-keyword-brand]");
