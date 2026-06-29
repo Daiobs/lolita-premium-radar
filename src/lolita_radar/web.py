@@ -1290,6 +1290,7 @@ INDEX_HTML = r"""<!doctype html>
         <div class="matrix-tools">
           <div id="matrixFilters" class="segmented" role="group" aria-label="Matrix filter">
             <button type="button" data-matrix-filter="all" data-i18n="matrixFilterAll">全部</button>
+            <button type="button" data-matrix-filter="focus" data-i18n="matrixFilterFocus">焦点品牌</button>
             <button type="button" data-matrix-filter="lead" data-i18n="matrixFilterLead">重点</button>
             <button type="button" data-matrix-filter="needs_samples" data-i18n="matrixFilterNeedsSamples">缺样本</button>
             <button type="button" data-matrix-filter="core" data-i18n="matrixFilterCore">核心</button>
@@ -1496,6 +1497,7 @@ INDEX_HTML = r"""<!doctype html>
           matrixSamples: "样本",
           matrixAction: "动作",
           matrixFilterAll: "全部",
+          matrixFilterFocus: "焦点品牌",
           matrixFilterLead: "重点",
           matrixFilterNeedsSamples: "缺样本",
           matrixFilterCore: "核心",
@@ -1850,6 +1852,7 @@ INDEX_HTML = r"""<!doctype html>
           matrixSamples: "samples",
           matrixAction: "action",
           matrixFilterAll: "All",
+          matrixFilterFocus: "Focus brands",
           matrixFilterLead: "Lead",
           matrixFilterNeedsSamples: "Needs samples",
           matrixFilterCore: "Core",
@@ -2885,10 +2888,18 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function filterMatrixRows(rows) {
+        if (activeMatrixFilter === "focus") return rows.filter((entry) => isFocusBrand(entry));
         if (activeMatrixFilter === "lead") return rows.filter((entry) => entry.band === "lead" || entry.band === "watch");
         if (activeMatrixFilter === "needs_samples") return rows.filter((entry) => (entry.reason_codes || []).includes("needs_samples"));
         if (activeMatrixFilter === "core") return rows.filter((entry) => entry.tier === "core" || Number(entry.brand_weight) >= 90);
         return rows;
+      }
+
+      function isFocusBrand(entry) {
+        return entry.tier === "core"
+          || Number(entry.brand_weight) >= 90
+          || Number(entry.sample_count) > 0
+          || Number(entry.avg_premium_rate) >= 0.25;
       }
 
       function renderScoreBreakdown(breakdown = {}) {

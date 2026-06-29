@@ -105,7 +105,9 @@ weights, brand identity, matrix, premium, evidence, and source sections so the
 long dashboard stays usable. The brand radar matrix
 puts weight, average resale premium, sample count, radar score, and next action
 in one scan-friendly view, with focused filters and sorting by score, premium,
-weight, sample count, or draft-score movement. The opportunity radar turns brand
+weight, sample count, or draft-score movement. A focus-brand filter keeps core,
+high-weight, sampled, or clearly premium-supported labels in view for daily
+watching. The opportunity radar turns brand
 weights, sample counts, and resale-premium rates into watch actions such as
 tracking releases, collecting more price samples, or cooling down a brand, with
 band counts, filters, and score breakdowns for scanning each action tier. A
