@@ -116,7 +116,8 @@ Print lanes into one resale-market readout with average premium, weighted heat,
 sample coverage, average spread, and the next line-level action. A first-screen
 pattern watch queue expands signature market keywords such as AP `贝壳`, BABY
 `Usakumya`, and AATP `Vampire Requiem` into scored search/sample tasks with
-direct resale-search links and one-click price-sample prefills.
+direct resale-search links, one-click price-sample prefills, and a
+`lolita-pattern-watch.csv` export for sharing the day's style-term watchlist.
 Brand weights, scorecards, core watch gaps, and sample plans are also summarized
 into a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
 priority checks into a short action queue with jump, sample, and pattern-prefill

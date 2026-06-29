@@ -3252,6 +3252,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="patternWatchQueue">款式词追踪队列</h2>
           <span class="muted" data-i18n="patternWatchHint">把贝壳、熊包、吸血鬼等代表款式词转成今天的二级市场搜索和采样任务</span>
         </div>
+        <button id="exportPatternWatchCsvBtn" type="button" class="secondary" data-i18n="exportPatternWatchCsv">导出款式 CSV</button>
       </div>
       <div id="patternWatchQueue" class="pattern-queue-grid"></div>
     </section>
@@ -3855,6 +3856,9 @@ INDEX_HTML = r"""<!doctype html>
           patternWatchSearch: "搜索",
           patternWatchSample: "补样本",
           patternWatchNoRows: "暂无可追踪款式词",
+          exportPatternWatchCsv: "导出款式 CSV",
+          exportedPatternWatchCsv: "款式词追踪队列已导出",
+          noPatternWatchCsv: "暂无可导出的款式词队列",
           dailyRadarBrief: "今日雷达简报",
           dailyRadarBriefHint: "把核心盯盘、权重校准和采样缺口收成今天的行动队列",
           dailyLead: "主线",
@@ -4673,6 +4677,9 @@ INDEX_HTML = r"""<!doctype html>
           patternWatchSearch: "search",
           patternWatchSample: "add sample",
           patternWatchNoRows: "no pattern terms to watch yet",
+          exportPatternWatchCsv: "export pattern CSV",
+          exportedPatternWatchCsv: "pattern watch queue exported",
+          noPatternWatchCsv: "no pattern watch queue to export",
           dailyRadarBrief: "Daily Radar Brief",
           dailyRadarBriefHint: "Turn core watch, weight tuning, and sample gaps into today's action queue",
           dailyLead: "lead",
@@ -7631,6 +7638,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedCrownCsv"));
       }
 
+      function exportPatternWatchCsv() {
+        const rows = patternWatchRows(buildBrandRadarMatrix(), Number.POSITIVE_INFINITY);
+        if (!rows.length) {
+          toast(t("noPatternWatchCsv"));
+          return;
+        }
+        const csv = csvFromPatternWatchRows(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-pattern-watch.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedPatternWatchCsv"));
+      }
+
       function exportSamplePlanCsv() {
         const rows = buildSamplePlanRows(buildBrandRadarMatrix());
         if (!rows.length) {
@@ -7815,6 +7841,43 @@ INDEX_HTML = r"""<!doctype html>
           market_keywords: (row.market_keywords || []).join(" | "),
           watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
         }));
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromPatternWatchRows(rows) {
+        const fields = [
+          ["brand_alias", "alias"],
+          ["brand_name", "name"],
+          ["keyword", "keyword"],
+          ["pattern_score", "pattern_score"],
+          ["brand_weight", "brand_weight"],
+          ["tier", "tier"],
+          ["style", "style"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["max_premium_rate", "max_premium_rate"],
+          ["brand_sample_count", "sample_count"],
+          ["target_samples", "target_samples"],
+          ["pattern_samples", "pattern_samples"],
+          ["band", "band"],
+          ["goofish_url", "goofish_url"],
+          ["taobao_url", "taobao_url"],
+          ["mercari_url", "mercari_url"],
+          ["yahoo_url", "yahoo_url"],
+        ];
+        const enriched = (rows || []).map((row) => {
+          const links = marketSearchLinks({ ...row, keyword: row.keyword });
+          return {
+            ...row,
+            goofish_url: searchLinkByLabel(links, "闲鱼", "Goofish"),
+            taobao_url: searchLinkByLabel(links, "淘宝", "Taobao"),
+            mercari_url: searchLinkByLabel(links, "Mercari"),
+            yahoo_url: searchLinkByLabel(links, "雅虎", "Yahoo"),
+          };
+        });
         const lines = [
           fields.map(([header]) => csvCell(header)).join(","),
           ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
@@ -10743,6 +10806,7 @@ INDEX_HTML = r"""<!doctype html>
       $("exportGuardrailsCsvBtn").addEventListener("click", exportBrandWeightGuardrailsCsv);
       $("exportScenariosCsvBtn").addEventListener("click", exportWeightScenariosCsv);
       $("exportCrownCsvBtn").addEventListener("click", exportCrownCsv);
+      $("exportPatternWatchCsvBtn").addEventListener("click", exportPatternWatchCsv);
       $("exportRunSheetCsvBtn").addEventListener("click", exportRunSheetCsv);
       $("exportReleaseWatchCsvBtn").addEventListener("click", exportReleaseWatchCsv);
       $("exportPortfolioCsvBtn").addEventListener("click", exportPortfolioCsv);
