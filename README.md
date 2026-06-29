@@ -183,7 +183,10 @@ be exported as CSV for spreadsheet review or sharing.
 The web dashboard includes a Lolita theme switcher with Sweet, Classic, and
 Gothic palettes. The setting is saved locally in the browser, so visual review
 can move between a sweeter AP-like mood, a calmer classic archive desk, and a
-darker gothic radar without changing market data or brand weights.
+darker gothic radar without changing market data or brand weights. The hero area
+also renders a style compass from the active brand weights, so Sweet, Classic,
+Gothic, Release, and Art Print lanes are visible immediately and update while
+you tune draft weights.
 
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,

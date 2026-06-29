@@ -551,6 +551,62 @@ INDEX_HTML = r"""<!doctype html>
         font-size: 12px;
         box-shadow: var(--pearl-shadow);
       }
+      .style-compass {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(82px, 1fr));
+        gap: 7px;
+        margin-top: 12px;
+        max-width: 820px;
+      }
+      .style-compass-card {
+        position: relative;
+        display: grid;
+        gap: 5px;
+        min-height: 78px;
+        padding: 9px 9px 10px;
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 34%, transparent), transparent 40%),
+          linear-gradient(135deg, rgba(255,255,255,.13), rgba(255,255,255,.05)),
+          rgba(255,255,255,.07);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 10px 22px rgba(20,12,18,.16);
+        overflow: hidden;
+      }
+      .style-compass-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 5px;
+        background:
+          radial-gradient(circle at 7px 0, rgba(255,255,255,.7) 0 5px, transparent 5px) 0 0 / 14px 5px repeat-x,
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .style-compass-card strong {
+        color: #fffdfb;
+        font: 650 14px/1.15 Georgia, "Times New Roman", serif;
+        overflow-wrap: anywhere;
+      }
+      .style-compass-card span, .style-compass-card small {
+        color: #f0e3e0;
+        font-size: 11px;
+      }
+      .style-compass-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      .style-compass-foot b {
+        color: #fffdfb;
+        font: 650 16px/1 Georgia, "Times New Roman", serif;
+      }
+      .style-compass-card .signal-bar {
+        height: 8px;
+        background: rgba(255,255,255,.2);
+      }
       .actions { display: flex; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
       .preference-stack { display: grid; gap: 6px; justify-items: end; }
       .language-switch, .theme-switch { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid rgba(255,255,255,.18); border-radius: 7px; background: rgba(255,255,255,.08); }
@@ -2171,6 +2227,7 @@ INDEX_HTML = r"""<!doctype html>
         .weight-draft-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .weight-draft-warning { grid-template-columns: 1fr; }
         .sample-plan-summary, .sample-plan-stats { grid-template-columns: 1fr; }
+        .style-compass { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
         .identity-card { grid-template-columns: 48px 1fr; }
@@ -2189,6 +2246,7 @@ INDEX_HTML = r"""<!doctype html>
         <h1>Lolita Premium Radar</h1>
         <p id="headline" data-i18n="headline">监控日牌上新、预约、再贩与二级市场溢价线索。</p>
         <p id="paths">Loading...</p>
+        <div id="styleCompass" class="style-compass" aria-label="Lolita style compass"></div>
       </div>
       <aside class="hero-visual" aria-label="Lolita radar mood">
         <strong data-i18n="heroVisualTitle">蕾丝雷达 · 溢价巡航</strong>
@@ -3856,6 +3914,7 @@ INDEX_HTML = r"""<!doctype html>
         renderMarketForm(state.brand_weights || []);
         renderSamplePreview();
         renderBrandWeights(state.brand_weights || []);
+        renderStyleCompass();
         renderBrandKeywordRadar(state.brand_weights || []);
         renderFocusQueue(state.focus_queue || []);
         renderMarketAlertLine(state.market_alerts || {});
@@ -4067,6 +4126,28 @@ INDEX_HTML = r"""<!doctype html>
             ${lane.keywords.length ? lane.keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("styleNoKeywords"))}</span>`}
           </div>
         </article>`).join("");
+      }
+
+      function renderStyleCompass(rows = brandStyleLedgerRows()) {
+        const target = $("styleCompass");
+        if (!target) return;
+        const normalizedRows = (rows || []).map((entry) => ({
+          ...entry,
+          weight: Number(entry.weight ?? entry.brand_weight) || 0,
+        }));
+        const lanes = brandStyleLedgerLanes(normalizedRows);
+        target.innerHTML = lanes.map((lane) => {
+          const keyword = lane.keywords[0] || t("styleNoKeywords");
+          return `<article class="style-compass-card" data-style-compass="${escapeHtml(lane.family)}" style="${escapeHtml(styleFamilyVisualStyle(lane.family))}">
+            <strong>${escapeHtml(t(styleFamilyLabelKey(lane.family)))}</strong>
+            <span>${escapeHtml(lane.count)} ${escapeHtml(t("styleBrands"))} · ${escapeHtml(t("styleAvgWeight"))} ${escapeHtml(lane.avgWeight)}</span>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lane.avgWeight)}%"></span></div>
+            <div class="style-compass-foot">
+              <b>${escapeHtml(lane.leaders || "-")}</b>
+              <small>${escapeHtml(keyword)}</small>
+            </div>
+          </article>`;
+        }).join("");
       }
 
       function renderBrandLookbook(rows) {
@@ -6744,6 +6825,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
+        renderStyleCompass(rows);
         renderDailyRadarBrief(rows);
         renderWeightScenarioCompare(rows);
         renderBrandLookbook(rows);
