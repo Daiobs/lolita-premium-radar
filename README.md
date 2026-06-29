@@ -142,7 +142,9 @@ and IW/VM/MM/JetJ 65. The dashboard also builds a focus queue from those weights
 and the currently observed items/events. You can adjust existing brand weights
 from the web dashboard, preview how draft weights change opportunity radar
 scores and deltas, review unsaved changes, reset drafts, and save them back to
-the configured brand-weight file. The current saved/draft brand-weight table can
+the configured brand-weight file. A draft audit list shows the exact saved
+weight, draft weight, and delta for every unsaved brand before you persist
+changes. The current saved/draft brand-weight table can
 also be exported as CSV with identity metadata, premium evidence, sample counts,
 and market keywords for spreadsheet review. Each brand entry can also carry `visual`
 metadata (`palette`, `accent`, `paper`, `motif`, and `radar_cue`) so AP, BABY,

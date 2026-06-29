@@ -632,6 +632,41 @@ INDEX_HTML = r"""<!doctype html>
       .weight-insight strong { display: inline; color: var(--wine); }
       .brand-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
       .brand-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
+      .weight-draft-audit {
+        display: grid;
+        gap: 7px;
+        margin-top: 10px;
+        padding: 10px;
+        border: 1px solid rgba(169,120,44,.24);
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 14px 14px, rgba(255,255,255,.86) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          linear-gradient(135deg, rgba(255,247,232,.72), rgba(248,251,250,.92));
+      }
+      .weight-draft-audit.empty {
+        border-style: dashed;
+        background: rgba(255,253,251,.55);
+      }
+      .weight-draft-head, .weight-draft-row {
+        display: grid;
+        grid-template-columns: minmax(110px, 1fr) 64px 64px 58px;
+        gap: 8px;
+        align-items: center;
+      }
+      .weight-draft-head { color: var(--muted); font-size: 12px; }
+      .weight-draft-head strong { color: var(--wine); font-size: 13px; }
+      .weight-draft-list { display: grid; gap: 5px; }
+      .weight-draft-row {
+        min-height: 32px;
+        padding: 6px 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.74);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .weight-draft-row strong { color: var(--wine); }
+      .weight-draft-delta { color: var(--gold); font-weight: 650; text-align: right; }
       .focus-list { display: grid; gap: 8px; }
       .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); box-shadow: inset 3px 0 0 rgba(180,87,111,.22); }
       .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
@@ -1093,6 +1128,7 @@ INDEX_HTML = r"""<!doctype html>
         .identity-card { grid-template-columns: 48px 1fr; }
         .identity-score { grid-column: 1 / -1; text-align: left; }
         .brand-tools { align-items: flex-start; flex-direction: column; }
+        .weight-draft-head, .weight-draft-row { grid-template-columns: minmax(92px, 1fr) 44px 44px 50px; }
         .metrics, .watch-grid, .event-list, .item-list, .market-form { grid-template-columns: 1fr; }
         .market-form .wide { grid-column: span 1; }
       }
@@ -1152,6 +1188,7 @@ INDEX_HTML = r"""<!doctype html>
           </div>
         </div>
         <div id="brandWeights" class="watch-grid"></div>
+        <div id="weightDraftAudit" class="weight-draft-audit empty"></div>
       </div>
     </section>
     <section class="panel alert-board">
@@ -1440,6 +1477,12 @@ INDEX_HTML = r"""<!doctype html>
           noWeightsCsv: "暂无可导出的品牌权重",
           weightsClean: "已保存",
           weightsDirty: "项未保存",
+          weightDraftAudit: "草稿审计",
+          weightDraftClean: "暂无权重草稿变更",
+          weightDraftChanged: "项变更",
+          weightDraftSaved: "原",
+          weightDraftCurrent: "新",
+          weightDraftDelta: "变化",
           draftPreview: "草稿预览",
           scoreDelta: "变化",
           weightsReset: "品牌权重已重置",
@@ -1788,6 +1831,12 @@ INDEX_HTML = r"""<!doctype html>
           noWeightsCsv: "no brand weights to export",
           weightsClean: "saved",
           weightsDirty: "unsaved",
+          weightDraftAudit: "draft audit",
+          weightDraftClean: "no unsaved weight changes",
+          weightDraftChanged: "changed",
+          weightDraftSaved: "saved",
+          weightDraftCurrent: "draft",
+          weightDraftDelta: "delta",
           draftPreview: "draft preview",
           scoreDelta: "delta",
           weightsReset: "brand weights reset",
@@ -3345,7 +3394,8 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function updateWeightDirtyState() {
-        const dirtyCount = Array.from(document.querySelectorAll("[data-brand-weight]")).filter((input) => input.value !== input.dataset.originalWeight).length;
+        const draftRows = weightDraftRows();
+        const dirtyCount = draftRows.length;
         const dirty = dirtyCount > 0;
         previewingDraftWeights = dirty;
         const saveButton = $("saveWeightsBtn");
@@ -3358,6 +3408,51 @@ INDEX_HTML = r"""<!doctype html>
         if (status) {
           status.textContent = dirty ? `${dirtyCount} ${t("weightsDirty")}` : t("weightsClean");
         }
+        renderWeightDraftAudit(draftRows);
+      }
+
+      function weightDraftRows() {
+        return Array.from(document.querySelectorAll("[data-brand-weight]")).map((input) => {
+          const alias = input.dataset.brandWeight || "";
+          const brand = brandByAlias(alias) || {};
+          const savedWeight = Number(input.dataset.originalWeight) || 0;
+          const draftWeight = Number(input.value) || 0;
+          return {
+            alias,
+            name: brand.name || alias,
+            saved_weight: savedWeight,
+            draft_weight: draftWeight,
+            delta: draftWeight - savedWeight,
+          };
+        }).filter((row) => row.delta !== 0);
+      }
+
+      function renderWeightDraftAudit(rows = weightDraftRows()) {
+        const audit = $("weightDraftAudit");
+        if (!audit) return;
+        if (!rows.length) {
+          audit.classList.add("empty");
+          audit.innerHTML = `<span class="muted">${escapeHtml(t("weightDraftClean"))}</span>`;
+          return;
+        }
+        audit.classList.remove("empty");
+        audit.innerHTML = `
+          <div class="weight-draft-head">
+            <strong>${escapeHtml(t("weightDraftAudit"))}</strong>
+            <span>${escapeHtml(t("weightDraftSaved"))}</span>
+            <span>${escapeHtml(t("weightDraftCurrent"))}</span>
+            <span>${escapeHtml(t("weightDraftDelta"))}</span>
+          </div>
+          <div class="weight-draft-list">
+            ${rows.map((row) => `<div class="weight-draft-row">
+              <strong>${escapeHtml(row.alias)}</strong>
+              <span>${escapeHtml(row.saved_weight)}</span>
+              <span>${escapeHtml(row.draft_weight)}</span>
+              <span class="weight-draft-delta">${escapeHtml(formatDelta(row.delta))}</span>
+            </div>`).join("")}
+          </div>
+          <span class="muted">${escapeHtml(rows.length)} ${escapeHtml(t("weightDraftChanged"))}</span>
+        `;
       }
 
       function buildDraftOpportunityRadar() {
