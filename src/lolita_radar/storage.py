@@ -75,17 +75,21 @@ def ensure_column(connection: sqlite3.Connection, table: str, column: str, defin
         connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
-def diff_and_store(connection: sqlite3.Connection, items: Iterable[RadarItem]) -> list[RadarEvent]:
+def diff_and_store(
+    connection: sqlite3.Connection,
+    items: Iterable[RadarItem],
+    write_events: bool = True,
+) -> list[RadarEvent]:
     events: list[RadarEvent] = []
     for item in items:
-        event = upsert_item(connection, item)
+        event = upsert_item(connection, item, write_events=write_events)
         if event is not None:
             events.append(event)
     connection.commit()
     return events
 
 
-def upsert_item(connection: sqlite3.Connection, item: RadarItem) -> RadarEvent | None:
+def upsert_item(connection: sqlite3.Connection, item: RadarItem, write_events: bool = True) -> RadarEvent | None:
     now = utc_now_iso()
     row = connection.execute(
         "SELECT * FROM items WHERE item_hash = ?",
@@ -116,6 +120,8 @@ def upsert_item(connection: sqlite3.Connection, item: RadarItem) -> RadarEvent |
                 now,
             ),
         )
+        if not write_events:
+            return None
         event = RadarEvent(source=item.source, event_type=EventType.NEW_ITEM, item=item, created_at=now)
         insert_event(connection, event)
         return event
@@ -145,6 +151,10 @@ def upsert_item(connection: sqlite3.Connection, item: RadarItem) -> RadarEvent |
         ),
     )
     if not title_or_status_changed and not content_changed:
+        return None
+    if not write_events:
+        return None
+    if content_changed and not title_or_status_changed and not bool(item.metadata.get("content_change_alert", True)):
         return None
     event_type = EventType.UPDATE if title_or_status_changed else EventType.CONTENT_CHANGED
     event = RadarEvent(
@@ -264,6 +274,28 @@ def list_source_runs(connection: sqlite3.Connection, limit: int = 50) -> list[di
         LIMIT ?
         """,
         (limit,),
+    ).fetchall()
+    return [
+        {
+            **dict(row),
+            "ok": bool(row["ok"]),
+        }
+        for row in rows
+    ]
+
+
+def list_latest_source_runs(connection: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = connection.execute(
+        """
+        SELECT source, checked_at, ok, item_count, event_count, error_message
+        FROM source_runs
+        WHERE id IN (
+            SELECT MAX(id)
+            FROM source_runs
+            GROUP BY source
+        )
+        ORDER BY source ASC
+        """
     ).fetchall()
     return [
         {

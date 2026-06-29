@@ -75,6 +75,13 @@ sources:
     enabled: false
     url: "https://example.com/replace-with-public-shop-page"
     keywords: ["Lolita", "JSK", "OP", "预约", "现货", "再贩"]
+    options:
+      title_template: "{source} public page"
+      min_keyword_hits: 1
+      ignore_patterns:
+        - "updated at: [0-9: /.-]+"
+      content_change_alert: true
+      max_content_chars: 12000
 ```
 
 To add a proxy or shopping agent page, use only a public product/listing page
@@ -92,6 +99,22 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."
 
 ## Run
 
+Inspect sources before writing anything:
+
+```bash
+python -m lolita_radar.cli inspect --all --limit 3
+python -m lolita_radar.cli inspect --source angelic_pretty --limit 10
+```
+
+For first deployment, build a quiet baseline before enabling normal alerts:
+
+```bash
+python -m lolita_radar.cli check --all --baseline-only
+```
+
+`baseline-only` stores current items but writes no events and sends no
+notifications, so historical releases do not flood the first alert run.
+
 Check one source:
 
 ```bash
@@ -102,6 +125,19 @@ Check all enabled sources:
 
 ```bash
 python -m lolita_radar.cli check --all
+```
+
+If you intentionally want to write initial `new_item` events but keep the first
+run quiet, use:
+
+```bash
+python -m lolita_radar.cli check --all --suppress-initial-notify
+```
+
+Show latest source health:
+
+```bash
+python -m lolita_radar.cli health
 ```
 
 Start the local web dashboard:
@@ -400,8 +436,9 @@ Use a custom database path:
 python -m lolita_radar.cli check --all --db .data/lolita_radar.sqlite
 ```
 
-The first run stores a baseline and emits `new_item` events for first-seen
-items. Later runs only emit events for new items or changed title/status.
+Normal checks emit events for first-seen items, title/status changes, and
+`content_changed` when normalized content changes. Later runs stay quiet when
+the same item has not changed.
 
 ## GitHub Actions
 
@@ -472,6 +509,18 @@ python -m unittest discover -s tests
 - Emits one synthetic page item when configured keywords match.
 - A text-only edit on the same page can generate `content_changed` without
   creating duplicate `new_item` events.
+- `min_keyword_hits` controls how many configured keywords must match.
+- `ignore_patterns` removes volatile text before keyword matching and hashing.
+- `content_change_alert` can suppress content-only events for noisy pages.
+- `max_content_chars` limits stored/hashable text size.
+- `title_template` lets a source keep a stable item title.
+
+## Notifications
+
+Console, Telegram, and Discord notifications include `brand`, `source`,
+`event_type`, `status`, `title`, `published_at`, `url`, and matched keywords
+when present. `content_changed` messages include short previous/current content
+hashes instead of sending long page bodies.
 
 ## Roadmap
 

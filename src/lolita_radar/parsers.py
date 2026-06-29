@@ -10,6 +10,23 @@ from .models import RadarItem, classify_title
 
 
 DATE_RE = re.compile(r"(20\d{2})[./-](\d{1,2})[./-](\d{1,2})")
+PRICE_RE = re.compile(r"(?:[¥￥]\s?[\d,]+|[\d,]+\s?円)")
+NAVIGATION_TOKENS = (
+    "login",
+    "account",
+    "cart",
+    "privacy",
+    "contact",
+    "company",
+    "shop list",
+    "店舗",
+    "マイページ",
+    "カート",
+    "/category/",
+    "/area/",
+    "/shop/",
+    "/shoplist",
+)
 
 
 @dataclass(frozen=True)
@@ -99,11 +116,58 @@ def parse_metamorphose_news(html_text: str, base_url: str, source: str = "metamo
 
 
 def parse_angelic_pretty_news(html_text: str, base_url: str, source: str = "angelic_pretty") -> list[RadarItem]:
-    return parse_brand_news(html_text, base_url, source=source, brand="Angelic Pretty")
+    items = []
+    for link in parse_links(html_text, base_url):
+        if is_navigation_link(link):
+            continue
+        category = angelic_pretty_category(link)
+        if not category:
+            continue
+        title = strip_date(link.title)
+        if not title:
+            continue
+        items.append(
+            RadarItem(
+                source=source,
+                title=title,
+                url=link.url,
+                published_at=link.published_at or extract_date(link.text),
+                status=classify_title(f"{category} {title} {link.text}"),
+                content=link.text,
+                metadata=brand_metadata("Angelic Pretty", source, category, link),
+            )
+        )
+    return dedupe_items(items)
 
 
 def parse_baby_ssb_news(html_text: str, base_url: str, source: str = "baby_ssb") -> list[RadarItem]:
-    return parse_brand_news(html_text, base_url, source=source, brand="BABY, THE STARS SHINE BRIGHT")
+    items = []
+    base_key = base_url.rstrip("/")
+    for link in parse_links(html_text, base_url):
+        if is_navigation_link(link) or link.url.rstrip("/") == base_key or re.fullmatch(r"\d+", link.title.strip()):
+            continue
+        category = baby_category(link)
+        release_like = is_probable_brand_release_link(link)
+        if not category and not release_like:
+            continue
+        if category == "news" and not link.published_at and not release_like:
+            continue
+        title = strip_date(link.title)
+        if not title:
+            continue
+        brand = "ALICE and the PIRATES" if is_aatp_link(link) else "BABY, THE STARS SHINE BRIGHT"
+        items.append(
+            RadarItem(
+                source=source,
+                title=title,
+                url=link.url,
+                published_at=link.published_at or extract_date(link.text),
+                status=classify_title(f"{category} {title} {link.text}"),
+                content=link.text,
+                metadata=brand_metadata(brand, source, category or "news", link),
+            )
+        )
+    return dedupe_items(items)
 
 
 def parse_alice_and_the_pirates_news(
@@ -111,11 +175,51 @@ def parse_alice_and_the_pirates_news(
     base_url: str,
     source: str = "alice_and_the_pirates",
 ) -> list[RadarItem]:
-    return parse_brand_news(html_text, base_url, source=source, brand="ALICE and the PIRATES")
+    items = []
+    for link in parse_links(html_text, base_url):
+        if is_navigation_link(link) or not is_aatp_link(link):
+            continue
+        category = baby_category(link) or "news"
+        title = strip_date(link.title)
+        if not title:
+            continue
+        items.append(
+            RadarItem(
+                source=source,
+                title=title,
+                url=link.url,
+                published_at=link.published_at or extract_date(link.text),
+                status=classify_title(f"{category} {title} {link.text}"),
+                content=link.text,
+                metadata=brand_metadata("ALICE and the PIRATES", source, category, link),
+            )
+        )
+    return dedupe_items(items)
 
 
 def parse_moitie_news(html_text: str, base_url: str, source: str = "moitie") -> list[RadarItem]:
-    return parse_brand_news(html_text, base_url, source=source, brand="Moi-meme-Moitie")
+    items = []
+    for link in parse_links(html_text, base_url):
+        if is_navigation_link(link):
+            continue
+        category = moitie_category(link)
+        if not category and not is_probable_brand_release_link(link):
+            continue
+        title = strip_date(link.title)
+        if not title:
+            continue
+        items.append(
+            RadarItem(
+                source=source,
+                title=title,
+                url=link.url,
+                published_at=link.published_at or extract_date(link.text),
+                status=classify_title(f"{category} {title} {link.text}"),
+                content=link.text,
+                metadata=brand_metadata("Moi-meme-Moitie", source, category or "news", link),
+            )
+        )
+    return dedupe_items(items)
 
 
 def parse_innocent_world_news(html_text: str, base_url: str, source: str = "innocent_world") -> list[RadarItem]:
@@ -145,7 +249,7 @@ def parse_brand_news(html_text: str, base_url: str, source: str, brand: str) -> 
 
 def is_probable_brand_release_link(link: LinkCandidate) -> bool:
     lowered = f"{link.title} {link.url}".lower()
-    if any(token in lowered for token in ("login", "account", "cart", "privacy", "contact", "company")):
+    if any(token in lowered for token in NAVIGATION_TOKENS):
         return False
     return any(
         token in lowered
@@ -170,6 +274,94 @@ def is_probable_brand_release_link(link: LinkCandidate) -> bool:
             "販売開始",
         )
     )
+
+
+def is_navigation_link(link: LinkCandidate) -> bool:
+    lowered = f"{link.title} {link.url}".lower()
+    return any(token in lowered for token in NAVIGATION_TOKENS)
+
+
+def angelic_pretty_category(link: LinkCandidate) -> str:
+    lowered = f"{link.title} {link.url}".lower()
+    categories = (
+        ("preorder", ("pre order", "pre-order", "preorder", "予約", "受注", "ご予約")),
+        ("restock", ("restock", "再入荷", "再販")),
+        ("new_arrival", ("new arrival", "newitem", "new item", "new release", "販売開始", "新作", "入荷")),
+        ("topics", ("topics", "topic", "news")),
+    )
+    for category, tokens in categories:
+        if any(token in lowered for token in tokens):
+            return category
+    return ""
+
+
+def baby_category(link: LinkCandidate) -> str:
+    lowered = f"{link.title} {link.url}".lower()
+    categories = (
+        ("preorder", ("pre order", "pre-order", "preorder", "reservation", "予約", "受注", "ご予約")),
+        ("restock", ("restock", "再入荷", "再販")),
+        ("new_arrival", ("new arrival", "new item", "new release", "新作", "入荷", "販売開始")),
+        ("event", ("event", "fair", "イベント")),
+        ("news", ("news", "お知らせ")),
+    )
+    for category, tokens in categories:
+        if any(token in lowered for token in tokens):
+            return category
+    return ""
+
+
+def moitie_category(link: LinkCandidate) -> str:
+    lowered = f"{link.title} {link.url}".lower()
+    categories = (
+        ("sale", ("sale", "セール")),
+        ("event", ("event", "イベント")),
+        ("preorder", ("pre order", "pre-order", "preorder", "予約", "受注", "ご予約")),
+        ("restock", ("restock", "再入荷", "再販")),
+        ("new_arrival", ("new item", "new arrival", "新作", "入荷", "販売開始")),
+        ("news", ("news", "information", "お知らせ", "blogs/news")),
+    )
+    for category, tokens in categories:
+        if any(token in lowered for token in tokens):
+            return category
+    return ""
+
+
+def is_aatp_link(link: LinkCandidate) -> bool:
+    lowered = f"{link.title} {link.url}".lower()
+    return any(token in lowered for token in ("alice and the pirates", "aatp", "pirates", "パイレーツ"))
+
+
+def brand_metadata(brand: str, source: str, category: str, link: LinkCandidate) -> dict[str, str]:
+    price = extract_price(link.text)
+    metadata = {
+        "brand": brand,
+        "parser": source,
+        "category": category,
+        "section": infer_section(link),
+    }
+    if price:
+        metadata["price"] = price
+    return metadata
+
+
+def infer_section(link: LinkCandidate) -> str:
+    lowered = f"{link.title} {link.url}".lower()
+    sections = (
+        ("dress", ("jsk", "onepiece", "one-piece", "op", "dress", "ジャンパースカート", "ワンピース")),
+        ("blouse", ("blouse", "ブラウス")),
+        ("headwear", ("head bow", "headbow", "カチューシャ", "ヘッドドレス")),
+        ("accessory", ("accessory", "アクセサリー", "pochette", "bag", "バッグ")),
+        ("outer", ("coat", "jacket", "ケープ", "コート")),
+    )
+    for section, tokens in sections:
+        if any(token in lowered for token in tokens):
+            return section
+    return "news"
+
+
+def extract_price(text: str) -> str:
+    match = PRICE_RE.search(text)
+    return match.group(0).strip() if match else ""
 
 
 def is_probable_news_link(link: LinkCandidate) -> bool:

@@ -62,4 +62,11 @@ sources:
       - 再贩
     options:
       title: "Proxy public shop page template"
+      title_template: "{source} public page"
+      min_keyword_hits: 1
+      ignore_patterns:
+        - "updated at: [0-9: /.-]+"
+        - "浏览量[:：]?\\s*\\d+"
+      content_change_alert: true
+      max_content_chars: 12000
       timeout_seconds: 20

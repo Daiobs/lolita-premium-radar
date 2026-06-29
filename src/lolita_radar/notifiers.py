@@ -20,9 +20,7 @@ class ConsoleNotifier:
             print("No new events.")
             return
         for event in events:
-            prefix = "NEW" if event.event_type.value == "new_item" else "UPDATE"
-            print(f"[{prefix}] {event.source} {event.item.status.value}: {event.item.title}")
-            print(f"  {event.item.url}")
+            print(format_event(event))
             if event.previous_title or event.previous_status:
                 print(f"  previous: {event.previous_status} {event.previous_title}")
 
@@ -85,9 +83,31 @@ def notify_all(notifiers: list[Notifier], events: list[RadarEvent]) -> None:
 
 
 def format_event(event: RadarEvent) -> str:
-    label = "New item" if event.event_type.value == "new_item" else "Updated item"
-    return (
-        f"{label}: {event.source}\n"
-        f"{event.item.status.value}: {event.item.title}\n"
-        f"{event.item.url}"
-    )
+    metadata = event.item.metadata or {}
+    brand = str(metadata.get("brand") or "-")
+    matched_keywords = metadata.get("matched_keywords") or []
+    if isinstance(matched_keywords, list):
+        matched_keyword_text = ", ".join(str(keyword) for keyword in matched_keywords[:8])
+    else:
+        matched_keyword_text = str(matched_keywords)
+    lines = [
+        f"brand: {brand}",
+        f"source: {event.source}",
+        f"event_type: {event.event_type.value}",
+        f"status: {event.item.status.value}",
+        f"title: {event.item.title[:240]}",
+        f"published_at: {event.item.published_at or '-'}",
+        f"url: {event.item.url}",
+    ]
+    if matched_keyword_text:
+        lines.append(f"matched_keywords: {matched_keyword_text}")
+    if event.event_type.value == "content_changed":
+        lines.append(
+            "content_hash: "
+            f"{short_hash(event.previous_content_hash)} -> {short_hash(event.item.content_hash)}"
+        )
+    return "\n".join(lines)
+
+
+def short_hash(value: str) -> str:
+    return (value or "-")[:10]
