@@ -17,6 +17,7 @@ class ItemStatus(str, Enum):
 class EventType(str, Enum):
     NEW_ITEM = "new_item"
     UPDATE = "update"
+    CONTENT_CHANGED = "content_changed"
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,10 @@ class RadarItem:
     def identity_hash(self) -> str:
         return item_identity_hash(self.source, self.url, self.title)
 
+    @property
+    def content_hash(self) -> str:
+        return item_content_hash(self.content)
+
 
 @dataclass(frozen=True)
 class RadarEvent:
@@ -41,6 +46,7 @@ class RadarEvent:
     item: RadarItem
     previous_title: str = ""
     previous_status: str = ""
+    previous_content_hash: str = ""
     created_at: str = ""
 
 
@@ -53,11 +59,16 @@ def item_identity_hash(source: str, url: str, title: str) -> str:
     return sha256(key.encode("utf-8")).hexdigest()
 
 
+def item_content_hash(content: str) -> str:
+    normalized = " ".join(str(content or "").split())
+    return sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def classify_title(title: str) -> ItemStatus:
     normalized = title.lower()
-    preorder_tokens = ("pre-order", "preorder", "pre order", "reservation", "予約", "受注", "预定", "预约")
+    preorder_tokens = ("pre-order", "preorder", "pre order", "reservation", "予約", "受注", "ご予約", "预定", "预约")
     restock_tokens = ("restock", "re-stock", "arrival again", "再入荷", "再贩", "再販", "补货")
-    new_tokens = ("new arrival", "new item", "new release", "新作", "新品", "上新", "入荷")
+    new_tokens = ("new arrival", "new item", "new release", "販売開始", "新作", "新品", "上新", "入荷")
     if any(token in normalized for token in preorder_tokens):
         return ItemStatus.PREORDER
     if any(token in normalized for token in restock_tokens):

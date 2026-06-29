@@ -2,16 +2,31 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .adapters import GenericPageAdapter, MetamorphoseAdapter, SourceAdapter, SourceConfig
+from .adapters import (
+    AliceAndThePiratesAdapter,
+    AngelicPrettyAdapter,
+    BabySsbAdapter,
+    GenericPageAdapter,
+    InnocentWorldAdapter,
+    MetamorphoseAdapter,
+    MoitieAdapter,
+    SourceAdapter,
+    SourceConfig,
+)
 from .config import load_sources
 from .models import RadarEvent
 from .notifiers import build_notifiers_from_env, notify_all
-from .storage import connect, diff_and_store
+from .storage import connect, diff_and_store, record_source_run
 
 
 ADAPTERS: dict[str, type[SourceAdapter]] = {
+    "alice_and_the_pirates": AliceAndThePiratesAdapter,
+    "angelic_pretty": AngelicPrettyAdapter,
+    "baby_ssb": BabySsbAdapter,
     "metamorphose": MetamorphoseAdapter,
     "generic_page": GenericPageAdapter,
+    "innocent_world": InnocentWorldAdapter,
+    "moitie": MoitieAdapter,
 }
 
 
@@ -34,9 +49,18 @@ def check_sources(
     try:
         all_events: list[RadarEvent] = []
         for source in selected:
-            adapter = build_adapter(source)
-            items = adapter.fetch_items()
-            events = diff_and_store(connection, items)
+            try:
+                adapter = build_adapter(source)
+                items = adapter.fetch_items()
+                events = diff_and_store(connection, items)
+            except Exception as exc:
+                record_source_run(connection, source.name, ok=False, error_message=str(exc))
+                connection.commit()
+                if source_name:
+                    raise
+                continue
+            record_source_run(connection, source.name, ok=True, item_count=len(items), event_count=len(events))
+            connection.commit()
             all_events.extend(events)
     finally:
         connection.close()

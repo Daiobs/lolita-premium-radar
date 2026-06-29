@@ -98,6 +98,80 @@ def parse_metamorphose_news(html_text: str, base_url: str, source: str = "metamo
     return dedupe_items(items)
 
 
+def parse_angelic_pretty_news(html_text: str, base_url: str, source: str = "angelic_pretty") -> list[RadarItem]:
+    return parse_brand_news(html_text, base_url, source=source, brand="Angelic Pretty")
+
+
+def parse_baby_ssb_news(html_text: str, base_url: str, source: str = "baby_ssb") -> list[RadarItem]:
+    return parse_brand_news(html_text, base_url, source=source, brand="BABY, THE STARS SHINE BRIGHT")
+
+
+def parse_alice_and_the_pirates_news(
+    html_text: str,
+    base_url: str,
+    source: str = "alice_and_the_pirates",
+) -> list[RadarItem]:
+    return parse_brand_news(html_text, base_url, source=source, brand="ALICE and the PIRATES")
+
+
+def parse_moitie_news(html_text: str, base_url: str, source: str = "moitie") -> list[RadarItem]:
+    return parse_brand_news(html_text, base_url, source=source, brand="Moi-meme-Moitie")
+
+
+def parse_innocent_world_news(html_text: str, base_url: str, source: str = "innocent_world") -> list[RadarItem]:
+    return parse_brand_news(html_text, base_url, source=source, brand="Innocent World")
+
+
+def parse_brand_news(html_text: str, base_url: str, source: str, brand: str) -> list[RadarItem]:
+    links = parse_links(html_text, base_url)
+    items = []
+    for link in links:
+        title = strip_date(link.title)
+        if not title or not is_probable_brand_release_link(link):
+            continue
+        items.append(
+            RadarItem(
+                source=source,
+                title=title,
+                url=link.url,
+                published_at=link.published_at or extract_date(link.text),
+                status=classify_title(title + " " + link.text),
+                content=link.text,
+                metadata={"brand": brand, "parser": source},
+            )
+        )
+    return dedupe_items(items)
+
+
+def is_probable_brand_release_link(link: LinkCandidate) -> bool:
+    lowered = f"{link.title} {link.url}".lower()
+    if any(token in lowered for token in ("login", "account", "cart", "privacy", "contact", "company")):
+        return False
+    return any(
+        token in lowered
+        for token in (
+            "news",
+            "new arrival",
+            "new item",
+            "new release",
+            "release",
+            "pre-order",
+            "preorder",
+            "reservation",
+            "restock",
+            "再入荷",
+            "再販",
+            "再贩",
+            "予約",
+            "受注",
+            "ご予約",
+            "新作",
+            "入荷",
+            "販売開始",
+        )
+    )
+
+
 def is_probable_news_link(link: LinkCandidate) -> bool:
     lowered = link.url.lower()
     title = link.title.lower()

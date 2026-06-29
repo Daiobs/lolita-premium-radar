@@ -25,7 +25,7 @@ from .market import (
 )
 from .models import RadarEvent
 from .runner import check_sources
-from .storage import connect, list_events, list_items, storage_counts
+from .storage import connect, list_events, list_items, list_source_runs, storage_counts
 
 
 DEFAULT_WEB_PORT = 8766
@@ -206,6 +206,7 @@ def get_dashboard_state(
         counts = storage_counts(connection)
         items = list_items(connection, limit=100)
         events = list_events(connection, limit=100)
+        source_runs = list_source_runs(connection, limit=50)
     finally:
         connection.close()
     return {
@@ -232,6 +233,7 @@ def get_dashboard_state(
             "sample_plan": build_sample_collection_plan(brand_weights, market_summary["brands"]),
         },
         "sources": [source_to_dict(source) for source in sources.values()],
+        "source_runs": source_runs,
         "items": items,
         "events": events,
     }
@@ -256,6 +258,8 @@ def event_to_dict(event: RadarEvent) -> dict[str, Any]:
         "status": event.item.status.value,
         "previous_title": event.previous_title,
         "previous_status": event.previous_status,
+        "content_hash": event.item.content_hash,
+        "previous_content_hash": event.previous_content_hash,
         "created_at": event.created_at,
     }
 
@@ -3157,14 +3161,14 @@ INDEX_HTML = r"""<!doctype html>
       }
       .source-list, .event-list, .item-list, .status-list { display: grid; gap: 9px; padding: 12px; }
       .source-card, .row, .status-card { border: 1px solid var(--line); border-radius: 8px; padding: 11px; background: #fffaf8; box-shadow: inset 0 1px 0 rgba(255,255,255,.74); }
-      .source-card header, .row header { display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 6px; }
+      .source-card header, .row header, .status-card header { display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 6px; }
       .source-card strong, .row strong { overflow-wrap: anywhere; }
       .pill { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border-radius: 999px; background: #edf7f5; color: var(--teal); font-size: 12px; white-space: nowrap; }
       .pill.off { background: #eef1f3; color: var(--muted); }
       .pill.warn { background: #fff1ed; color: var(--warn); }
       .pill.rose { background: #fff0f3; color: var(--wine); }
       .pill.gold { background: #fff7e8; color: var(--gold); }
-      .row p, .source-card p { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+      .row p, .source-card p, .status-card p { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
       .main-stack { display: grid; gap: 14px; }
       .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
       .toolbar h2 { border: 0; padding: 0; }
@@ -3965,6 +3969,7 @@ INDEX_HTML = r"""<!doctype html>
     <main class="workspace">
       <section class="panel">
         <h2 data-i18n="sourcesHeading">数据源</h2>
+        <div id="sourceHealth" class="status-list"></div>
         <div id="sources" class="source-list"></div>
       </section>
       <div class="main-stack">
@@ -4794,6 +4799,13 @@ INDEX_HTML = r"""<!doctype html>
             baseline: "基础权重",
           },
           noSources: "暂无配置数据源。",
+          sourceHealthTitle: "最近巡检",
+          sourceRunOk: "正常",
+          sourceRunFailed: "失败",
+          sourceRunNoRows: "暂无运行记录",
+          sourceRunChecked: "检查时间",
+          sourceRunItems: "条目",
+          sourceRunEvents: "事件",
           noEvents: "暂无事件。运行检查后会先建立基线。",
           noItems: "暂无跟踪条目。",
           noKeywords: "未设置关键词",
@@ -4809,6 +4821,7 @@ INDEX_HTML = r"""<!doctype html>
           eventType: {
             new_item: "新条目",
             update: "更新",
+            content_changed: "内容变化",
           },
           status: {
             new_arrival: "新品上新",
@@ -4817,7 +4830,12 @@ INDEX_HTML = r"""<!doctype html>
             shop_news: "店铺消息",
           },
           sourceType: {
+            alice_and_the_pirates: "AATP 官方消息",
+            angelic_pretty: "Angelic Pretty 官方消息",
+            baby_ssb: "BABY 官方消息",
+            innocent_world: "Innocent World 官方消息",
             metamorphose: "Metamorphose 官方新闻",
+            moitie: "Moi-même-Moitié 官方消息",
             generic_page: "通用页面",
           },
           brandStyle: {
@@ -5636,6 +5654,13 @@ INDEX_HTML = r"""<!doctype html>
             baseline: "baseline weight",
           },
           noSources: "No sources configured.",
+          sourceHealthTitle: "Recent Runs",
+          sourceRunOk: "ok",
+          sourceRunFailed: "failed",
+          sourceRunNoRows: "No run records yet.",
+          sourceRunChecked: "checked",
+          sourceRunItems: "items",
+          sourceRunEvents: "events",
           noEvents: "No events yet. Run a check to build the baseline.",
           noItems: "No tracked items yet.",
           noKeywords: "no keywords",
@@ -5651,6 +5676,7 @@ INDEX_HTML = r"""<!doctype html>
           eventType: {
             new_item: "new item",
             update: "update",
+            content_changed: "content changed",
           },
           status: {
             new_arrival: "new arrival",
@@ -5659,7 +5685,12 @@ INDEX_HTML = r"""<!doctype html>
             shop_news: "shop news",
           },
           sourceType: {
+            alice_and_the_pirates: "AATP official news",
+            angelic_pretty: "Angelic Pretty official news",
+            baby_ssb: "BABY official news",
+            innocent_world: "Innocent World official news",
             metamorphose: "Metamorphose news",
+            moitie: "Moi-même-Moitié official news",
             generic_page: "Generic page",
           },
           brandStyle: {
@@ -5723,6 +5754,7 @@ INDEX_HTML = r"""<!doctype html>
         renderMarketActionDesk(state.market?.patterns || []);
         renderEvidenceHealth(state.market?.summary?.quality || {});
         renderPatternPremiumRadar(state.market?.patterns || []);
+        renderSourceHealth(state.source_runs || []);
         $("sources").innerHTML = state.sources.length ? state.sources.map(renderSource).join("") : `<div class="row">${escapeHtml(t("noSources"))}</div>`;
         $("eventCount").textContent = shownText(state.events.length);
         $("events").innerHTML = state.events.length ? state.events.map(renderEvent).join("") : `<div class="row">${escapeHtml(t("noEvents"))}</div>`;
@@ -9296,11 +9328,37 @@ INDEX_HTML = r"""<!doctype html>
         </article>`;
       }
 
+      function renderSourceHealth(runs) {
+        const latest = [];
+        const seen = new Set();
+        for (const run of runs || []) {
+          if (!run || seen.has(run.source)) continue;
+          seen.add(run.source);
+          latest.push(run);
+        }
+        const body = latest.length ? latest.slice(0, 8).map((run) => {
+          const statusClass = run.ok ? "" : "warn";
+          const statusLabel = run.ok ? t("sourceRunOk") : t("sourceRunFailed");
+          const counts = `${t("sourceRunItems")} ${run.item_count || 0} · ${t("sourceRunEvents")} ${run.event_count || 0}`;
+          const error = !run.ok && run.error_message ? `<p>${escapeHtml(run.error_message)}</p>` : "";
+          return `<article class="status-card">
+            <header>
+              <strong>${escapeHtml(run.source)}</strong>
+              <span class="pill ${statusClass}">${escapeHtml(statusLabel)}</span>
+            </header>
+            <p>${escapeHtml(t("sourceRunChecked"))} ${escapeHtml(run.checked_at || "-")} · ${escapeHtml(counts)}</p>
+            ${error}
+          </article>`;
+        }).join("") : `<div class="row">${escapeHtml(t("sourceRunNoRows"))}</div>`;
+        $("sourceHealth").innerHTML = `<div class="muted">${escapeHtml(t("sourceHealthTitle"))}</div>${body}`;
+      }
+
       function renderEvent(event) {
+        const eventPill = event.event_type === "update" ? "warn" : event.event_type === "content_changed" ? "gold" : "";
         return `<article class="row event-card">
           <header>
             <strong><a href="${escapeHtml(event.url)}" target="_blank" rel="noreferrer">${escapeHtml(event.title)}</a></strong>
-            <span class="pill ${event.event_type === "update" ? "warn" : ""}">${escapeHtml(valueLabel("eventType", event.event_type))}</span>
+            <span class="pill ${eventPill}">${escapeHtml(valueLabel("eventType", event.event_type))}</span>
           </header>
           <p>${escapeHtml(event.source)} · ${escapeHtml(valueLabel("status", event.status))} · ${escapeHtml(event.created_at || "")}</p>
         </article>`;

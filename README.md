@@ -24,12 +24,17 @@ source -> fetcher -> parser -> normalized item -> storage -> diff event -> rule 
 The first MVP includes:
 
 - `SourceAdapter` abstraction.
-- `MetamorphoseAdapter` for the Metamorphose English News page.
+- Official brand adapters for Angelic Pretty, BABY, AATP, Metamorphose, and
+  Moi-meme-Moitie public release/news pages.
 - `GenericPageAdapter` for arbitrary public pages with keyword matching.
-- SQLite `items` and `events` tables.
+- SQLite `items`, `events`, and `source_runs` tables.
 - Deduplication by `source + url/title hash`.
 - `new_item` events for first-seen items.
 - `update` events when title or status changes.
+- `content_changed` events when a tracked page/item keeps the same title and
+  status but its normalized content hash changes.
+- Per-source health records for successful checks, item counts, event counts,
+  and adapter errors.
 - Console, Telegram, and Discord webhook notifiers.
 - GitHub Actions manual and scheduled runs.
 
@@ -50,17 +55,32 @@ Edit [config/sources.yaml](./config/sources.yaml).
 
 ```yaml
 sources:
+  angelic_pretty:
+    type: angelic_pretty
+    enabled: true
+    url: "https://angelicpretty.com/"
+
+  baby_ssb:
+    type: baby_ssb
+    enabled: true
+    url: "https://www.babyssb.co.jp/news/"
+
   metamorphose:
     type: metamorphose
     enabled: true
     url: "https://metamorphose.gr.jp/en/news"
 
-  taobao_proxy_sample:
+  proxy_shop_template:
     type: generic_page
     enabled: false
-    url: "https://example.com/public-shop-page"
+    url: "https://example.com/replace-with-public-shop-page"
     keywords: ["Lolita", "JSK", "OP", "预约", "现货", "再贩"]
 ```
+
+To add a proxy or shopping agent page, use only a public product/listing page
+URL, keep the source disabled until you have checked the page manually, and add
+keywords that describe visible release text. Do not configure login-only pages,
+cart URLs, queue pages, payment pages, or private member URLs.
 
 Environment variables are optional. See [.env.example](./.env.example).
 
@@ -410,6 +430,24 @@ python -m unittest discover -s tests
 
 ## Source Types
 
+`angelic_pretty`
+
+- Fetches Angelic Pretty public news/release pages.
+- Extracts release-like links and classifies preorder, restock, and new-arrival
+  signals from Japanese/English title keywords.
+
+`baby_ssb`
+
+- Fetches BABY, THE STARS SHINE BRIGHT public news pages.
+- Uses the shared brand-release parser and records brand metadata for downstream
+  weighting.
+
+`alice_and_the_pirates`
+
+- Fetches AATP public release/news pages, including shared BABY news feeds when
+  configured that way.
+- Classifies `new_arrival`, `preorder`, `restock`, or `shop_news`.
+
 `metamorphose`
 
 - Fetches the Metamorphose English News page.
@@ -417,15 +455,26 @@ python -m unittest discover -s tests
 - Classifies each item as `new_arrival`, `preorder`, `restock`, or `shop_news`
   from title keywords.
 
+`moitie`
+
+- Fetches Moi-meme-Moitie public news pages.
+- Extracts release-like links and stores normalized content hashes for diffing.
+
+`innocent_world`
+
+- Optional adapter for Innocent World public news pages.
+- Disabled in the default config until the target public URL is confirmed.
+
 `generic_page`
 
 - Fetches any public URL.
 - Extracts visible text.
 - Emits one synthetic page item when configured keywords match.
+- A text-only edit on the same page can generate `content_changed` without
+  creating duplicate `new_item` events.
 
 ## Roadmap
 
-- More official brand adapters.
-- Better page-specific parsers for Taobao proxy shops.
+- Better page-specific parsers for public proxy-shop pages.
 - Persistent GitHub Actions cache.
 - Structured release calendar export.
