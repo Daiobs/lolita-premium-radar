@@ -876,6 +876,9 @@ INDEX_HTML = r"""<!doctype html>
       .market-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 8px; }
       .market-heading h2 { margin: 0; padding: 0; border: 0; background: transparent; }
       .market-heading .segmented { justify-content: flex-end; }
+      .premium-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+      .premium-brand-filter { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+      .premium-brand-filter select { min-height: 32px; border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; background: #fffdfb; color: var(--text); font: inherit; }
       .premium-rate { font: 650 22px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
       .market-form {
         display: grid;
@@ -911,7 +914,7 @@ INDEX_HTML = r"""<!doctype html>
         .actions { justify-content: flex-start; }
         .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
-        .market-heading { align-items: flex-start; flex-direction: column; }
+        .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
@@ -1164,13 +1167,19 @@ INDEX_HTML = r"""<!doctype html>
         <div>
           <div class="market-heading">
             <h2 data-i18n="premiumRecords">高溢价样本</h2>
-            <div id="premiumRecordFilters" class="segmented" role="group" aria-label="Premium sample filter">
-              <button type="button" data-premium-filter="all" data-i18n="premiumFilterAll">全部</button>
-              <button type="button" data-premium-filter="collector" data-i18n="premiumBandCollector">藏品级</button>
-              <button type="button" data-premium-filter="hot" data-i18n="premiumBandHot">强溢价</button>
-              <button type="button" data-premium-filter="premium" data-i18n="premiumBandPremium">溢价</button>
-              <button type="button" data-premium-filter="near_retail" data-i18n="premiumBandNearRetail">近原价</button>
-              <button type="button" data-premium-filter="discount" data-i18n="premiumBandDiscount">折价</button>
+            <div class="premium-tools">
+              <label class="premium-brand-filter">
+                <span data-i18n="premiumBrandFilter">品牌</span>
+                <select id="premiumBrandFilter"></select>
+              </label>
+              <div id="premiumRecordFilters" class="segmented" role="group" aria-label="Premium sample filter">
+                <button type="button" data-premium-filter="all" data-i18n="premiumFilterAll">全部</button>
+                <button type="button" data-premium-filter="collector" data-i18n="premiumBandCollector">藏品级</button>
+                <button type="button" data-premium-filter="hot" data-i18n="premiumBandHot">强溢价</button>
+                <button type="button" data-premium-filter="premium" data-i18n="premiumBandPremium">溢价</button>
+                <button type="button" data-premium-filter="near_retail" data-i18n="premiumBandNearRetail">近原价</button>
+                <button type="button" data-premium-filter="discount" data-i18n="premiumBandDiscount">折价</button>
+              </div>
             </div>
           </div>
           <div id="premiumRecords" class="market-list"></div>
@@ -1271,6 +1280,8 @@ INDEX_HTML = r"""<!doctype html>
           marketPremium: "二手溢价观察",
           premiumByBrand: "品牌溢价排行",
           premiumRecords: "高溢价样本",
+          premiumBrandFilter: "品牌",
+          premiumBrandAll: "全部品牌",
           premiumFilterAll: "全部",
           premiumBandCollector: "藏品级",
           premiumBandHot: "强溢价",
@@ -1591,6 +1602,8 @@ INDEX_HTML = r"""<!doctype html>
           marketPremium: "Resale Premium Watch",
           premiumByBrand: "Premium by Brand",
           premiumRecords: "High-Premium Samples",
+          premiumBrandFilter: "brand",
+          premiumBrandAll: "all brands",
           premiumFilterAll: "All",
           premiumBandCollector: "Collector",
           premiumBandHot: "Hot",
@@ -1850,6 +1863,7 @@ INDEX_HTML = r"""<!doctype html>
       let activeMatrixFilter = "all";
       let activeMatrixSort = "score";
       let activePremiumFilter = "all";
+      let activePremiumBrandFilter = "all";
       let previewingDraftWeights = false;
       if (!translations[currentLanguage]) currentLanguage = "zh";
 
@@ -2600,7 +2614,8 @@ INDEX_HTML = r"""<!doctype html>
         const summary = market.summary || {};
         const brands = summary.brands || [];
         const records = summary.records || [];
-        const visibleRecords = activePremiumFilter === "all" ? records : records.filter((record) => record.premium_band === activePremiumFilter);
+        syncPremiumBrandFilter(brands);
+        const visibleRecords = filterPremiumRecords(records);
         syncPremiumRecordFilters(summary.premium_bands || []);
         $("marketCount").textContent = `${summary.sample_count || 0} ${t("samples")}`;
         $("premiumBrands").innerHTML = brands.length ? brands.map((brand) => `<article class="market-card">
@@ -2625,6 +2640,25 @@ INDEX_HTML = r"""<!doctype html>
           <p class="muted">${escapeHtml(t("retailPrice"))} ${formatMoney(record.retail_price, record.currency)} · ${escapeHtml(t("resalePrice"))} ${formatMoney(record.resale_price, record.currency)}</p>
           <p class="muted">${escapeHtml([record.condition, record.source, record.observed_at].filter(Boolean).join(" · "))}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
+      }
+
+      function filterPremiumRecords(records) {
+        return (records || []).filter((record) => {
+          const bandMatch = activePremiumFilter === "all" || record.premium_band === activePremiumFilter;
+          const brandMatch = activePremiumBrandFilter === "all" || normalizeAlias(record.brand_alias) === activePremiumBrandFilter;
+          return bandMatch && brandMatch;
+        });
+      }
+
+      function syncPremiumBrandFilter(brands = []) {
+        const select = $("premiumBrandFilter");
+        const aliases = [...new Set((brands || []).map((brand) => normalizeAlias(brand.brand_alias)).filter(Boolean))];
+        if (activePremiumBrandFilter !== "all" && !aliases.includes(activePremiumBrandFilter)) activePremiumBrandFilter = "all";
+        select.innerHTML = [
+          `<option value="all">${escapeHtml(t("premiumBrandAll"))}</option>`,
+          ...aliases.map((alias) => `<option value="${escapeHtml(alias)}">${escapeHtml(alias)}</option>`),
+        ].join("");
+        select.value = activePremiumBrandFilter;
       }
 
       function syncPremiumRecordFilters(bands = []) {
@@ -3272,6 +3306,10 @@ INDEX_HTML = r"""<!doctype html>
         const button = event.target.closest("[data-premium-filter]");
         if (!button) return;
         activePremiumFilter = button.dataset.premiumFilter || "all";
+        renderMarketPremium(currentState?.market || {});
+      });
+      $("premiumBrandFilter").addEventListener("change", (event) => {
+        activePremiumBrandFilter = normalizeAlias(event.target.value) || "all";
         renderMarketPremium(currentState?.market || {});
       });
       $("refreshBtn").addEventListener("click", () => loadState().then(() => toast(t("refreshed"))).catch((error) => toast(error.message)));

@@ -125,7 +125,7 @@ prefill. An evidence-health panel scores sample quality from source, link, date,
 condition, and notes so weak evidence is visible before it drives weighting.
 Recorded resale samples are also segmented into collector, hot, premium,
 near-retail, and discount bands, with dashboard filters for scanning the
-strongest signals first.
+strongest signals first by band and brand.
 
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,
