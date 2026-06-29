@@ -101,6 +101,8 @@ weight, sample count, or draft-score movement. The opportunity radar turns brand
 weights, sample counts, and resale-premium rates into watch actions such as
 tracking releases, collecting more price samples, or cooling down a brand, with
 band counts, filters, and score breakdowns for scanning each action tier. A
+radar alert line elevates collector/hot premium spikes, brand-level heat, and
+core-brand sample gaps into one action summary. A
 sample-coverage panel shows how much price evidence backs the radar and which
 high-weight brands need samples next. A weight-profile panel summarizes average
 weight, tier distribution, market-evidence coverage, and the highest-priority
@@ -128,10 +130,11 @@ the configured brand-weight file. Each brand card also explains the current
 weight band, monitoring intent, and keyword coverage so the score is easier to
 audit before changing it. The API also exposes `brand_weight_profile`, a
 full-brand view with weight band, weight role, evidence level, score breakdown,
-and market keywords. A weight-tuning queue turns current premium, sample count,
-and weight into concrete actions such as collecting price samples, considering
-an upgrade, holding, or cooling down; the action buttons can prefill the sample
-form or apply a suggested target weight as an unsaved draft.
+and market keywords, plus `market_alerts` for critical/watch/sample-gap
+recommendations. A weight-tuning queue turns current premium, sample count, and
+weight into concrete actions such as collecting price samples, considering an
+upgrade, holding, or cooling down; the action buttons can prefill the sample form
+or apply a suggested target weight as an unsaved draft.
 Use `market_keywords` on each brand for secondary-market search/sample seeds;
 these are kept separate from broad source-matching `keywords` to avoid noisy
 alerts from generic item names.

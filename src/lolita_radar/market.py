@@ -212,6 +212,83 @@ def build_brand_weight_profile(
     )
 
 
+def build_market_alerts(
+    brand_weights: list[dict[str, Any]],
+    market_summary: dict[str, Any],
+    limit: int = 8,
+) -> dict[str, Any]:
+    market_by_alias = {text(row.get("brand_alias")).upper(): row for row in market_summary.get("brands", [])}
+    alerts = []
+    for record in market_summary.get("records", []):
+        premium_rate = float(record.get("premium_rate") or 0)
+        priority_score = clamp_int(record.get("priority_score"), default=0)
+        quality_score = clamp_int(record.get("quality_score"), default=0)
+        band = text(record.get("premium_band"))
+        if band in {"collector", "hot"} or priority_score >= 72:
+            alerts.append(
+                {
+                    "kind": "sample_spike",
+                    "severity": alert_severity(priority_score, quality_score, band),
+                    "alias": text(record.get("brand_alias")),
+                    "title": text(record.get("item_name")),
+                    "score": priority_score,
+                    "premium_rate": round(premium_rate, 4),
+                    "premium_band": band or premium_band(premium_rate),
+                    "quality_score": quality_score,
+                    "reason": sample_alert_reason(band, priority_score, quality_score),
+                }
+            )
+    for brand in brand_weights:
+        alias = text(brand.get("alias"))
+        if not alias:
+            continue
+        weight = clamp_int(brand.get("weight"), default=50)
+        market = market_by_alias.get(alias.upper(), {})
+        sample_count = clamp_int(market.get("sample_count"), default=0)
+        avg_premium_rate = float(market.get("avg_premium_rate") or 0)
+        priority_score = premium_priority_score(avg_premium_rate, weight, sample_count)
+        if sample_count >= 2 and avg_premium_rate >= 0.5:
+            alerts.append(
+                {
+                    "kind": "brand_heat",
+                    "severity": "critical" if priority_score >= 78 else "watch",
+                    "alias": alias,
+                    "title": text(brand.get("name")) or alias,
+                    "score": priority_score,
+                    "premium_rate": round(avg_premium_rate, 4),
+                    "sample_count": sample_count,
+                    "reason": "brand_hot_average",
+                }
+            )
+        elif sample_count < 2 and weight >= 85:
+            alerts.append(
+                {
+                    "kind": "sample_gap",
+                    "severity": "sample_gap",
+                    "alias": alias,
+                    "title": text(brand.get("name")) or alias,
+                    "score": weight,
+                    "premium_rate": round(avg_premium_rate, 4),
+                    "sample_count": sample_count,
+                    "reason": "core_needs_samples",
+                }
+            )
+    sorted_alerts = sorted(
+        alerts,
+        key=lambda row: (alert_rank(text(row.get("severity"))), int(row.get("score") or 0)),
+        reverse=True,
+    )[:limit]
+    return {
+        "summary": {
+            "total": len(alerts),
+            "critical": sum(1 for row in alerts if row.get("severity") == "critical"),
+            "watch": sum(1 for row in alerts if row.get("severity") == "watch"),
+            "sample_gap": sum(1 for row in alerts if row.get("severity") == "sample_gap"),
+        },
+        "alerts": sorted_alerts,
+    }
+
+
 def build_pattern_radar(
     brand_weights: list[dict[str, Any]],
     observations: list[dict[str, Any]],
@@ -420,6 +497,30 @@ def premium_band(premium_rate: float) -> str:
     if premium_rate >= -0.1:
         return "near_retail"
     return "discount"
+
+
+def alert_severity(priority_score: int, quality_score: int, band: str) -> str:
+    if band == "collector" and quality_score >= 60:
+        return "critical"
+    if priority_score >= 72 and quality_score >= 60:
+        return "critical"
+    return "watch"
+
+
+def sample_alert_reason(band: str, priority_score: int, quality_score: int) -> str:
+    if quality_score < 60:
+        return "weak_evidence_spike"
+    if band == "collector":
+        return "collector_premium"
+    if band == "hot":
+        return "hot_premium"
+    if priority_score >= 72:
+        return "weighted_spike"
+    return "premium_watch"
+
+
+def alert_rank(severity: str) -> int:
+    return {"critical": 3, "watch": 2, "sample_gap": 1}.get(severity, 0)
 
 
 def positive_float(value: Any) -> float:

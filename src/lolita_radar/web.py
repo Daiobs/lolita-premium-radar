@@ -14,6 +14,7 @@ from .config import load_sources
 from .market import (
     append_market_observation,
     build_brand_weight_profile,
+    build_market_alerts,
     build_opportunity_radar,
     build_pattern_radar,
     default_market_observations_path,
@@ -201,6 +202,7 @@ def get_dashboard_state(
         },
         "brand_weights": brand_weights,
         "brand_weight_profile": build_brand_weight_profile(brand_weights, market_summary["brands"]),
+        "market_alerts": build_market_alerts(brand_weights, market_summary),
         "focus_queue": build_focus_queue(brand_weights, items, events, market_summary["brands"]),
         "opportunity_radar": build_opportunity_radar(brand_weights, market_summary["brands"]),
         "market": {
@@ -466,6 +468,19 @@ INDEX_HTML = r"""<!doctype html>
       .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); box-shadow: inset 3px 0 0 rgba(180,87,111,.22); }
       .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .focus-card strong { color: var(--wine); }
+      .alert-board { margin: 0 20px 14px; }
+      .alert-grid { display: grid; grid-template-columns: minmax(220px, .72fr) minmax(300px, 1.28fr); gap: 12px; padding: 12px; }
+      .alert-brief, .alert-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .alert-brief { display: grid; gap: 9px; align-content: start; padding: 12px; background: linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)); box-shadow: inset 0 0 0 4px rgba(255,255,255,.48); }
+      .alert-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .alert-list { display: grid; gap: 8px; }
+      .alert-card { display: grid; gap: 8px; padding: 12px; }
+      .alert-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .alert-card strong { color: var(--wine); }
       .weight-snapshot-board { margin: 0 20px 14px; }
       .weight-snapshot { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(260px, 1.3fr) minmax(260px, 1fr); gap: 12px; padding: 12px; }
       .weight-hero, .weight-metric, .weight-lane, .weight-gap-card {
@@ -783,7 +798,7 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .action-grid, .quality-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .action-grid, .quality-grid, .alert-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -833,6 +848,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
         <div id="brandWeights" class="watch-grid"></div>
       </div>
+    </section>
+    <section class="panel alert-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="marketAlertLine">雷达预警线</h2>
+          <span class="muted" data-i18n="marketAlertHint">聚合强溢价样本、品牌热度和核心品牌样本缺口</span>
+        </div>
+      </div>
+      <div id="marketAlertLine" class="alert-grid"></div>
     </section>
     <section class="panel weight-snapshot-board">
       <div class="toolbar">
@@ -1090,6 +1114,14 @@ INDEX_HTML = r"""<!doctype html>
           filterSamples: "补样本",
           filterCooldown: "暂缓",
           focusQueue: "重点关注队列",
+          marketAlertLine: "雷达预警线",
+          marketAlertHint: "聚合强溢价样本、品牌热度和核心品牌样本缺口",
+          alertTotal: "预警项",
+          alertCritical: "强预警",
+          alertWatch: "观察预警",
+          alertSampleGap: "缺样本",
+          alertScore: "预警分",
+          noAlerts: "暂无预警项",
           marketPremium: "二手溢价观察",
           premiumByBrand: "品牌溢价排行",
           premiumRecords: "高溢价样本",
@@ -1235,6 +1267,25 @@ INDEX_HTML = r"""<!doctype html>
             near_retail: "近原价",
             discount: "折价",
           },
+          alertKind: {
+            sample_spike: "样本异动",
+            brand_heat: "品牌升温",
+            sample_gap: "样本缺口",
+          },
+          alertSeverity: {
+            critical: "强预警",
+            watch: "观察",
+            sample_gap: "补样本",
+          },
+          alertReason: {
+            weak_evidence_spike: "强溢价但证据偏弱",
+            collector_premium: "藏品级溢价样本",
+            hot_premium: "强溢价样本",
+            weighted_spike: "品牌权重修正后触发",
+            premium_watch: "溢价观察",
+            brand_hot_average: "品牌均值升温",
+            core_needs_samples: "核心品牌缺价格样本",
+          },
           opportunityBand: {
             lead: "重点盯新款",
             watch: "持续观察",
@@ -1342,6 +1393,14 @@ INDEX_HTML = r"""<!doctype html>
           filterSamples: "Samples",
           filterCooldown: "Cooldown",
           focusQueue: "Focus Queue",
+          marketAlertLine: "Radar Alert Line",
+          marketAlertHint: "Combine premium spikes, brand heat, and core-brand sample gaps",
+          alertTotal: "alerts",
+          alertCritical: "critical",
+          alertWatch: "watch",
+          alertSampleGap: "sample gaps",
+          alertScore: "alert score",
+          noAlerts: "No alerts yet",
           marketPremium: "Resale Premium Watch",
           premiumByBrand: "Premium by Brand",
           premiumRecords: "High-Premium Samples",
@@ -1487,6 +1546,25 @@ INDEX_HTML = r"""<!doctype html>
             near_retail: "near retail",
             discount: "discount",
           },
+          alertKind: {
+            sample_spike: "sample spike",
+            brand_heat: "brand heat",
+            sample_gap: "sample gap",
+          },
+          alertSeverity: {
+            critical: "critical",
+            watch: "watch",
+            sample_gap: "sample",
+          },
+          alertReason: {
+            weak_evidence_spike: "strong premium with weak evidence",
+            collector_premium: "collector-level premium sample",
+            hot_premium: "hot premium sample",
+            weighted_spike: "triggered after brand weighting",
+            premium_watch: "premium watch",
+            brand_hot_average: "brand average is heating up",
+            core_needs_samples: "core brand needs price samples",
+          },
           opportunityBand: {
             lead: "track releases",
             watch: "watch",
@@ -1587,6 +1665,7 @@ INDEX_HTML = r"""<!doctype html>
         renderBrandWeights(state.brand_weights || []);
         renderBrandKeywordRadar(state.brand_weights || []);
         renderFocusQueue(state.focus_queue || []);
+        renderMarketAlertLine(state.market_alerts || {});
         renderBrandRadarViews();
         renderOpportunityRadar(state.opportunity_radar || []);
         renderMarketSignal(state.events || [], state.items || []);
@@ -1703,6 +1782,46 @@ INDEX_HTML = r"""<!doctype html>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.score) || 0}%"></span></div>
           <p class="muted">${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)} · ${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(t("observed"))} ${escapeHtml(brand.item_count)}/${escapeHtml(brand.event_count)}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noFocusQueue"))}</div>`;
+      }
+
+      function renderMarketAlertLine(alertsState) {
+        const summary = alertsState.summary || {};
+        const alerts = alertsState.alerts || [];
+        $("marketAlertLine").innerHTML = `
+          <article class="alert-brief">
+            <strong>${escapeHtml(summary.total || 0)}</strong>
+            <p class="muted">${escapeHtml(t("alertTotal"))}</p>
+            <div class="coverage-stats">
+              <article class="coverage-stat"><strong>${escapeHtml(summary.critical || 0)}</strong><span class="muted">${escapeHtml(t("alertCritical"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(summary.watch || 0)}</strong><span class="muted">${escapeHtml(t("alertWatch"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(summary.sample_gap || 0)}</strong><span class="muted">${escapeHtml(t("alertSampleGap"))}</span></article>
+            </div>
+          </article>
+          <div class="alert-list">
+            ${alerts.length ? alerts.map(renderMarketAlert).join("") : `<div class="row">${escapeHtml(t("noAlerts"))}</div>`}
+          </div>
+        `;
+      }
+
+      function renderMarketAlert(alert) {
+        const pill = alert.severity === "critical" ? "rose" : alert.severity === "sample_gap" ? "gold" : "";
+        const details = [
+          `${t("alertScore")} ${alert.score || 0}`,
+          `${t("avgPremium")} ${formatPercent(alert.premium_rate)}`,
+          alert.sample_count !== undefined ? `${t("samples")} ${alert.sample_count}` : "",
+          alert.quality_score !== undefined ? `${t("qualityScore")} ${alert.quality_score}` : "",
+        ].filter(Boolean).join(" · ");
+        return `<article class="alert-card">
+          <header>
+            <div>
+              <strong>${escapeHtml(alert.alias)} · ${escapeHtml(alert.title || "-")}</strong>
+              <p class="muted">${escapeHtml(valueLabel("alertKind", alert.kind))} · ${escapeHtml(valueLabel("alertReason", alert.reason))}</p>
+            </div>
+            <span class="pill ${pill}">${escapeHtml(valueLabel("alertSeverity", alert.severity))}</span>
+          </header>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(alert.score || 0)}%"></span></div>
+          <p class="muted">${escapeHtml(details)}</p>
+        </article>`;
       }
 
       function renderOpportunityRadar(opportunities) {

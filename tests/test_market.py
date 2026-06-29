@@ -6,6 +6,7 @@ from pathlib import Path
 from lolita_radar.market import (
     append_market_observation,
     build_brand_weight_profile,
+    build_market_alerts,
     build_opportunity_radar,
     build_pattern_radar,
     load_market_observations,
@@ -157,6 +158,41 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(ap["market_keywords"], ["贝壳", "Holy Lantern"])
         self.assertIn("score_breakdown", ap)
         self.assertEqual(meta["evidence_level"], "missing")
+
+    def test_build_market_alerts_prioritizes_spikes_and_sample_gaps(self) -> None:
+        summary = summarize_market_observations(
+            [
+                {
+                    "brand_alias": "AP",
+                    "item_name": "白贝壳 JSK",
+                    "retail_price": 1000,
+                    "resale_price": 1900,
+                    "premium_rate": 0.9,
+                    "currency": "CNY",
+                    "source": "xianyu",
+                    "url": "https://example.com/shell",
+                    "observed_at": "2026-06-29",
+                    "condition": "used",
+                }
+            ],
+            brand_weights=[
+                {"alias": "AP", "name": "Angelic Pretty", "weight": 100},
+                {"alias": "BABY", "name": "BABY", "weight": 95},
+            ],
+        )
+
+        alerts = build_market_alerts(
+            brand_weights=[
+                {"alias": "AP", "name": "Angelic Pretty", "weight": 100},
+                {"alias": "BABY", "name": "BABY", "weight": 95},
+            ],
+            market_summary=summary,
+        )
+
+        self.assertGreaterEqual(alerts["summary"]["total"], 2)
+        self.assertEqual(alerts["alerts"][0]["kind"], "sample_spike")
+        self.assertEqual(alerts["alerts"][0]["severity"], "critical")
+        self.assertTrue(any(alert["kind"] == "sample_gap" and alert["alias"] == "BABY" for alert in alerts["alerts"]))
 
     def test_build_pattern_radar_matches_market_keywords(self) -> None:
         patterns = build_pattern_radar(
