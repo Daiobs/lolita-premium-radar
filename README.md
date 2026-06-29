@@ -110,7 +110,9 @@ from the web dashboard, preview how draft weights change opportunity radar
 scores and deltas, review unsaved changes, reset drafts, and save them back to
 the configured brand-weight file. Each brand card also explains the current
 weight band, monitoring intent, and keyword coverage so the score is easier to
-audit before changing it.
+audit before changing it. A weight-tuning queue turns current premium, sample
+count, and weight into concrete actions such as collecting price samples,
+considering an upgrade, holding, or cooling down.
 
 Use another brand-weight file:
 

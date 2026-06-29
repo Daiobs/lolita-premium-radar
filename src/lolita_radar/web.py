@@ -453,6 +453,21 @@ INDEX_HTML = r"""<!doctype html>
       .matrix-brand span { color: var(--muted); font-size: 12px; }
       .matrix-score { display: grid; gap: 5px; }
       .matrix-score strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .tuning-board { margin: 0 20px 14px; }
+      .tuning-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 12px; }
+      .tuning-card {
+        display: grid;
+        gap: 7px;
+        min-height: 128px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background:
+          linear-gradient(135deg, rgba(255,247,232,.72), rgba(248,251,250,.9)),
+          #fffaf8;
+      }
+      .tuning-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .tuning-card strong { color: var(--wine); }
       .opportunity-board { margin: 0 20px 14px; }
       .opportunity-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 10px; align-items: center; }
       .opportunity-summary { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -582,6 +597,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="brandRadarMatrix" class="radar-matrix"></div>
+    </section>
+    <section class="panel tuning-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="weightTuning">权重校准建议</h2>
+          <span class="muted" data-i18n="weightTuningHint">把溢价、样本和当前权重翻译成下一步动作</span>
+        </div>
+      </div>
+      <div id="weightTuning" class="tuning-grid"></div>
     </section>
     <section class="panel opportunity-board">
       <div class="toolbar opportunity-toolbar">
@@ -744,6 +768,21 @@ INDEX_HTML = r"""<!doctype html>
           weightIntentCore: "新品、预约、淘宝上新优先提醒",
           weightIntentWatch: "结合溢价和样本决定是否升级",
           weightIntentArchive: "先补二手样本，异常溢价再上调",
+          weightTuning: "权重校准建议",
+          weightTuningHint: "把溢价、样本和当前权重翻译成下一步动作",
+          noWeightTuning: "暂无校准建议",
+          tuningTarget: "建议权重",
+          tuningReason: "理由",
+          tuningCollect: "补价格样本",
+          tuningRaise: "考虑上调",
+          tuningHold: "维持观察",
+          tuningCool: "降温复核",
+          tuningBaseline: "低频采样",
+          tuningCollectReason: "权重较高但样本不足，先补原价和二手价",
+          tuningRaiseReason: "溢价已有样本支撑，权重可向核心档靠近",
+          tuningHoldReason: "权重、溢价和样本暂时匹配",
+          tuningCoolReason: "二手折价或热度不足，保存权重前先复核",
+          tuningBaselineReason: "低权重且样本不足，保持低频观察",
           radarScore: "雷达分",
           observed: "已捕捉",
           noFocusQueue: "暂无关注队列",
@@ -886,6 +925,21 @@ INDEX_HTML = r"""<!doctype html>
           weightIntentCore: "prioritize release, preorder, and Taobao alerts",
           weightIntentWatch: "promote when premium and samples support it",
           weightIntentArchive: "collect resale samples before raising weight",
+          weightTuning: "Weight Tuning",
+          weightTuningHint: "Turn premium, sample count, and current weight into next actions",
+          noWeightTuning: "No tuning suggestions yet",
+          tuningTarget: "target weight",
+          tuningReason: "reason",
+          tuningCollect: "collect samples",
+          tuningRaise: "consider raising",
+          tuningHold: "hold",
+          tuningCool: "cooldown review",
+          tuningBaseline: "low-frequency sampling",
+          tuningCollectReason: "high weight but thin samples; collect retail and resale prices first",
+          tuningRaiseReason: "premium is sample-supported, so the weight can move toward core",
+          tuningHoldReason: "weight, premium, and sample count are currently aligned",
+          tuningCoolReason: "discounted resale or weak heat; review before saving this weight",
+          tuningBaselineReason: "low weight and thin samples; keep low-frequency watch",
           radarScore: "radar score",
           observed: "observed",
           noFocusQueue: "No focus queue yet",
@@ -995,7 +1049,7 @@ INDEX_HTML = r"""<!doctype html>
         renderMarketForm(state.brand_weights || []);
         renderBrandWeights(state.brand_weights || []);
         renderFocusQueue(state.focus_queue || []);
-        renderBrandRadarMatrix(buildBrandRadarMatrix());
+        renderBrandRadarViews();
         renderOpportunityRadar(state.opportunity_radar || []);
         renderMarketSignal(state.events || [], state.items || []);
         renderMarketPremium(state.market || {});
@@ -1114,6 +1168,64 @@ INDEX_HTML = r"""<!doctype html>
             <span class="pill ${opportunityPill(entry.band)}">${escapeHtml(valueLabel("opportunityBand", entry.band))}</span>
           </article>`),
         ].join("") : `<div class="row">${escapeHtml(t("noOpportunity"))}</div>`;
+      }
+
+      function renderWeightTuning(rows) {
+        const suggestions = buildWeightTuning(rows);
+        $("weightTuning").innerHTML = suggestions.length ? suggestions.map((entry) => `<article class="tuning-card">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)}</strong>
+              <p class="muted">${escapeHtml(entry.name)}</p>
+            </div>
+            <span class="pill ${tuningPill(entry.kind)}">${escapeHtml(t(entry.label))}</span>
+          </header>
+          <p class="muted">${escapeHtml(t("tuningTarget"))} ${escapeHtml(entry.target_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</p>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(entry.priority_score) || 0}%"></span></div>
+          <p class="muted">${escapeHtml(t("tuningReason"))} · ${escapeHtml(t(entry.reason))}</p>
+        </article>`).join("") : `<div class="row">${escapeHtml(t("noWeightTuning"))}</div>`;
+      }
+
+      function buildWeightTuning(rows) {
+        return rows.map((entry) => {
+          const suggestion = tuningSuggestion(entry);
+          return { ...entry, ...suggestion };
+        }).sort((a, b) => (
+          tuningRank(b.kind) - tuningRank(a.kind)
+          || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+        )).slice(0, 6);
+      }
+
+      function tuningSuggestion(entry) {
+        const weight = Number(entry.brand_weight) || 0;
+        const sampleCount = Number(entry.sample_count) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        if (sampleCount < 2 && weight >= 70) {
+          return { kind: "collect", label: "tuningCollect", reason: "tuningCollectReason", target_weight: weight };
+        }
+        if (sampleCount >= 2 && premium >= 0.25 && weight < 90) {
+          return { kind: "raise", label: "tuningRaise", reason: "tuningRaiseReason", target_weight: premium >= 0.5 ? 90 : Math.max(70, weight) };
+        }
+        if (sampleCount >= 2 && premium < 0 && weight > 70) {
+          return { kind: "cool", label: "tuningCool", reason: "tuningCoolReason", target_weight: Math.max(60, weight - 10) };
+        }
+        if (weight < 70 && sampleCount < 2) {
+          return { kind: "baseline", label: "tuningBaseline", reason: "tuningBaselineReason", target_weight: weight };
+        }
+        return { kind: "hold", label: "tuningHold", reason: "tuningHoldReason", target_weight: weight };
+      }
+
+      function tuningRank(kind) {
+        return { raise: 5, collect: 4, cool: 3, hold: 2, baseline: 1 }[kind] || 0;
+      }
+
+      function tuningPill(kind) {
+        if (kind === "raise") return "rose";
+        if (kind === "collect") return "gold";
+        if (kind === "cool") return "warn";
+        if (kind === "baseline") return "off";
+        return "";
       }
 
       function syncMatrixControls() {
@@ -1312,7 +1424,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function resetBrandWeightDraft() {
         renderBrandWeights(currentState?.brand_weights || []);
-        renderBrandRadarMatrix(buildBrandRadarMatrix());
+        renderBrandRadarViews();
         renderOpportunityRadar(currentState?.opportunity_radar || []);
         toast(t("weightsReset"));
       }
@@ -1330,7 +1442,7 @@ INDEX_HTML = r"""<!doctype html>
         if (insight && brand) insight.innerHTML = brandWeightInsightHtml(brand, input.value);
         if (card) card.classList.toggle("dirty", input.value !== input.dataset.originalWeight);
         updateWeightDirtyState();
-        renderBrandRadarMatrix(buildBrandRadarMatrix());
+        renderBrandRadarViews();
         renderOpportunityRadar(buildDraftOpportunityRadar());
       }
 
@@ -1356,6 +1468,12 @@ INDEX_HTML = r"""<!doctype html>
 
       function buildBrandRadarMatrix() {
         return buildOpportunityRows();
+      }
+
+      function renderBrandRadarViews() {
+        const rows = buildBrandRadarMatrix();
+        renderBrandRadarMatrix(rows);
+        renderWeightTuning(rows);
       }
 
       function buildOpportunityRows() {
