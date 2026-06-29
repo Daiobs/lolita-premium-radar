@@ -88,6 +88,8 @@ sources:
         self.assertIn("data-original-weight", INDEX_HTML)
         self.assertIn("draftPreview", INDEX_HTML)
         self.assertIn("buildDraftOpportunityRadar", INDEX_HTML)
+        self.assertIn("scoreDelta", INDEX_HTML)
+        self.assertIn("formatDelta", INDEX_HTML)
         self.assertIn("priorityScore", INDEX_HTML)
 
     def test_market_observation_post_appends_sample(self) -> None:

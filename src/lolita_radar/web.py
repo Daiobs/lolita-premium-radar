@@ -630,6 +630,7 @@ INDEX_HTML = r"""<!doctype html>
           weightsClean: "已保存",
           weightsDirty: "项未保存",
           draftPreview: "草稿预览",
+          scoreDelta: "变化",
           weightsReset: "品牌权重已重置",
           weightsSaved: "品牌权重已保存",
           opportunityRadar: "机会雷达",
@@ -744,6 +745,7 @@ INDEX_HTML = r"""<!doctype html>
           weightsClean: "saved",
           weightsDirty: "unsaved",
           draftPreview: "draft preview",
+          scoreDelta: "delta",
           weightsReset: "brand weights reset",
           weightsSaved: "brand weights saved",
           opportunityRadar: "Opportunity Radar",
@@ -933,7 +935,7 @@ INDEX_HTML = r"""<!doctype html>
             <span class="pill ${opportunityPill(entry.band)}">${escapeHtml(valueLabel("opportunityBand", entry.band))}</span>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(entry.priority_score) || 0}%"></span></div>
-          <p class="muted">${previewingDraftWeights ? `<span class="pill gold">${escapeHtml(t("draftPreview"))}</span> · ` : ""}${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</p>
+          <p class="muted">${previewingDraftWeights ? `<span class="pill gold">${escapeHtml(t("draftPreview"))}</span> · ` : ""}${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}${previewingDraftWeights ? ` · ${escapeHtml(t("scoreDelta"))} ${escapeHtml(formatDelta(entry.score_delta))}` : ""}</p>
           ${renderScoreBreakdown(entry.score_breakdown)}
           <p class="muted">${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
           <p class="muted">${escapeHtml(reasonLabels(entry.reason_codes).join(" · "))}</p>
@@ -1155,6 +1157,7 @@ INDEX_HTML = r"""<!doctype html>
             avg_premium_rate: avgPremiumRate,
             max_premium_rate: maxPremiumRate,
             priority_score: priorityScore,
+            score_delta: priorityScore - savedOpportunityScore(brand.alias),
             score_breakdown: breakdown,
             band: opportunityBand(priorityScore, avgPremiumRate, sampleCount, weight),
             reason_codes: opportunityReasons(avgPremiumRate, sampleCount, weight),
@@ -1196,6 +1199,16 @@ INDEX_HTML = r"""<!doctype html>
 
       function clampScore(value) {
         return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+      }
+
+      function savedOpportunityScore(alias) {
+        const saved = (currentState?.opportunity_radar || []).find((entry) => entry.alias === alias);
+        return Number(saved?.priority_score) || 0;
+      }
+
+      function formatDelta(value) {
+        const number = Number(value) || 0;
+        return number > 0 ? `+${number}` : String(number);
       }
 
       function setBusy(busy) {
