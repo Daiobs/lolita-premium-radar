@@ -831,6 +831,73 @@ INDEX_HTML = r"""<!doctype html>
       .draft-risk-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
       .draft-risk-actions { display: flex; flex-wrap: wrap; gap: 7px; }
       .draft-risk-actions button { min-height: 30px; padding-inline: 10px; }
+      .style-premium-board { margin: 0 20px 14px; }
+      .style-premium-grid { display: grid; grid-template-columns: minmax(220px, .55fr) minmax(360px, 1.45fr); gap: 12px; padding: 12px; }
+      .style-premium-brief, .style-premium-card {
+        position: relative;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 20%, var(--line));
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 15%, transparent), transparent 36%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 74%, #fff), rgba(255,253,251,.94));
+        box-shadow: var(--paper-shadow);
+        overflow: hidden;
+      }
+      .style-premium-brief {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+        padding: 12px;
+      }
+      .style-premium-brief::before, .style-premium-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 5px;
+        background:
+          radial-gradient(circle at 8px 0, rgba(255,255,255,.82) 0 5px, transparent 5px) 0 0 / 16px 5px repeat-x,
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .style-premium-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .style-premium-brief p, .style-premium-card p { margin: 0; color: var(--muted); }
+      .style-premium-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+      }
+      .style-premium-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 50px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.74);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .style-premium-stats strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .style-premium-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+      .style-premium-card {
+        display: grid;
+        gap: 8px;
+        min-height: 160px;
+        padding: 12px;
+      }
+      .style-premium-card header { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
+      .style-premium-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .style-premium-meta { display: flex; flex-wrap: wrap; gap: 5px; }
+      .style-premium-meta span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
       .radar-nav {
         position: sticky;
         top: 0;
@@ -3006,7 +3073,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-salon, .weight-salon-list, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .style-premium-grid, .style-premium-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-salon, .weight-salon-list, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -3093,6 +3160,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
       <div id="draftRiskRadar" class="draft-risk-grid"></div>
     </section>
+    <section class="panel style-premium-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="stylePremiumTape">风格溢价行情</h2>
+          <span class="muted" data-i18n="stylePremiumTapeHint">按 Sweet、Classic、Gothic 等风格线查看二级市场溢价和证据状态</span>
+        </div>
+      </div>
+      <div id="stylePremiumTape" class="style-premium-grid"></div>
+    </section>
     <section class="panel daily-board">
       <div class="toolbar">
         <div>
@@ -3106,6 +3182,7 @@ INDEX_HTML = r"""<!doctype html>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="northStarRadar" data-i18n="navNorthStar">北极星</button>
       <button type="button" data-radar-jump="brandCrownQueue" data-i18n="navCrown">皇冠</button>
+      <button type="button" data-radar-jump="stylePremiumTape" data-i18n="navStylePremium">行情</button>
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandPortfolio" data-i18n="navPortfolio">组合</button>
       <button type="button" data-radar-jump="releaseWatchQueue" data-i18n="navReleaseWatch">发售</button>
@@ -3580,6 +3657,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "样本证据",
           navNorthStar: "北极星",
           navCrown: "皇冠",
+          navStylePremium: "行情",
           navDaily: "简报",
           navPortfolio: "组合",
           navReleaseWatch: "发售",
@@ -3662,6 +3740,22 @@ INDEX_HTML = r"""<!doctype html>
           draftRiskChanged: "变更",
           draftRiskOpen: "风险",
           draftRiskMaxMove: "最大移动",
+          stylePremiumTape: "风格溢价行情",
+          stylePremiumTapeHint: "按 Sweet、Classic、Gothic 等风格线查看二级市场溢价和证据状态",
+          stylePremiumLead: "领跑行情",
+          stylePremiumHeat: "行情热度",
+          stylePremiumAvg: "均溢价",
+          stylePremiumWeighted: "权重热度",
+          stylePremiumSamples: "样本",
+          stylePremiumSpread: "均价差",
+          stylePremiumAction: "今日动作",
+          stylePremiumEvidence: "证据覆盖",
+          stylePremiumPremiumSignals: "溢价品牌",
+          stylePremiumCollect: "补价格样本",
+          stylePremiumTrack: "追溢价",
+          stylePremiumWatch: "持续盯价",
+          stylePremiumReview: "折价复核",
+          stylePremiumHold: "等待信号",
           dailyRadarBrief: "今日雷达简报",
           dailyRadarBriefHint: "把核心盯盘、权重校准和采样缺口收成今天的行动队列",
           dailyLead: "主线",
@@ -4369,6 +4463,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "sample evidence",
           navNorthStar: "North Star",
           navCrown: "Crown",
+          navStylePremium: "Tape",
           navDaily: "Brief",
           navPortfolio: "Portfolio",
           navReleaseWatch: "Release",
@@ -4451,6 +4546,22 @@ INDEX_HTML = r"""<!doctype html>
           draftRiskChanged: "changed",
           draftRiskOpen: "risks",
           draftRiskMaxMove: "largest move",
+          stylePremiumTape: "Style Premium Tape",
+          stylePremiumTapeHint: "Read resale premium and evidence by Sweet, Classic, Gothic, and other style lines",
+          stylePremiumLead: "lead tape",
+          stylePremiumHeat: "tape heat",
+          stylePremiumAvg: "avg premium",
+          stylePremiumWeighted: "weighted heat",
+          stylePremiumSamples: "samples",
+          stylePremiumSpread: "avg spread",
+          stylePremiumAction: "today action",
+          stylePremiumEvidence: "evidence",
+          stylePremiumPremiumSignals: "premium brands",
+          stylePremiumCollect: "collect prices",
+          stylePremiumTrack: "track premium",
+          stylePremiumWatch: "keep watching",
+          stylePremiumReview: "review discount",
+          stylePremiumHold: "wait signal",
           dailyRadarBrief: "Daily Radar Brief",
           dailyRadarBriefHint: "Turn core watch, weight tuning, and sample gaps into today's action queue",
           dailyLead: "lead",
@@ -8952,6 +9063,106 @@ INDEX_HTML = r"""<!doctype html>
         return clampScore(Math.round((rows || []).length * 8 + maxMove * 1.8 + riskRank * 10));
       }
 
+      function renderStylePremiumTape(rows = buildBrandRadarMatrix()) {
+        const target = $("stylePremiumTape");
+        if (!target) return;
+        const lanes = stylePremiumRows(rows);
+        const lead = [...lanes].sort((a, b) => (
+          (Number(b.heat) || 0) - (Number(a.heat) || 0)
+          || (Number(b.avgPremium) || 0) - (Number(a.avgPremium) || 0)
+        ))[0] || {};
+        target.innerHTML = `
+          <article class="style-premium-brief" style="${escapeHtml(styleFamilyVisualStyle(lead.family || "sweet"))}">
+            <strong>${escapeHtml(lead.heat || 0)}</strong>
+            <p>${escapeHtml(t("stylePremiumHeat"))} · ${escapeHtml(t("stylePremiumTapeHint"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lead.heat || 0)}%"></span></div>
+            <div class="style-premium-stats">
+              <span><strong>${escapeHtml(t(styleFamilyLabelKey(lead.family || "sweet")))}</strong>${escapeHtml(t("stylePremiumLead"))}</span>
+              <span><strong>${escapeHtml(formatPercent(lead.avgPremium || 0))}</strong>${escapeHtml(t("stylePremiumAvg"))}</span>
+              <span><strong>${escapeHtml(lead.samples || 0)}/${escapeHtml(lead.sampleTarget || 0)}</strong>${escapeHtml(t("stylePremiumSamples"))}</span>
+              <span><strong>${escapeHtml(lead.premiumSignals || 0)}</strong>${escapeHtml(t("stylePremiumPremiumSignals"))}</span>
+            </div>
+          </article>
+          <div class="style-premium-list">
+            ${lanes.map((lane) => `<article class="style-premium-card" data-style-premium="${escapeHtml(lane.family)}" style="${escapeHtml(styleFamilyVisualStyle(lane.family))}">
+              <header>
+                <div>
+                  <strong>${escapeHtml(t(styleFamilyLabelKey(lane.family)))}</strong>
+                  <p>${escapeHtml(t("stylePremiumAction"))} · ${escapeHtml(t(stylePremiumActionLabel(lane.action)))}</p>
+                </div>
+                <span class="pill ${escapeHtml(stylePremiumActionPill(lane.action))}">${escapeHtml(lane.heat)}</span>
+              </header>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lane.heat)}%"></span></div>
+              <div class="style-premium-meta">
+                <span>${escapeHtml(t("stylePremiumAvg"))} ${escapeHtml(formatPercent(lane.avgPremium))}</span>
+                <span>${escapeHtml(t("stylePremiumWeighted"))} ${escapeHtml(lane.weightedHeat)}</span>
+                <span>${escapeHtml(t("stylePremiumSamples"))} ${escapeHtml(lane.samples)}/${escapeHtml(lane.sampleTarget)}</span>
+                <span>${escapeHtml(t("stylePremiumEvidence"))} ${escapeHtml(lane.evidenceCoverage)}%</span>
+                <span>${escapeHtml(t("stylePremiumSpread"))} ${escapeHtml(formatMoney(lane.avgSpread, lane.currency))}</span>
+              </div>
+            </article>`).join("")}
+          </div>
+        `;
+      }
+
+      function stylePremiumRows(rows) {
+        const families = ["sweet", "classic", "gothic", "release", "art"];
+        return families.map((family) => {
+          const members = (rows || []).filter((entry) => brandStyleFamily(entry) === family);
+          const sampled = members.filter((entry) => Number(entry.sample_count) > 0);
+          const sampleTargetTotal = members.reduce((sum, entry) => sum + sampleTarget(entry.brand_weight, entry.tier), 0);
+          const samples = members.reduce((sum, entry) => sum + (Number(entry.sample_count) || 0), 0);
+          const avgWeight = members.length ? Math.round(members.reduce((sum, entry) => sum + (Number(entry.brand_weight) || 0), 0) / members.length) : 0;
+          const avgPremium = sampled.length ? sampled.reduce((sum, entry) => sum + (Number(entry.avg_premium_rate) || 0), 0) / sampled.length : 0;
+          const spreadRows = members.filter((entry) => Number(entry.avg_spread));
+          const avgSpread = spreadRows.length ? Math.round(spreadRows.reduce((sum, entry) => sum + (Number(entry.avg_spread) || 0), 0) / spreadRows.length) : 0;
+          const evidenceCoverage = sampleTargetTotal ? clampScore(samples / sampleTargetTotal * 100) : 0;
+          const premiumSignals = members.filter((entry) => Number(entry.avg_premium_rate) >= 0.25).length;
+          const weightedHeat = clampScore(Math.max(0, avgPremium) * 100 + avgWeight * .34 + evidenceCoverage * .22);
+          const lane = {
+            family,
+            count: members.length,
+            avgPremium,
+            avgWeight,
+            weightedHeat,
+            heat: clampScore(weightedHeat + premiumSignals * 6),
+            samples,
+            sampleTarget: sampleTargetTotal,
+            evidenceCoverage,
+            premiumSignals,
+            avgSpread,
+            currency: members.find((entry) => entry.currency)?.currency || "CNY",
+          };
+          lane.action = stylePremiumAction(lane);
+          return lane;
+        });
+      }
+
+      function stylePremiumAction(lane) {
+        if (Number(lane.samples) < Number(lane.sampleTarget) && Number(lane.avgWeight) >= 70) return "collect";
+        if (Number(lane.avgPremium) >= .25) return "track";
+        if (Number(lane.avgPremium) >= .1) return "watch";
+        if (Number(lane.avgPremium) < -.05) return "review";
+        return "hold";
+      }
+
+      function stylePremiumActionLabel(action) {
+        return {
+          collect: "stylePremiumCollect",
+          track: "stylePremiumTrack",
+          watch: "stylePremiumWatch",
+          review: "stylePremiumReview",
+          hold: "stylePremiumHold",
+        }[action] || "stylePremiumHold";
+      }
+
+      function stylePremiumActionPill(action) {
+        if (action === "collect") return "gold";
+        if (action === "track") return "rose";
+        if (action === "review") return "warn";
+        return "off";
+      }
+
       function buildDraftOpportunityRadar() {
         return buildOpportunityRows().slice(0, 8);
       }
@@ -8967,6 +9178,7 @@ INDEX_HTML = r"""<!doctype html>
         renderNorthStarRadar(rows);
         renderBrandCrownQueue(rows);
         renderDraftRiskRadar();
+        renderStylePremiumTape(rows);
         renderDailyRadarBrief(rows);
         renderResaleRunSheet(rows);
         renderBrandPortfolio(rows);

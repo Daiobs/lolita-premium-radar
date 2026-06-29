@@ -111,7 +111,9 @@ directly from the first-screen queue. The same queue can be exported as
 `lolita-brand-crown.csv` for daily brand-weight review. A first-screen draft-risk
 radar mirrors the full draft audit by showing unsaved change count, risk count,
 largest move, and the top save-before-review warnings as soon as weights are
-tuned.
+tuned. A style-premium tape then rolls Sweet, Classic, Gothic, Release, and Art
+Print lanes into one resale-market readout with average premium, weighted heat,
+sample coverage, average spread, and the next line-level action.
 Brand weights, scorecards, core watch gaps, and sample plans are also summarized
 into a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
 priority checks into a short action queue with jump, sample, and pattern-prefill
