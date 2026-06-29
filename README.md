@@ -134,6 +134,10 @@ evidence in one scan-friendly view. A hot-pattern keyword radar turns item-level
 terms such as `AP` + `贝壳` into one-click sample entry seeds, and the
 pattern-premium radar groups recorded samples by those
 keywords to show item-level premium, sample count, and weighted priority. The
+core brand watch desk then brings high-weight brands, signature pattern terms,
+sample progress, one-click sample prefill, and Goofish/Taobao/Mercari/Yahoo JP
+search links into one daily watch surface for AP shell-line style tasks and
+other core-label checks. The
 market action desk turns the highest-priority pattern rows into search links for
 Goofish, Taobao, Mercari JP, and Yahoo Japan Auctions plus one-click sample
 prefill. An evidence-health panel scores sample quality from source, link, date,

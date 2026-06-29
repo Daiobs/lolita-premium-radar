@@ -1251,6 +1251,61 @@ INDEX_HTML = r"""<!doctype html>
       .identity-links a:hover { background: #fff; text-decoration: none; }
       .identity-score { display: grid; gap: 4px; min-width: 92px; text-align: right; }
       .identity-score strong { color: var(--wine); font: 650 22px/1 Georgia, "Times New Roman", serif; }
+      .core-watch-board { margin: 0 20px 14px; }
+      .core-watch-grid { display: grid; grid-template-columns: minmax(220px, .68fr) minmax(320px, 1.32fr); gap: 12px; padding: 12px; }
+      .core-watch-brief, .core-watch-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .core-watch-brief {
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(180,87,111,.13), transparent 36%),
+          linear-gradient(135deg, rgba(255,243,246,.82), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+      }
+      .core-watch-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .core-watch-brief p, .core-watch-card p { margin: 0; color: var(--muted); }
+      .core-watch-list { display: grid; gap: 8px; }
+      .core-watch-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        padding: 12px 12px 14px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 24px 24px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 14%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 72%, #fff), rgba(248,251,250,.92));
+      }
+      .core-watch-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 10px;
+        bottom: 10px;
+        width: 5px;
+        border-radius: 0 999px 999px 0;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .core-watch-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .core-watch-card strong { color: var(--wine); }
+      .core-watch-score { font: 650 26px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
+      .core-watch-terms, .core-watch-links { display: flex; flex-wrap: wrap; gap: 6px; }
+      .core-watch-terms button, .core-watch-links a, .core-watch-links button {
+        min-height: 26px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .core-watch-terms button { padding: 0 8px; border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 30%, var(--line)); background: rgba(255,253,251,.76); color: var(--wine); box-shadow: none; }
+      .core-watch-links a { padding: 0 8px; border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line)); background: #fffdfb; color: color-mix(in srgb, var(--brand-accent, var(--rose)) 74%, var(--wine)); text-decoration: none; }
+      .core-watch-links button { padding: 0 9px; }
       .keyword-board { margin: 0 20px 14px; }
       .keyword-radar { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; padding: 12px; }
       .keyword-card {
@@ -1675,7 +1730,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -1732,6 +1787,7 @@ INDEX_HTML = r"""<!doctype html>
     <section class="metrics" id="metrics"></section>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
+      <button type="button" data-radar-jump="coreMarketWatch" data-i18n="navCoreWatch">盯盘</button>
       <button type="button" data-radar-jump="brandIdentityMatrix" data-i18n="navIdentity">身份</button>
       <button type="button" data-radar-jump="weightTrajectory" data-i18n="navTrajectory">轨迹</button>
       <button type="button" data-radar-jump="brandWeightFormula" data-i18n="navFormula">配方</button>
@@ -1850,6 +1906,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="brandKeywordRadar" class="keyword-radar"></div>
+    </section>
+    <section class="panel core-watch-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="coreMarketWatch">核心品牌盯盘台</h2>
+          <span class="muted" data-i18n="coreMarketWatchHint">把高权重品牌、代表款式词、二级市场搜索和补样本入口放在一屏</span>
+        </div>
+      </div>
+      <div id="coreMarketWatch" class="core-watch-grid"></div>
     </section>
     <section class="panel seed-board">
       <div class="toolbar">
@@ -2081,6 +2146,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualPremium: "溢价热度",
           heroVisualEvidence: "样本证据",
           navWeights: "权重",
+          navCoreWatch: "盯盘",
           navIdentity: "身份",
           navTrajectory: "轨迹",
           navFormula: "配方",
@@ -2324,6 +2390,16 @@ INDEX_HTML = r"""<!doctype html>
           strategyNoMoves: "暂无校准动作",
           brandKeywordRadar: "热门款式词",
           brandKeywordHint: "把 AP 贝壳这类款式线索接到价格样本录入",
+          coreMarketWatch: "核心品牌盯盘台",
+          coreMarketWatchHint: "把高权重品牌、代表款式词、二级市场搜索和补样本入口放在一屏",
+          coreWatchBrands: "盯盘品牌",
+          coreWatchThin: "薄样本",
+          coreWatchAvgScore: "均值分",
+          coreWatchTerms: "款式线索",
+          coreWatchSearch: "搜索入口",
+          coreWatchSample: "补样本",
+          coreWatchCue: "关注提示",
+          noCoreWatch: "暂无核心盯盘品牌",
           premiumSeedRadar: "溢价关注种子",
           premiumSeedHint: "没有足够二手价样本前，先把高权重品牌和代表款式词排进采样队列",
           premiumSeedTerms: "溢价种子词",
@@ -2554,6 +2630,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualPremium: "premium heat",
           heroVisualEvidence: "sample evidence",
           navWeights: "Weights",
+          navCoreWatch: "Watch",
           navIdentity: "Identity",
           navTrajectory: "Trajectory",
           navFormula: "Formula",
@@ -2797,6 +2874,16 @@ INDEX_HTML = r"""<!doctype html>
           strategyNoMoves: "No tuning moves yet",
           brandKeywordRadar: "Hot Pattern Keywords",
           brandKeywordHint: "Connect item-level signals such as AP shell to price-sample entry",
+          coreMarketWatch: "Core Brand Watch Desk",
+          coreMarketWatchHint: "Group high-weight brands, signature terms, market search, and sampling actions in one view",
+          coreWatchBrands: "watch brands",
+          coreWatchThin: "thin samples",
+          coreWatchAvgScore: "avg score",
+          coreWatchTerms: "pattern cues",
+          coreWatchSearch: "search",
+          coreWatchSample: "add sample",
+          coreWatchCue: "watch cue",
+          noCoreWatch: "No core watch brands yet",
           premiumSeedRadar: "Premium Watch Seeds",
           premiumSeedHint: "Before samples are thick enough, queue high-weight brands and signature terms for price collection",
           premiumSeedTerms: "premium seed terms",
@@ -5211,11 +5298,76 @@ INDEX_HTML = r"""<!doctype html>
         renderBrandWeightFormula(rows);
         renderBrandWeightProfile(rows);
         renderBrandIdentityMatrix(rows);
+        renderCoreMarketWatch(rows);
         renderPremiumSeedRadar(rows);
         renderBrandRadarMatrix(rows);
         renderSampleCoverage(rows);
         renderSamplePlan(rows);
         renderWeightTuning(rows);
+      }
+
+      function renderCoreMarketWatch(rows) {
+        const watchRows = coreMarketWatchRows(rows);
+        const thinCount = watchRows.filter((entry) => Number(entry.sample_count) < 2).length;
+        const avgScore = watchRows.length ? Math.round(watchRows.reduce((sum, entry) => sum + (Number(entry.watch_score) || 0), 0) / watchRows.length) : 0;
+        $("coreMarketWatch").innerHTML = `
+          <article class="core-watch-brief">
+            <strong>${escapeHtml(watchRows.length)}</strong>
+            <p>${escapeHtml(t("coreWatchBrands"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(avgScore)}%"></span></div>
+            <div class="coverage-stats">
+              <article class="coverage-stat"><strong>${escapeHtml(thinCount)}</strong><span class="muted">${escapeHtml(t("coreWatchThin"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(avgScore)}</strong><span class="muted">${escapeHtml(t("coreWatchAvgScore"))}</span></article>
+            </div>
+          </article>
+          <div class="core-watch-list">
+            ${watchRows.length ? watchRows.map((entry) => coreMarketWatchCardHtml(entry)).join("") : `<div class="row">${escapeHtml(t("noCoreWatch"))}</div>`}
+          </div>
+        `;
+      }
+
+      function coreMarketWatchCardHtml(entry) {
+        const terms = entry.watch_terms || [];
+        const primaryTerm = terms[0] || entry.alias;
+        return `<article class="core-watch-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)} · ${escapeHtml(entry.name)}</strong>
+              <p>${escapeHtml(t("coreWatchCue"))} · ${escapeHtml(entry.visual?.radar_cue || styleLabel(entry.style))}</p>
+            </div>
+            <div class="core-watch-score">${escapeHtml(entry.watch_score)}</div>
+          </header>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.watch_score)}%"></span></div>
+          <p>${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</p>
+          <div class="core-watch-terms" aria-label="${escapeHtml(t("coreWatchTerms"))}">
+            ${terms.length ? terms.map((term) => `<button type="button" data-core-watch-brand="${escapeHtml(entry.alias)}" data-core-watch-term="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("") : `<span class="muted">${escapeHtml(t("noMarketKeywords"))}</span>`}
+          </div>
+          <div class="core-watch-links" aria-label="${escapeHtml(t("coreWatchSearch"))}">
+            ${marketSearchLinks({ ...entry, keyword: primaryTerm }).map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
+            <button type="button" class="secondary" data-core-watch-brand="${escapeHtml(entry.alias)}" data-core-watch-term="${escapeHtml(primaryTerm)}">${escapeHtml(t("coreWatchSample"))}</button>
+          </div>
+        </article>`;
+      }
+
+      function coreMarketWatchRows(rows) {
+        return (rows || []).map((entry) => {
+          const target = sampleTarget(entry.brand_weight, entry.tier);
+          const sampleCount = Number(entry.sample_count) || 0;
+          const premium = Number(entry.avg_premium_rate) || 0;
+          const keywordBonus = Math.min(12, (entry.market_keywords || []).length * 2);
+          const thinBonus = sampleCount < 2 ? 16 : sampleCount < target ? 8 : 0;
+          return {
+            ...entry,
+            target_samples: target,
+            watch_terms: (entry.market_keywords || []).slice(0, 5),
+            watch_score: clampScore((Number(entry.brand_weight) || 0) * .46 + Math.max(0, premium) * 36 + thinBonus + keywordBonus),
+          };
+        }).filter((entry) => Number(entry.brand_weight) >= 75 || Number(entry.avg_premium_rate) >= 0.25)
+          .sort((a, b) => (
+            (Number(b.watch_score) || 0) - (Number(a.watch_score) || 0)
+            || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+            || String(a.alias).localeCompare(String(b.alias))
+          )).slice(0, 5);
       }
 
       function renderBrandIdentityMatrix(rows) {
@@ -5649,6 +5801,10 @@ INDEX_HTML = r"""<!doctype html>
       $("brandKeywordRadar").addEventListener("click", (event) => {
         const keywordButton = event.target.closest("[data-keyword-brand]");
         if (keywordButton) prepareKeywordSample(keywordButton.dataset.keywordBrand, keywordButton.dataset.keywordTerm);
+      });
+      $("coreMarketWatch").addEventListener("click", (event) => {
+        const watchButton = event.target.closest("[data-core-watch-brand]");
+        if (watchButton) prepareKeywordSample(watchButton.dataset.coreWatchBrand, watchButton.dataset.coreWatchTerm);
       });
       $("premiumSeedRadar").addEventListener("click", (event) => {
         const keywordButton = event.target.closest("[data-premium-seed-brand]");
