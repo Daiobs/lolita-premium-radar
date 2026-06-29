@@ -59,7 +59,14 @@ def normalize_market_observation(raw: Any) -> dict[str, Any] | None:
     }
 
 
-def summarize_market_observations(observations: list[dict[str, Any]]) -> dict[str, Any]:
+def summarize_market_observations(
+    observations: list[dict[str, Any]],
+    brand_weights: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    weight_by_alias = {
+        text(brand.get("alias")).upper(): clamp_int(brand.get("weight"), default=50)
+        for brand in brand_weights or []
+    }
     brand_rows: dict[str, list[dict[str, Any]]] = {}
     for observation in observations:
         brand_rows.setdefault(observation["brand_alias"], []).append(observation)
@@ -68,21 +75,39 @@ def summarize_market_observations(observations: list[dict[str, Any]]) -> dict[st
         premium_rates = [float(row["premium_rate"]) for row in rows]
         resale_prices = [float(row["resale_price"]) for row in rows]
         retail_prices = [float(row["retail_price"]) for row in rows]
+        avg_premium_rate = sum(premium_rates) / len(premium_rates)
+        brand_weight = weight_by_alias.get(alias, 50)
         brands.append(
             {
                 "brand_alias": alias,
                 "sample_count": len(rows),
-                "avg_premium_rate": round(sum(premium_rates) / len(premium_rates), 4),
+                "avg_premium_rate": round(avg_premium_rate, 4),
                 "max_premium_rate": round(max(premium_rates), 4),
                 "avg_retail_price": round(sum(retail_prices) / len(retail_prices), 2),
                 "avg_resale_price": round(sum(resale_prices) / len(resale_prices), 2),
+                "brand_weight": brand_weight,
+                "priority_score": premium_priority_score(avg_premium_rate, brand_weight, len(rows)),
                 "currency": rows[0].get("currency") or "CNY",
+            }
+        )
+    records = []
+    for observation in observations:
+        brand_weight = weight_by_alias.get(observation["brand_alias"], 50)
+        records.append(
+            {
+                **observation,
+                "brand_weight": brand_weight,
+                "priority_score": premium_priority_score(float(observation["premium_rate"]), brand_weight, 1),
             }
         )
     return {
         "sample_count": len(observations),
-        "brands": sorted(brands, key=lambda row: (float(row["avg_premium_rate"]), int(row["sample_count"])), reverse=True),
-        "records": sorted(observations, key=lambda row: float(row["premium_rate"]), reverse=True)[:20],
+        "brands": sorted(
+            brands,
+            key=lambda row: (int(row["priority_score"]), float(row["avg_premium_rate"]), int(row["sample_count"])),
+            reverse=True,
+        ),
+        "records": sorted(records, key=lambda row: (int(row["priority_score"]), float(row["premium_rate"])), reverse=True)[:20],
     }
 
 
@@ -92,6 +117,20 @@ def positive_float(value: Any) -> float:
     except (TypeError, ValueError):
         return 0.0
     return number if number > 0 else 0.0
+
+
+def premium_priority_score(premium_rate: float, brand_weight: int, sample_count: int) -> int:
+    premium_points = max(0, premium_rate) * 55
+    brand_points = clamp_int(brand_weight, default=50) * 0.4
+    sample_points = min(10, max(0, sample_count) * 2)
+    return max(0, min(100, round(premium_points + brand_points + sample_points)))
+
+
+def clamp_int(value: Any, default: int) -> int:
+    try:
+        return max(0, min(100, int(value)))
+    except (TypeError, ValueError):
+        return default
 
 
 def text(value: Any) -> str:

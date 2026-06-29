@@ -74,6 +74,7 @@ sources:
         self.assertIn("marketPremium", INDEX_HTML)
         self.assertIn("marketForm", INDEX_HTML)
         self.assertIn("/api/market/observations", INDEX_HTML)
+        self.assertIn("priorityScore", INDEX_HTML)
 
     def test_market_observation_post_appends_sample(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

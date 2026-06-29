@@ -157,7 +157,7 @@ def get_dashboard_state(
     sources = load_sources(config_path)
     brand_weights = load_brand_weights(brands_path)
     market_observations = load_market_observations(market_path)
-    market_summary = summarize_market_observations(market_observations)
+    market_summary = summarize_market_observations(market_observations, brand_weights)
     connection = connect(db_path)
     try:
         counts = storage_counts(connection)
@@ -225,37 +225,49 @@ INDEX_HTML = r"""<!doctype html>
     <title>Lolita Premium Radar</title>
     <style>
       :root {
-        --bg: #f5f1ee;
-        --bg-soft: #fbf8f6;
+        --bg: #f4eee9;
+        --bg-soft: #fff8f5;
         --panel: #fffdfb;
-        --text: #241c21;
-        --muted: #766971;
-        --line: #e7dad7;
-        --lace: #f0e6e3;
+        --text: #24171f;
+        --muted: #766871;
+        --line: #e4d3cf;
+        --lace: #f0e5df;
         --ink: #20151d;
-        --rose: #b85b72;
-        --rose-dark: #883b50;
-        --wine: #6e1f35;
-        --teal: #0f6f6a;
+        --rose: #b4576f;
+        --rose-dark: #7c3148;
+        --wine: #611b31;
+        --teal: #0f6760;
         --gold: #a9782c;
         --warn: #a44322;
-        --shadow: 0 18px 45px rgba(61, 39, 45, .12);
+        --shadow: 0 18px 44px rgba(63, 39, 47, .13);
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background:
-          linear-gradient(90deg, rgba(110,31,53,.05) 1px, transparent 1px),
-          linear-gradient(rgba(110,31,53,.04) 1px, transparent 1px),
+          radial-gradient(circle at 16px 16px, rgba(180,87,111,.09) 0 2px, transparent 2px),
+          linear-gradient(90deg, rgba(97,27,49,.045) 1px, transparent 1px),
+          linear-gradient(rgba(15,103,96,.035) 1px, transparent 1px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.34) 0 18px, rgba(255,255,255,0) 18px 36px),
           var(--bg);
-        background-size: 28px 28px;
+        background-size: 32px 32px, 28px 28px, 28px 28px, 72px 72px, auto;
         color: var(--text);
         font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       a { color: var(--teal); text-decoration: none; }
       a:hover { text-decoration: underline; }
-      button { min-height: 36px; border: 0; border-radius: 6px; padding: 0 13px; color: #fff; background: var(--rose-dark); cursor: pointer; font: inherit; }
-      button.secondary { background: #344c59; }
+      button {
+        min-height: 36px;
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: 6px;
+        padding: 0 13px;
+        color: #fff;
+        background: linear-gradient(180deg, #93415b, var(--rose-dark));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 8px 18px rgba(97,27,49,.16);
+        cursor: pointer;
+        font: inherit;
+      }
+      button.secondary { background: linear-gradient(180deg, #3f5a63, #2f424a); }
       button[disabled] { background: #ad9fa5; }
       button:disabled { opacity: .65; cursor: wait; }
       .topbar {
@@ -267,9 +279,22 @@ INDEX_HTML = r"""<!doctype html>
         padding: 22px 24px 18px;
         color: #fff;
         background:
+          radial-gradient(circle at 18% 16%, rgba(255,255,255,.14) 0 1px, transparent 2px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 12px, rgba(255,255,255,0) 12px 24px),
           linear-gradient(135deg, rgba(136,59,80,.92), rgba(32,21,29,.96) 54%, rgba(15,111,106,.86)),
           #241c21;
         border-bottom: 5px double rgba(255,255,255,.24);
+        overflow: hidden;
+      }
+      .topbar::before {
+        content: "";
+        position: absolute;
+        inset: 9px 10px auto;
+        height: 9px;
+        border-top: 1px solid rgba(255,255,255,.24);
+        border-bottom: 1px solid rgba(255,255,255,.18);
+        background: radial-gradient(circle at 8px 9px, rgba(255,255,255,.26) 0 6px, transparent 6px) 0 0 / 16px 9px repeat-x;
+        pointer-events: none;
       }
       .topbar::after {
         content: "";
@@ -278,37 +303,74 @@ INDEX_HTML = r"""<!doctype html>
         right: 0;
         bottom: -9px;
         height: 9px;
-        background: repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 10px, transparent 10px 20px);
-        opacity: .55;
+        background: radial-gradient(circle at 10px 0, rgba(255,255,255,.6) 0 9px, transparent 9px) 0 0 / 20px 9px repeat-x;
+        opacity: .7;
       }
-      .eyebrow { margin: 0 0 3px; color: #ead6d6; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
-      .topbar h1 { margin: 0; font: 600 28px/1.05 Georgia, "Times New Roman", serif; }
+      .eyebrow { margin: 0 0 3px; color: #f1dad7; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+      .topbar h1 { margin: 0; font: 600 30px/1.05 Georgia, "Times New Roman", serif; }
       .topbar p { margin: 6px 0 0; max-width: 820px; color: #f2e8e6; word-break: break-word; }
       .actions { display: flex; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
       .language-switch { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid rgba(255,255,255,.18); border-radius: 7px; background: rgba(255,255,255,.08); }
       .language-switch button { min-height: 32px; padding: 0 10px; border-radius: 5px; background: transparent; color: #c9d6dc; }
       .language-switch button.active { background: #fff; color: #14242d; }
       .metrics { display: grid; grid-template-columns: repeat(5, minmax(132px, 1fr)); gap: 12px; padding: 22px 20px 12px; }
-      .metric, .panel, .atelier { background: rgba(255,253,251,.96); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
-      .metric { min-height: 88px; display: grid; align-content: center; gap: 5px; padding: 13px 15px; border-top: 4px solid var(--rose); }
+      .metric, .panel, .atelier {
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,253,251,.96)),
+          var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+      }
+      .metric {
+        position: relative;
+        min-height: 88px;
+        display: grid;
+        align-content: center;
+        gap: 5px;
+        padding: 13px 15px;
+        border-top: 4px solid var(--rose);
+        overflow: hidden;
+      }
+      .metric::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 6px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.42) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+      }
       .metric strong { font: 650 27px/1 Georgia, "Times New Roman", serif; color: var(--wine); }
       .metric span, .muted { color: var(--muted); }
       .atelier { margin: 0 20px 14px; padding: 14px; display: grid; grid-template-columns: minmax(220px, .7fr) 1fr; gap: 14px; }
       .atelier h2, .panel h2 { margin: 0; font: 650 17px/1.2 Georgia, "Times New Roman", serif; }
       .watch-grid { display: grid; grid-template-columns: repeat(4, minmax(125px, 1fr)); gap: 9px; }
-      .brand-chip { border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; background: var(--bg-soft); }
+      .brand-chip {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px 10px;
+        background:
+          linear-gradient(90deg, rgba(180,87,111,.1), transparent 42%),
+          var(--bg-soft);
+      }
       .brand-chip strong { display: block; color: var(--wine); }
       .brand-chip span { color: var(--muted); font-size: 12px; }
       .focus-list { display: grid; gap: 8px; }
-      .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff7f7; }
+      .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); }
       .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .focus-card strong { color: var(--wine); }
       .signal-strip { display: grid; gap: 8px; align-content: start; }
-      .signal-bar { height: 11px; overflow: hidden; border-radius: 999px; background: var(--lace); }
+      .signal-bar { height: 11px; overflow: hidden; border-radius: 999px; background: var(--lace); box-shadow: inset 0 0 0 1px rgba(97,27,49,.06); }
       .signal-bar span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--teal), var(--rose), var(--gold)); }
       .workspace { display: grid; grid-template-columns: 340px 1fr; gap: 14px; padding: 0 20px 20px; }
       .panel { min-width: 0; overflow: hidden; }
       .panel h2 { padding: 14px 15px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, #fff7f7, #f8fbfa); }
+      .toolbar, .panel > h2 {
+        background:
+          radial-gradient(circle at 12px 100%, rgba(180,87,111,.12) 0 6px, transparent 6px) 0 100% / 24px 10px repeat-x,
+          linear-gradient(90deg, #fff7f7, #f8fbfa);
+      }
       .source-list, .event-list, .item-list, .status-list { display: grid; gap: 9px; padding: 12px; }
       .source-card, .row, .status-card { border: 1px solid var(--line); border-radius: 8px; padding: 11px; background: #fffaf8; }
       .source-card header, .row header { display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 6px; }
@@ -332,10 +394,26 @@ INDEX_HTML = r"""<!doctype html>
       .market-board { margin: 0 20px 14px; }
       .market-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; padding: 12px; }
       .market-list { display: grid; gap: 9px; }
-      .market-card { border: 1px solid var(--line); border-radius: 8px; padding: 11px; background: #fffaf8; }
+      .market-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 11px;
+        background:
+          linear-gradient(90deg, rgba(169,120,44,.11), transparent 30%),
+          #fffaf8;
+      }
       .market-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .premium-rate { font: 650 22px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
-      .market-form { display: grid; grid-template-columns: repeat(6, minmax(110px, 1fr)); gap: 9px; padding: 12px; border-bottom: 1px solid var(--line); background: #fff7f7; }
+      .market-form {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(110px, 1fr));
+        gap: 9px;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        background:
+          repeating-linear-gradient(90deg, rgba(255,255,255,.38) 0 16px, transparent 16px 32px),
+          #fff7f7;
+      }
       .market-form label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
       .market-form input, .market-form select { min-height: 36px; width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 0 9px; background: #fffdfb; color: var(--text); font: inherit; }
       .market-form .wide { grid-column: span 2; }
@@ -491,6 +569,7 @@ INDEX_HTML = r"""<!doctype html>
           samples: "样本",
           avgPremium: "均值",
           maxPremium: "最高",
+          priorityScore: "权重修正分",
           retailPrice: "原价",
           resalePrice: "二手价",
           brandAlias: "品牌",
@@ -570,6 +649,7 @@ INDEX_HTML = r"""<!doctype html>
           samples: "samples",
           avgPremium: "avg",
           maxPremium: "max",
+          priorityScore: "weighted score",
           retailPrice: "retail",
           resalePrice: "resale",
           brandAlias: "brand",
@@ -714,14 +794,16 @@ INDEX_HTML = r"""<!doctype html>
             <strong>${escapeHtml(brand.brand_alias)}</strong>
             <span class="premium-rate">${formatPercent(brand.avg_premium_rate)}</span>
           </header>
+          <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(brand.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.brand_weight)}</p>
           <p class="muted">${escapeHtml(t("samples"))} ${escapeHtml(brand.sample_count)} · ${escapeHtml(t("maxPremium"))} ${escapeHtml(formatPercent(brand.max_premium_rate))}</p>
-          <div class="signal-bar" aria-hidden="true"><span style="--score: ${premiumWidth(brand.avg_premium_rate)}%"></span></div>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.priority_score) || premiumWidth(brand.avg_premium_rate)}%"></span></div>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
         $("premiumRecords").innerHTML = records.length ? records.map((record) => `<article class="market-card">
           <header>
             <strong>${escapeHtml(record.brand_alias)} · ${escapeHtml(record.item_name)}</strong>
             <span class="premium-rate">${formatPercent(record.premium_rate)}</span>
           </header>
+          <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(record.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(record.brand_weight)}</p>
           <p class="muted">${escapeHtml(t("retailPrice"))} ${formatMoney(record.retail_price, record.currency)} · ${escapeHtml(t("resalePrice"))} ${formatMoney(record.resale_price, record.currency)}</p>
           <p class="muted">${escapeHtml([record.condition, record.source, record.observed_at].filter(Boolean).join(" · "))}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;

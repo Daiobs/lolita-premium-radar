@@ -3,7 +3,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from lolita_radar.market import append_market_observation, load_market_observations, summarize_market_observations
+from lolita_radar.market import (
+    append_market_observation,
+    load_market_observations,
+    premium_priority_score,
+    summarize_market_observations,
+)
 
 
 class MarketTests(unittest.TestCase):
@@ -39,12 +44,21 @@ class MarketTests(unittest.TestCase):
             {"brand_alias": "BABY", "retail_price": 1000, "resale_price": 1200, "premium_rate": 0.2, "currency": "CNY"},
         ]
 
-        summary = summarize_market_observations(observations)
+        summary = summarize_market_observations(
+            observations,
+            brand_weights=[
+                {"alias": "AP", "weight": 100},
+                {"alias": "BABY", "weight": 95},
+            ],
+        )
 
         self.assertEqual(summary["sample_count"], 3)
         self.assertEqual(summary["brands"][0]["brand_alias"], "AP")
         self.assertEqual(summary["brands"][0]["avg_premium_rate"], 0.5)
+        self.assertEqual(summary["brands"][0]["brand_weight"], 100)
+        self.assertGreater(summary["brands"][0]["priority_score"], summary["brands"][1]["priority_score"])
         self.assertEqual(summary["records"][0]["premium_rate"], 0.7)
+        self.assertIn("priority_score", summary["records"][0])
 
     def test_append_market_observation_writes_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -65,6 +79,12 @@ class MarketTests(unittest.TestCase):
 
             self.assertEqual(observation["brand_alias"], "BABY")
             self.assertEqual(saved[0]["premium_rate"], 0.4)
+
+    def test_premium_priority_score_combines_weight_and_premium(self) -> None:
+        low_weight_score = premium_priority_score(0.4, brand_weight=50, sample_count=1)
+        high_weight_score = premium_priority_score(0.4, brand_weight=100, sample_count=1)
+
+        self.assertGreater(high_weight_score, low_weight_score)
 
 
 if __name__ == "__main__":
