@@ -127,15 +127,21 @@ def build_focus_queue(
     brand_weights: list[dict[str, Any]],
     items: list[dict[str, Any]],
     events: list[dict[str, Any]],
+    market_brands: list[dict[str, Any]] | None = None,
     limit: int = 6,
 ) -> list[dict[str, Any]]:
     queue: list[dict[str, Any]] = []
+    market_by_alias = {text(row.get("brand_alias")).upper(): row for row in market_brands or []}
     for brand in brand_weights:
         item_count = count_matches(brand, items)
         event_count = count_matches(brand, events)
+        market = market_by_alias.get(text(brand.get("alias")).upper(), {})
+        market_count = int(market.get("sample_count") or 0)
+        premium_rate = float(market.get("avg_premium_rate") or 0)
         observed_bonus = min(30, item_count * 3 + event_count * 2)
-        score = min(100, int(brand["weight"]) + observed_bonus)
-        if brand.get("tier") == "core" or item_count or event_count:
+        market_bonus = min(25, int(max(0, premium_rate) * 50) + min(10, market_count * 2))
+        score = min(100, int(brand["weight"]) + observed_bonus + market_bonus)
+        if brand.get("tier") == "core" or item_count or event_count or market_count:
             queue.append(
                 {
                     "name": brand["name"],
@@ -146,6 +152,8 @@ def build_focus_queue(
                     "score": score,
                     "item_count": item_count,
                     "event_count": event_count,
+                    "market_count": market_count,
+                    "avg_premium_rate": round(premium_rate, 4),
                 }
             )
     return sorted(queue, key=lambda row: (int(row["score"]), int(row["weight"])), reverse=True)[:limit]

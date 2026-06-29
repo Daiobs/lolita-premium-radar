@@ -53,6 +53,8 @@ sources:
             self.assertEqual(state["brand_weights"][0]["alias"], "AP")
             self.assertEqual(state["brand_weights"][0]["weight"], 100)
             self.assertIn("brands_path", state)
+            self.assertIn("market_path", state)
+            self.assertIn("market", state)
             self.assertTrue(state["focus_queue"])
             self.assertEqual(state["items"][0]["title"], "New Arrival: Rose JSK")
             self.assertEqual(state["events"][0]["event_type"], "new_item")
@@ -65,6 +67,7 @@ sources:
         self.assertIn("brandWeights", INDEX_HTML)
         self.assertIn("marketSignal", INDEX_HTML)
         self.assertIn("focusQueue", INDEX_HTML)
+        self.assertIn("marketPremium", INDEX_HTML)
 
 
 if __name__ == "__main__":

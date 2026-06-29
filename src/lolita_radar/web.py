@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from .adapters import SourceConfig
 from .brands import build_focus_queue, default_brand_weights_path, load_brand_weights
 from .config import load_sources
+from .market import default_market_observations_path, load_market_observations, summarize_market_observations
 from .models import RadarEvent
 from .runner import check_sources
 from .storage import connect, list_events, list_items, storage_counts
@@ -23,16 +24,20 @@ def run_web(
     config_path: Path,
     db_path: Path,
     brands_path: Path | None = None,
+    market_path: Path | None = None,
     host: str = "127.0.0.1",
     port: int = DEFAULT_WEB_PORT,
 ) -> int:
     if brands_path is None:
         brands_path = default_brand_weights_path()
-    handler = make_handler(config_path=config_path, db_path=db_path, brands_path=brands_path)
+    if market_path is None:
+        market_path = default_market_observations_path()
+    handler = make_handler(config_path=config_path, db_path=db_path, brands_path=brands_path, market_path=market_path)
     server = ThreadingHTTPServer((host, port), handler)
     print(f"Lolita Premium Radar web UI: http://{host}:{port}")
     print(f"Config: {config_path.resolve()}")
     print(f"Brand weights: {brands_path.resolve()}")
+    print(f"Market observations: {market_path.resolve()}")
     print(f"Database: {db_path.resolve()}")
     try:
         server.serve_forever()
@@ -43,9 +48,16 @@ def run_web(
     return 0
 
 
-def make_handler(config_path: Path, db_path: Path, brands_path: Path | None = None) -> type[BaseHTTPRequestHandler]:
+def make_handler(
+    config_path: Path,
+    db_path: Path,
+    brands_path: Path | None = None,
+    market_path: Path | None = None,
+) -> type[BaseHTTPRequestHandler]:
     if brands_path is None:
         brands_path = default_brand_weights_path()
+    if market_path is None:
+        market_path = default_market_observations_path()
 
     class WebHandler(BaseHTTPRequestHandler):
         server_version = "LolitaPremiumRadar/0.1"
@@ -61,7 +73,7 @@ def make_handler(config_path: Path, db_path: Path, brands_path: Path | None = No
                 elif parsed.path == "/api/health":
                     self.send_json({"ok": True})
                 elif parsed.path == "/api/state":
-                    self.send_json(get_dashboard_state(config_path, db_path, brands_path))
+                    self.send_json(get_dashboard_state(config_path, db_path, brands_path, market_path))
                 else:
                     self.send_error(HTTPStatus.NOT_FOUND, "Not found")
             except Exception as exc:
@@ -77,7 +89,7 @@ def make_handler(config_path: Path, db_path: Path, brands_path: Path | None = No
                 source_name = text_value(payload.get("source")) or None
                 notify = bool(payload.get("notify", False))
                 events = check_sources(config_path=config_path, db_path=db_path, source_name=source_name, notify=notify)
-                state = get_dashboard_state(config_path, db_path, brands_path)
+                state = get_dashboard_state(config_path, db_path, brands_path, market_path)
                 state.update(
                     {
                         "checked_source": source_name or "all",
@@ -119,9 +131,16 @@ def make_handler(config_path: Path, db_path: Path, brands_path: Path | None = No
     return WebHandler
 
 
-def get_dashboard_state(config_path: Path, db_path: Path, brands_path: Path | None = None) -> dict[str, Any]:
+def get_dashboard_state(
+    config_path: Path,
+    db_path: Path,
+    brands_path: Path | None = None,
+    market_path: Path | None = None,
+) -> dict[str, Any]:
     sources = load_sources(config_path)
     brand_weights = load_brand_weights(brands_path)
+    market_observations = load_market_observations(market_path)
+    market_summary = summarize_market_observations(market_observations)
     connection = connect(db_path)
     try:
         counts = storage_counts(connection)
@@ -134,13 +153,18 @@ def get_dashboard_state(config_path: Path, db_path: Path, brands_path: Path | No
         "config_path": str(config_path.resolve()),
         "db_path": str(db_path.resolve()),
         "brands_path": str((brands_path or default_brand_weights_path()).resolve()),
+        "market_path": str((market_path or default_market_observations_path()).resolve()),
         "counts": {
             **counts,
             "sources": len(sources),
             "enabled_sources": sum(1 for source in sources.values() if source.enabled),
         },
         "brand_weights": brand_weights,
-        "focus_queue": build_focus_queue(brand_weights, items, events),
+        "focus_queue": build_focus_queue(brand_weights, items, events, market_summary["brands"]),
+        "market": {
+            "observations": market_observations,
+            "summary": market_summary,
+        },
         "sources": [source_to_dict(source) for source in sources.values()],
         "items": items,
         "events": events,
@@ -288,10 +312,16 @@ INDEX_HTML = r"""<!doctype html>
       .status-card { display: grid; gap: 8px; }
       .status-card header { display: flex; justify-content: space-between; gap: 10px; }
       .status-count { font: 650 22px/1 Georgia, "Times New Roman", serif; color: var(--wine); }
+      .market-board { margin: 0 20px 14px; }
+      .market-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; padding: 12px; }
+      .market-list { display: grid; gap: 9px; }
+      .market-card { border: 1px solid var(--line); border-radius: 8px; padding: 11px; background: #fffaf8; }
+      .market-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .premium-rate { font: 650 22px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
       .toast { position: fixed; right: 16px; bottom: 16px; max-width: min(440px, calc(100vw - 32px)); padding: 10px 12px; border-radius: 8px; background: #16242d; color: #fff; box-shadow: var(--shadow); opacity: 0; transform: translateY(8px); transition: .16s; pointer-events: none; }
       .toast.show { opacity: 1; transform: translateY(0); }
       @media (max-width: 860px) {
-        .topbar, .atelier, .workspace { grid-template-columns: 1fr; }
+        .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
         .metrics, .watch-grid, .event-list, .item-list { grid-template-columns: 1fr; }
       }
@@ -327,6 +357,22 @@ INDEX_HTML = r"""<!doctype html>
       <div>
         <h2 data-i18n="brandWeights">品牌权重</h2>
         <div id="brandWeights" class="watch-grid"></div>
+      </div>
+    </section>
+    <section class="panel market-board">
+      <div class="toolbar">
+        <h2 data-i18n="marketPremium">二手溢价观察</h2>
+        <span id="marketCount" class="muted"></span>
+      </div>
+      <div class="market-grid">
+        <div>
+          <h2 data-i18n="premiumByBrand">品牌溢价排行</h2>
+          <div id="premiumBrands" class="market-list"></div>
+        </div>
+        <div>
+          <h2 data-i18n="premiumRecords">高溢价样本</h2>
+          <div id="premiumRecords" class="market-list"></div>
+        </div>
       </div>
     </section>
     <main class="workspace">
@@ -366,6 +412,9 @@ INDEX_HTML = r"""<!doctype html>
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
           focusQueue: "重点关注队列",
+          marketPremium: "二手溢价观察",
+          premiumByBrand: "品牌溢价排行",
+          premiumRecords: "高溢价样本",
           metricSources: "数据源",
           metricTrackedItems: "跟踪条目",
           metricEvents: "事件",
@@ -380,6 +429,12 @@ INDEX_HTML = r"""<!doctype html>
           radarScore: "雷达分",
           observed: "已捕捉",
           noFocusQueue: "暂无关注队列",
+          noMarket: "暂无价格样本",
+          samples: "样本",
+          avgPremium: "均值",
+          maxPremium: "最高",
+          retailPrice: "原价",
+          resalePrice: "二手价",
           noSources: "暂无配置数据源。",
           noEvents: "暂无事件。运行检查后会先建立基线。",
           noItems: "暂无跟踪条目。",
@@ -428,6 +483,9 @@ INDEX_HTML = r"""<!doctype html>
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
           focusQueue: "Focus Queue",
+          marketPremium: "Resale Premium Watch",
+          premiumByBrand: "Premium by Brand",
+          premiumRecords: "High-Premium Samples",
           metricSources: "Sources",
           metricTrackedItems: "Tracked Items",
           metricEvents: "Events",
@@ -442,6 +500,12 @@ INDEX_HTML = r"""<!doctype html>
           radarScore: "radar score",
           observed: "observed",
           noFocusQueue: "No focus queue yet",
+          noMarket: "No price samples yet",
+          samples: "samples",
+          avgPremium: "avg",
+          maxPremium: "max",
+          retailPrice: "retail",
+          resalePrice: "resale",
           noSources: "No sources configured.",
           noEvents: "No events yet. Run a check to build the baseline.",
           noItems: "No tracked items yet.",
@@ -509,6 +573,7 @@ INDEX_HTML = r"""<!doctype html>
         renderBrandWeights(state.brand_weights || []);
         renderFocusQueue(state.focus_queue || []);
         renderMarketSignal(state.events || [], state.items || []);
+        renderMarketPremium(state.market || {});
         $("sources").innerHTML = state.sources.length ? state.sources.map(renderSource).join("") : `<div class="row">${escapeHtml(t("noSources"))}</div>`;
         $("eventCount").textContent = shownText(state.events.length);
         $("events").innerHTML = state.events.length ? state.events.map(renderEvent).join("") : `<div class="row">${escapeHtml(t("noEvents"))}</div>`;
@@ -553,6 +618,29 @@ INDEX_HTML = r"""<!doctype html>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Math.min(100, count * 18)}%"></span></div>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noStatus"))}</div>`;
+      }
+
+      function renderMarketPremium(market) {
+        const summary = market.summary || {};
+        const brands = summary.brands || [];
+        const records = summary.records || [];
+        $("marketCount").textContent = `${summary.sample_count || 0} ${t("samples")}`;
+        $("premiumBrands").innerHTML = brands.length ? brands.map((brand) => `<article class="market-card">
+          <header>
+            <strong>${escapeHtml(brand.brand_alias)}</strong>
+            <span class="premium-rate">${formatPercent(brand.avg_premium_rate)}</span>
+          </header>
+          <p class="muted">${escapeHtml(t("samples"))} ${escapeHtml(brand.sample_count)} · ${escapeHtml(t("maxPremium"))} ${escapeHtml(formatPercent(brand.max_premium_rate))}</p>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${premiumWidth(brand.avg_premium_rate)}%"></span></div>
+        </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
+        $("premiumRecords").innerHTML = records.length ? records.map((record) => `<article class="market-card">
+          <header>
+            <strong>${escapeHtml(record.brand_alias)} · ${escapeHtml(record.item_name)}</strong>
+            <span class="premium-rate">${formatPercent(record.premium_rate)}</span>
+          </header>
+          <p class="muted">${escapeHtml(t("retailPrice"))} ${formatMoney(record.retail_price, record.currency)} · ${escapeHtml(t("resalePrice"))} ${formatMoney(record.resale_price, record.currency)}</p>
+          <p class="muted">${escapeHtml([record.condition, record.source, record.observed_at].filter(Boolean).join(" · "))}</p>
+        </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
       }
 
       function renderSource(source) {
@@ -636,6 +724,19 @@ INDEX_HTML = r"""<!doctype html>
 
       function newEventText(count) {
         return currentLanguage === "zh" ? `${count} 条新事件` : `${count} new events`;
+      }
+
+      function formatPercent(value) {
+        return `${Math.round((Number(value) || 0) * 100)}%`;
+      }
+
+      function premiumWidth(value) {
+        return Math.max(4, Math.min(100, Math.round((Number(value) || 0) * 100)));
+      }
+
+      function formatMoney(value, currency) {
+        const number = Number(value) || 0;
+        return `${number.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currency || ""}`.trim();
       }
 
       function tierLabel(tier) {

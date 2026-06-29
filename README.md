@@ -107,6 +107,32 @@ Use another brand-weight file:
 python -m lolita_radar.cli web --brands config/brand_weights.json
 ```
 
+Market observations live in
+[config/market_observations.json](./config/market_observations.json). Add local
+price samples with the same currency for `retail_price` and `resale_price`; the
+dashboard calculates premium rates and brand-level averages.
+
+```json
+[
+  {
+    "brand_alias": "AP",
+    "item_name": "Example JSK",
+    "retail_price": 2000,
+    "resale_price": 3200,
+    "currency": "CNY",
+    "condition": "used",
+    "source": "xianyu",
+    "observed_at": "2026-06-29"
+  }
+]
+```
+
+Use another market-observation file:
+
+```bash
+python -m lolita_radar.cli web --market config/market_observations.json
+```
+
 Use a custom database path:
 
 ```bash

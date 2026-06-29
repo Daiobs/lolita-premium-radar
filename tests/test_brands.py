@@ -56,6 +56,17 @@ class BrandTests(unittest.TestCase):
         self.assertEqual(meta["item_count"], 1)
         self.assertEqual(meta["event_count"], 1)
 
+    def test_focus_queue_uses_market_premium(self) -> None:
+        brands = load_brand_weights()
+        market_brands = [{"brand_alias": "BABY", "sample_count": 2, "avg_premium_rate": 0.4}]
+
+        queue = build_focus_queue(brands, items=[], events=[], market_brands=market_brands)
+
+        baby = next(brand for brand in queue if brand["alias"] == "BABY")
+        self.assertEqual(baby["market_count"], 2)
+        self.assertEqual(baby["avg_premium_rate"], 0.4)
+        self.assertEqual(baby["score"], 100)
+
 
 if __name__ == "__main__":
     unittest.main()
