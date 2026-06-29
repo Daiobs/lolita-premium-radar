@@ -176,7 +176,13 @@ The whole watch desk can be exported as
 market action desk turns the highest-priority pattern rows into search links for
 Goofish, Taobao, Mercari JP, and Yahoo Japan Auctions plus one-click sample
 prefill, and exports the same search/sample tasks as
-`lolita-market-actions.csv` for a daily resale-check run sheet. An evidence-health panel scores sample quality from source, link, date,
+`lolita-market-actions.csv` for a daily resale-check run sheet. A price-discipline
+panel converts brand weight, average retail price, average resale price, and
+sample count into a chase ceiling, current resale average, and room/near/hot
+status so overheated secondhand prices are visible before sampling or buying;
+when a high-weight brand does not yet have price anchors, the same panel marks
+it as anchor-needed and sends it back to the sample form.
+An evidence-health panel scores sample quality from source, link, date,
 condition, and notes so weak evidence is visible before it drives weighting.
 Recorded resale samples are also segmented into collector, hot, premium,
 near-retail, and discount bands, with dashboard filters for scanning the

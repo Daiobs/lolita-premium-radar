@@ -1925,6 +1925,62 @@ INDEX_HTML = r"""<!doctype html>
       .action-list strong { color: var(--wine); }
       .search-links { display: flex; flex-wrap: wrap; gap: 6px; }
       .search-links a, .search-links button { min-height: 28px; padding: 0 8px; border: 1px solid rgba(15,103,96,.18); border-radius: 999px; background: #f8fbfa; color: var(--teal); box-shadow: none; font: inherit; text-decoration: none; display: inline-flex; align-items: center; }
+      .price-board { margin: 0 20px 14px; }
+      .price-grid { display: grid; grid-template-columns: minmax(230px, .62fr) minmax(320px, 1.38fr); gap: 12px; padding: 12px; }
+      .price-brief, .price-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .price-brief {
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(15,103,96,.12), transparent 36%),
+          linear-gradient(135deg, rgba(248,251,250,.92), rgba(255,247,232,.78));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+      }
+      .price-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .price-brief p, .price-card p { margin: 0; color: var(--muted); }
+      .price-list { display: grid; gap: 8px; }
+      .price-card {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        padding: 12px 12px 14px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 12%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 62%, #fff), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .price-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .price-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .price-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .price-ladder { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .price-ladder span {
+        display: grid;
+        gap: 3px;
+        min-height: 54px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 8px;
+        background: rgba(255,253,251,.74);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .price-ladder strong { color: var(--wine); font: 650 15px/1 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+      .price-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+      .price-actions button { min-height: 30px; padding-inline: 10px; }
       .quality-board { margin: 0 20px 14px; }
       .quality-grid { display: grid; grid-template-columns: minmax(220px, .65fr) minmax(280px, 1.35fr); gap: 12px; padding: 12px; }
       .quality-hero, .quality-check {
@@ -2215,10 +2271,11 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
+        .price-ladder { grid-template-columns: 1fr; }
         .weight-radar-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; min-height: 0; padding: 98px 10px 10px; }
         .weight-radar-center { top: 10px; transform: translateX(-50%); min-height: 70px; }
         .weight-radar-node { position: static; width: auto; min-height: 48px; transform: none; }
@@ -2296,6 +2353,7 @@ INDEX_HTML = r"""<!doctype html>
       <button type="button" data-radar-jump="brandWeightFormula" data-i18n="navFormula">配方</button>
       <button type="button" data-radar-jump="brandRadarMatrix" data-i18n="navMatrix">矩阵</button>
       <button type="button" data-radar-jump="marketForm" data-i18n="navPremium">溢价</button>
+      <button type="button" data-radar-jump="priceDiscipline" data-i18n="navPricing">价格线</button>
       <button type="button" data-radar-jump="evidenceHealth" data-i18n="navEvidence">证据</button>
       <button type="button" data-radar-jump="samplePlan" data-i18n="navSampling">采样</button>
       <button type="button" data-radar-jump="sources" data-i18n="navSources">监控源</button>
@@ -2483,6 +2541,15 @@ INDEX_HTML = r"""<!doctype html>
         <button id="exportMarketActionsCsvBtn" type="button" class="secondary" data-i18n="exportMarketActionsCsv">导出行动 CSV</button>
       </div>
       <div id="marketActionDesk" class="action-grid"></div>
+    </section>
+    <section class="panel price-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="priceDiscipline">价格纪律线</h2>
+          <span class="muted" data-i18n="priceDisciplineHint">把品牌权重转成追价上限，并标出二手均价是否过热</span>
+        </div>
+      </div>
+      <div id="priceDiscipline" class="price-grid"></div>
     </section>
     <section class="panel quality-board">
       <div class="toolbar">
@@ -2704,6 +2771,7 @@ INDEX_HTML = r"""<!doctype html>
           navFormula: "配方",
           navMatrix: "矩阵",
           navPremium: "溢价",
+          navPricing: "价格线",
           navEvidence: "证据",
           navSampling: "采样",
           navSources: "监控源",
@@ -3098,6 +3166,19 @@ INDEX_HTML = r"""<!doctype html>
           exportMarketActionsCsv: "导出行动 CSV",
           exportedMarketActionsCsv: "二级市场行动清单已导出",
           noMarketActionsCsv: "暂无可导出的二级市场行动",
+          priceDiscipline: "价格纪律线",
+          priceDisciplineHint: "把品牌权重转成追价上限，并标出二手均价是否过热",
+          priceDisciplineCeiling: "追价上限",
+          priceDisciplineObserved: "二手均价",
+          priceDisciplineGap: "价差空间",
+          priceDisciplineRows: "价格线",
+          priceDisciplineRoom: "可继续追",
+          priceDisciplineNear: "接近上限",
+          priceDisciplineHot: "过热复核",
+          priceDisciplineSample: "先补锚点",
+          priceDisciplineMissing: "待补锚点",
+          priceDisciplineNoRows: "暂无足够价格锚点生成纪律线",
+          priceDisciplineSampleAction: "补价格样本",
           evidenceHealth: "证据健康",
           evidenceHealthHint: "检查样本是否有来源、链接、日期和备注",
           qualityScore: "质量分",
@@ -3306,6 +3387,7 @@ INDEX_HTML = r"""<!doctype html>
           navFormula: "Formula",
           navMatrix: "Matrix",
           navPremium: "Premium",
+          navPricing: "Pricing",
           navEvidence: "Evidence",
           navSampling: "Sampling",
           navSources: "Sources",
@@ -3700,6 +3782,19 @@ INDEX_HTML = r"""<!doctype html>
           exportMarketActionsCsv: "export actions CSV",
           exportedMarketActionsCsv: "market action checklist exported",
           noMarketActionsCsv: "no market actions to export",
+          priceDiscipline: "Price Discipline",
+          priceDisciplineHint: "Turn brand weights into chase ceilings and flag overheated resale averages",
+          priceDisciplineCeiling: "chase ceiling",
+          priceDisciplineObserved: "avg resale",
+          priceDisciplineGap: "price room",
+          priceDisciplineRows: "price lines",
+          priceDisciplineRoom: "room to chase",
+          priceDisciplineNear: "near ceiling",
+          priceDisciplineHot: "overheated",
+          priceDisciplineSample: "anchor first",
+          priceDisciplineMissing: "anchor needed",
+          priceDisciplineNoRows: "Not enough price anchors for discipline lines yet",
+          priceDisciplineSampleAction: "add price sample",
           evidenceHealth: "Evidence Health",
           evidenceHealthHint: "Check whether samples have source, link, date, and notes",
           qualityScore: "quality score",
@@ -6545,6 +6640,147 @@ INDEX_HTML = r"""<!doctype html>
         ];
       }
 
+      function renderPriceDiscipline(rows) {
+        const lines = priceDisciplineRows(rows);
+        const stats = priceDisciplineStats(lines);
+        $("priceDiscipline").innerHTML = lines.length ? `
+          <article class="price-brief">
+            <strong>${escapeHtml(stats.hot)}</strong>
+            <p>${escapeHtml(t("priceDisciplineHot"))} · ${escapeHtml(lines.length)} ${escapeHtml(t("priceDisciplineRows"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.heat)}%"></span></div>
+            <div class="coverage-stats">
+              <article class="coverage-stat"><strong>${escapeHtml(stats.room)}</strong><span class="muted">${escapeHtml(t("priceDisciplineRoom"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(stats.near)}</strong><span class="muted">${escapeHtml(t("priceDisciplineNear"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(stats.sample)}</strong><span class="muted">${escapeHtml(t("priceDisciplineSample"))}</span></article>
+            </div>
+            <p>${escapeHtml(t("priceDisciplineHint"))}</p>
+          </article>
+          <div class="price-list">
+            ${lines.map(priceDisciplineCardHtml).join("")}
+          </div>
+        ` : `<div class="row">${escapeHtml(t("priceDisciplineNoRows"))}</div>`;
+      }
+
+      function priceDisciplineCardHtml(entry) {
+        return `<article class="price-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)} · ${escapeHtml(entry.name)}</strong>
+              <p>${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</p>
+            </div>
+            <span class="pill ${priceDisciplinePill(entry.price_status)}">${escapeHtml(t(priceDisciplineLabel(entry.price_status)))}</span>
+          </header>
+          <div class="price-ladder">
+            <span>${escapeHtml(t("priceDisciplineCeiling"))}<strong>${escapeHtml(priceDisciplineMoney(entry.price_ceiling, entry.currency))}</strong></span>
+            <span>${escapeHtml(t("priceDisciplineObserved"))}<strong>${escapeHtml(priceDisciplineMoney(entry.avg_resale_price, entry.currency))}</strong></span>
+            <span>${escapeHtml(t("priceDisciplineGap"))}<strong>${escapeHtml(priceDisciplineMoney(entry.price_gap, entry.currency))}</strong></span>
+          </div>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.price_score)}%"></span></div>
+          <div class="price-actions">
+            <button type="button" class="secondary" data-price-discipline-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("priceDisciplineSampleAction"))}</button>
+          </div>
+        </article>`;
+      }
+
+      function priceDisciplineRows(rows) {
+        return (rows || []).map((entry) => {
+          const retail = Number(entry.avg_retail_price) || 0;
+          const resale = Number(entry.avg_resale_price) || 0;
+          const sampleCount = Number(entry.sample_count) || 0;
+          const weight = Number(entry.brand_weight) || 0;
+          if ((retail <= 0 || resale <= 0) && weight < 70) return null;
+          if (retail <= 0 || resale <= 0) {
+            return {
+              ...entry,
+              price_ceiling: 0,
+              price_gap: 0,
+              price_status: "sample",
+              price_score: clampScore(Math.round(weight * .36 + 16)),
+            };
+          }
+          const ceilingRate = priceDisciplineCeilingRate(entry);
+          const priceCeiling = Math.round(retail * (1 + ceilingRate));
+          const priceGap = Math.round(priceCeiling - resale);
+          const priceStatus = priceDisciplineStatus(entry, priceGap, retail);
+          return {
+            ...entry,
+            price_ceiling: priceCeiling,
+            price_gap: priceGap,
+            price_status: priceStatus,
+            price_score: priceDisciplineScore(entry, priceGap, retail, sampleCount),
+          };
+        }).filter(Boolean)
+          .sort((a, b) => (
+            priceDisciplineRank(b.price_status) - priceDisciplineRank(a.price_status)
+            || (Number(b.price_score) || 0) - (Number(a.price_score) || 0)
+            || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+          ))
+          .slice(0, 6);
+      }
+
+      function priceDisciplineCeilingRate(entry) {
+        const weight = Number(entry.brand_weight) || 0;
+        const samples = Number(entry.sample_count) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        let rate = weight >= 90 ? 0.35 : weight >= 75 ? 0.25 : 0.15;
+        if (samples < 2) rate -= 0.08;
+        if (samples >= 2 && premium >= 0.5) rate += 0.1;
+        else if (samples >= 2 && premium >= 0.25) rate += 0.05;
+        return Math.max(0.08, Math.min(0.55, rate));
+      }
+
+      function priceDisciplineStatus(entry, priceGap, retail) {
+        const samples = Number(entry.sample_count) || 0;
+        if (samples < 2) return "sample";
+        if (Number(priceGap) < 0) return "hot";
+        if (Number(priceGap) <= Number(retail) * 0.08) return "near";
+        return "room";
+      }
+
+      function priceDisciplineScore(entry, priceGap, retail, sampleCount) {
+        const weight = Number(entry.brand_weight) || 0;
+        const premium = Math.max(0, Number(entry.avg_premium_rate) || 0);
+        const gapPressure = Math.min(35, Math.abs(Number(priceGap) || 0) / Math.max(Number(retail) || 1, 1) * 70);
+        const samplePressure = Number(sampleCount) < 2 ? 16 : 0;
+        return clampScore(Math.round(weight * .36 + premium * 30 + gapPressure + samplePressure));
+      }
+
+      function priceDisciplineStats(rows) {
+        const total = rows.length || 1;
+        const hot = rows.filter((row) => row.price_status === "hot").length;
+        return {
+          hot,
+          room: rows.filter((row) => row.price_status === "room").length,
+          near: rows.filter((row) => row.price_status === "near").length,
+          sample: rows.filter((row) => row.price_status === "sample").length,
+          heat: Math.round(hot / total * 100),
+        };
+      }
+
+      function priceDisciplineRank(status) {
+        return { hot: 4, room: 3, near: 2, sample: 1 }[status] || 0;
+      }
+
+      function priceDisciplineLabel(status) {
+        return {
+          hot: "priceDisciplineHot",
+          room: "priceDisciplineRoom",
+          near: "priceDisciplineNear",
+          sample: "priceDisciplineSample",
+        }[status] || "priceDisciplineSample";
+      }
+
+      function priceDisciplinePill(status) {
+        if (status === "hot") return "warn";
+        if (status === "room") return "rose";
+        if (status === "near") return "gold";
+        return "off";
+      }
+
+      function priceDisciplineMoney(value, currency) {
+        return Number(value) ? formatMoney(value, currency) : t("priceDisciplineMissing");
+      }
+
       function renderPatternPremiumRadar(patterns) {
         $("patternPremiumRadar").innerHTML = patterns.length ? patterns.map((pattern) => `<article class="pattern-card">
           <header>
@@ -6989,6 +7225,7 @@ INDEX_HTML = r"""<!doctype html>
         renderSampleCoverage(rows);
         renderSamplePlan(rows);
         renderWeightTuning(rows);
+        renderPriceDiscipline(rows);
       }
 
       function renderWeightScenarioCompare(rows) {
@@ -7686,6 +7923,10 @@ INDEX_HTML = r"""<!doctype html>
       $("marketActionDesk").addEventListener("click", (event) => {
         const actionButton = event.target.closest("[data-action-sample]");
         if (actionButton) prepareKeywordSample(actionButton.dataset.actionSample, actionButton.dataset.actionKeyword);
+      });
+      $("priceDiscipline").addEventListener("click", (event) => {
+        const sampleButton = event.target.closest("[data-price-discipline-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.priceDisciplineSample);
       });
       $("matrixFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-matrix-filter]");
