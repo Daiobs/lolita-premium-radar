@@ -2448,6 +2448,10 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchResaleAnchor: "二手均值",
           coreWatchSpreadAnchor: "均价差",
           coreWatchPriceMissing: "待补价格锚点",
+          coreWatchAnchorGaps: "锚点缺口",
+          coreWatchAnchorReady: "锚点已建",
+          coreWatchPriceStatusReady: "已建价格锚点",
+          coreWatchPriceStatusMissing: "待补价格锚点",
           exportCoreWatchCsv: "导出盯盘 CSV",
           exportedCoreWatchCsv: "核心盯盘清单已导出",
           noCoreWatchCsv: "暂无可导出的核心盯盘清单",
@@ -2947,6 +2951,10 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchResaleAnchor: "avg resale",
           coreWatchSpreadAnchor: "avg spread",
           coreWatchPriceMissing: "price anchor needed",
+          coreWatchAnchorGaps: "anchor gaps",
+          coreWatchAnchorReady: "anchors ready",
+          coreWatchPriceStatusReady: "price anchor ready",
+          coreWatchPriceStatusMissing: "price anchor needed",
           exportCoreWatchCsv: "export watch CSV",
           exportedCoreWatchCsv: "core watch checklist exported",
           noCoreWatchCsv: "no core watch checklist to export",
@@ -4859,6 +4867,7 @@ INDEX_HTML = r"""<!doctype html>
           ["brand_weight", "brand_weight"],
           ["sample_count", "sample_count"],
           ["target_samples", "target_samples"],
+          ["price_anchor_status", "price_anchor_status"],
           ["avg_premium_rate", "avg_premium_rate"],
           ["avg_retail_price", "avg_retail_price"],
           ["avg_resale_price", "avg_resale_price"],
@@ -4878,6 +4887,7 @@ INDEX_HTML = r"""<!doctype html>
             ...row,
             primary_term: primaryTerm,
             watch_reasons: coreWatchReasons(row).map((reason) => t(reason.label)).join(" | "),
+            price_anchor_status: t(hasCoreWatchPriceAnchor(row) ? "coreWatchPriceStatusReady" : "coreWatchPriceStatusMissing"),
             watch_terms: (row.watch_terms || []).join(" | "),
             radar_cue: row.visual?.radar_cue || "",
             goofish_url: searchLinkByLabel(links, "闲鱼", "Goofish"),
@@ -5445,6 +5455,7 @@ INDEX_HTML = r"""<!doctype html>
       function renderCoreMarketWatch(rows) {
         const watchRows = coreMarketWatchRows(rows);
         const thinCount = watchRows.filter((entry) => Number(entry.sample_count) < 2).length;
+        const anchorGaps = watchRows.filter((entry) => !hasCoreWatchPriceAnchor(entry)).length;
         const avgScore = watchRows.length ? Math.round(watchRows.reduce((sum, entry) => sum + (Number(entry.watch_score) || 0), 0) / watchRows.length) : 0;
         $("coreMarketWatch").innerHTML = `
           <article class="core-watch-brief">
@@ -5453,6 +5464,7 @@ INDEX_HTML = r"""<!doctype html>
             <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(avgScore)}%"></span></div>
             <div class="coverage-stats">
               <article class="coverage-stat"><strong>${escapeHtml(thinCount)}</strong><span class="muted">${escapeHtml(t("coreWatchThin"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(anchorGaps)}</strong><span class="muted">${escapeHtml(t("coreWatchAnchorGaps"))}</span></article>
               <article class="coverage-stat"><strong>${escapeHtml(avgScore)}</strong><span class="muted">${escapeHtml(t("coreWatchAvgScore"))}</span></article>
             </div>
           </article>
@@ -5491,8 +5503,7 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function coreWatchPriceAnchorHtml(entry) {
-        const hasPrice = Number(entry.sample_count) > 0 && (Number(entry.avg_retail_price) > 0 || Number(entry.avg_resale_price) > 0);
-        if (!hasPrice) {
+        if (!hasCoreWatchPriceAnchor(entry)) {
           return `<div class="core-watch-price missing" aria-label="${escapeHtml(t("coreWatchPriceAnchor"))}">
             <span><strong>${escapeHtml(t("coreWatchPriceMissing"))}</strong>${escapeHtml(t("coreWatchSample"))}</span>
           </div>`;
@@ -5502,6 +5513,10 @@ INDEX_HTML = r"""<!doctype html>
           <span>${escapeHtml(t("coreWatchResaleAnchor"))}<strong>${escapeHtml(formatMoney(entry.avg_resale_price, entry.currency))}</strong></span>
           <span>${escapeHtml(t("coreWatchSpreadAnchor"))}<strong>${escapeHtml(formatMoney(entry.avg_spread, entry.currency))}</strong></span>
         </div>`;
+      }
+
+      function hasCoreWatchPriceAnchor(entry) {
+        return Number(entry.sample_count) > 0 && (Number(entry.avg_retail_price) > 0 || Number(entry.avg_resale_price) > 0);
       }
 
       function coreWatchReasons(entry) {

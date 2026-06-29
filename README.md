@@ -141,8 +141,8 @@ other core-label checks; each card also explains why it is on watch with chips
 for core weight, thin evidence, positive/strong premium, discount review, and
 keyword depth. Core watch cards include a price-anchor strip for average retail,
 average resale, and average spread when samples exist, or a clear missing-anchor
-state when the next task is still price collection, and the whole watch desk can
-be exported as
+state when the next task is still price collection. The watch-desk summary counts
+price-anchor gaps, and the whole watch desk can be exported as
 `lolita-core-watch.csv` for a daily search/sample checklist. The
 market action desk turns the highest-priority pattern rows into search links for
 Goofish, Taobao, Mercari JP, and Yahoo Japan Auctions plus one-click sample
