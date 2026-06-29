@@ -537,6 +537,19 @@ INDEX_HTML = r"""<!doctype html>
       .market-form input, .market-form select { min-height: 36px; width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 0 9px; background: #fffdfb; color: var(--text); font: inherit; }
       .market-form .wide { grid-column: span 2; }
       .market-form button { align-self: end; }
+      .sample-preview {
+        display: grid;
+        grid-template-columns: minmax(160px, .7fr) 1fr;
+        gap: 10px;
+        align-items: center;
+        margin: 0 12px 12px;
+        padding: 10px 12px;
+        border: 1px dashed rgba(97,27,49,.18);
+        border-radius: 8px;
+        background: linear-gradient(90deg, rgba(255,247,232,.72), rgba(248,251,250,.9));
+      }
+      .sample-preview strong { color: var(--wine); font: 650 22px/1 Georgia, "Times New Roman", serif; }
+      .sample-preview p { margin: 0; color: var(--muted); }
       .toast { position: fixed; right: 16px; bottom: 16px; max-width: min(440px, calc(100vw - 32px)); padding: 10px 12px; border-radius: 8px; background: #16242d; color: #fff; box-shadow: var(--shadow); opacity: 0; transform: translateY(8px); transition: .16s; pointer-events: none; }
       .toast.show { opacity: 1; transform: translateY(0); }
       @media (max-width: 860px) {
@@ -544,7 +557,7 @@ INDEX_HTML = r"""<!doctype html>
         .actions { justify-content: flex-start; }
         .opportunity-toolbar, .matrix-toolbar, .coverage-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
-        .coverage-card { grid-template-columns: 1fr; }
+        .coverage-card, .sample-preview { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
         .brand-tools { align-items: flex-start; flex-direction: column; }
@@ -694,6 +707,7 @@ INDEX_HTML = r"""<!doctype html>
         </label>
         <button id="addMarketBtn" type="submit" data-i18n="addSample">加入样本</button>
       </form>
+      <div id="samplePreview" class="sample-preview"></div>
       <div class="market-grid">
         <div>
           <h2 data-i18n="premiumByBrand">品牌溢价排行</h2>
@@ -847,6 +861,14 @@ INDEX_HTML = r"""<!doctype html>
           observedAt: "日期",
           addSample: "加入样本",
           sampleAdded: "价格样本已加入",
+          samplePreview: "样本预览",
+          samplePreviewEmpty: "输入原价和二手价后预览溢价",
+          sampleSpread: "差价",
+          sampleScore: "单样本分",
+          sampleSignalStrong: "强溢价样本",
+          sampleSignalPositive: "正溢价样本",
+          sampleSignalDiscount: "折价样本",
+          sampleSignalNeutral: "接近原价",
           opportunityBand: {
             lead: "重点盯新款",
             watch: "持续观察",
@@ -1016,6 +1038,14 @@ INDEX_HTML = r"""<!doctype html>
           observedAt: "date",
           addSample: "Add Sample",
           sampleAdded: "price sample added",
+          samplePreview: "Sample Preview",
+          samplePreviewEmpty: "Enter retail and resale prices to preview premium",
+          sampleSpread: "spread",
+          sampleScore: "sample score",
+          sampleSignalStrong: "strong premium sample",
+          sampleSignalPositive: "positive premium sample",
+          sampleSignalDiscount: "discounted sample",
+          sampleSignalNeutral: "near retail",
           opportunityBand: {
             lead: "track releases",
             watch: "watch",
@@ -1101,6 +1131,7 @@ INDEX_HTML = r"""<!doctype html>
           [t("metricLatestSource"), state.events?.[0]?.source || "-"],
         ].map(([label, value]) => `<article class="metric"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></article>`).join("");
         renderMarketForm(state.brand_weights || []);
+        renderSamplePreview();
         renderBrandWeights(state.brand_weights || []);
         renderFocusQueue(state.focus_queue || []);
         renderBrandRadarViews();
@@ -1161,6 +1192,29 @@ INDEX_HTML = r"""<!doctype html>
         if (current && Array.from(select.options).some((option) => option.value === current)) {
           select.value = current;
         }
+      }
+
+      function renderSamplePreview() {
+        const retail = Number($("marketRetail").value) || 0;
+        const resale = Number($("marketResale").value) || 0;
+        const currency = $("marketCurrency").value || "";
+        const alias = $("marketBrand").value;
+        const brand = brandByAlias(alias) || {};
+        if (retail <= 0 || resale <= 0) {
+          $("samplePreview").innerHTML = `<div><strong>${escapeHtml(t("samplePreview"))}</strong></div><p>${escapeHtml(t("samplePreviewEmpty"))}</p>`;
+          return;
+        }
+        const premiumRate = (resale - retail) / retail;
+        const spread = resale - retail;
+        const breakdown = premiumScoreBreakdown(premiumRate, Number(brand.weight) || 50, 1);
+        const score = opportunityPriorityScore(breakdown);
+        $("samplePreview").innerHTML = `
+          <div>
+            <strong>${escapeHtml(formatPercent(premiumRate))}</strong>
+            <p>${escapeHtml(sampleSignalLabel(premiumRate))}</p>
+          </div>
+          <p>${escapeHtml(alias)} · ${escapeHtml(t("sampleSpread"))} ${escapeHtml(formatMoney(spread, currency))} · ${escapeHtml(t("sampleScore"))} ${escapeHtml(score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight || 50)}</p>
+        `;
       }
 
       function renderFocusQueue(queue) {
@@ -1502,6 +1556,7 @@ INDEX_HTML = r"""<!doctype html>
           $("marketItem").value = "";
           $("marketRetail").value = "";
           $("marketResale").value = "";
+          renderSamplePreview();
           toast(t("sampleAdded"));
         } catch (error) {
           toast(error.message);
@@ -1746,6 +1801,14 @@ INDEX_HTML = r"""<!doctype html>
         return `${number.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${currency || ""}`.trim();
       }
 
+      function sampleSignalLabel(premiumRate) {
+        const value = Number(premiumRate) || 0;
+        if (value >= 0.5) return t("sampleSignalStrong");
+        if (value >= 0.25) return t("sampleSignalPositive");
+        if (value < 0) return t("sampleSignalDiscount");
+        return t("sampleSignalNeutral");
+      }
+
       function tierLabel(tier) {
         if (tier === "core") return t("tierCore");
         if (tier === "watch") return t("tierWatch");
@@ -1794,6 +1857,10 @@ INDEX_HTML = r"""<!doctype html>
 
       $("checkAllBtn").addEventListener("click", () => runCheck(null));
       $("marketForm").addEventListener("submit", addMarketObservation);
+      ["marketBrand", "marketRetail", "marketResale", "marketCurrency"].forEach((id) => {
+        $(id).addEventListener("input", renderSamplePreview);
+        $(id).addEventListener("change", renderSamplePreview);
+      });
       $("brandWeights").addEventListener("input", handleWeightInput);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);
