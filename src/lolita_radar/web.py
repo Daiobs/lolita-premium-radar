@@ -1927,6 +1927,9 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="coreMarketWatch">核心品牌盯盘台</h2>
           <span class="muted" data-i18n="coreMarketWatchHint">把高权重品牌、代表款式词、二级市场搜索和补样本入口放在一屏</span>
         </div>
+        <div class="brand-actions">
+          <button id="exportCoreWatchCsvBtn" type="button" class="secondary" data-i18n="exportCoreWatchCsv">导出盯盘 CSV</button>
+        </div>
       </div>
       <div id="coreMarketWatch" class="core-watch-grid"></div>
     </section>
@@ -2420,6 +2423,9 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchReasonDiscount: "折价复核",
           coreWatchReasonKeywordRich: "款式词充足",
           coreWatchReasonWatch: "观察档追踪",
+          exportCoreWatchCsv: "导出盯盘 CSV",
+          exportedCoreWatchCsv: "核心盯盘清单已导出",
+          noCoreWatchCsv: "暂无可导出的核心盯盘清单",
           noCoreWatch: "暂无核心盯盘品牌",
           premiumSeedRadar: "溢价关注种子",
           premiumSeedHint: "没有足够二手价样本前，先把高权重品牌和代表款式词排进采样队列",
@@ -2911,6 +2917,9 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchReasonDiscount: "discount review",
           coreWatchReasonKeywordRich: "rich pattern terms",
           coreWatchReasonWatch: "watch-tier tracking",
+          exportCoreWatchCsv: "export watch CSV",
+          exportedCoreWatchCsv: "core watch checklist exported",
+          noCoreWatchCsv: "no core watch checklist to export",
           noCoreWatch: "No core watch brands yet",
           premiumSeedRadar: "Premium Watch Seeds",
           premiumSeedHint: "Before samples are thick enough, queue high-weight brands and signature terms for price collection",
@@ -4690,6 +4699,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedPremiumSeedsCsv"));
       }
 
+      function exportCoreWatchCsv() {
+        const rows = coreMarketWatchRows(buildBrandRadarMatrix());
+        if (!rows.length) {
+          toast(t("noCoreWatchCsv"));
+          return;
+        }
+        const csv = csvFromCoreWatchRows(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-core-watch.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedCoreWatchCsv"));
+      }
+
       function premiumCsvFilename() {
         const brand = activePremiumBrandFilter === "all" ? "all-brands" : activePremiumBrandFilter.toLowerCase();
         const band = activePremiumFilter === "all" ? "all-bands" : activePremiumFilter;
@@ -4789,6 +4817,52 @@ INDEX_HTML = r"""<!doctype html>
           ...tasks.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
         ];
         return lines.join("\n");
+      }
+
+      function csvFromCoreWatchRows(rows) {
+        const fields = [
+          ["brand_alias", "alias"],
+          ["brand_name", "name"],
+          ["primary_term", "primary_term"],
+          ["watch_score", "watch_score"],
+          ["watch_reasons", "watch_reasons"],
+          ["brand_weight", "brand_weight"],
+          ["sample_count", "sample_count"],
+          ["target_samples", "target_samples"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["watch_terms", "watch_terms"],
+          ["radar_cue", "radar_cue"],
+          ["goofish_url", "goofish_url"],
+          ["taobao_url", "taobao_url"],
+          ["mercari_url", "mercari_url"],
+          ["yahoo_url", "yahoo_url"],
+        ];
+        const enriched = (rows || []).map((row) => {
+          const primaryTerm = (row.watch_terms || [])[0] || row.alias;
+          const links = marketSearchLinks({ ...row, keyword: primaryTerm });
+          return {
+            ...row,
+            primary_term: primaryTerm,
+            watch_reasons: coreWatchReasons(row).map((reason) => t(reason.label)).join(" | "),
+            watch_terms: (row.watch_terms || []).join(" | "),
+            radar_cue: row.visual?.radar_cue || "",
+            goofish_url: searchLinkByLabel(links, "闲鱼", "Goofish"),
+            taobao_url: searchLinkByLabel(links, "淘宝", "Taobao"),
+            mercari_url: searchLinkByLabel(links, "Mercari"),
+            yahoo_url: searchLinkByLabel(links, "雅虎", "Yahoo"),
+          };
+        });
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function searchLinkByLabel(links, ...labels) {
+        const wanted = labels.map((label) => String(label || "").toLowerCase());
+        const match = (links || []).find((link) => wanted.some((label) => String(link.label || "").toLowerCase().includes(label)));
+        return match?.href || "";
       }
 
       function seedWatchUrl(links, ...labels) {
@@ -5800,6 +5874,7 @@ INDEX_HTML = r"""<!doctype html>
       });
       $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
       $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);
+      $("exportCoreWatchCsvBtn").addEventListener("click", exportCoreWatchCsv);
       $("exportSamplePlanCsvBtn").addEventListener("click", exportSamplePlanCsv);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);
