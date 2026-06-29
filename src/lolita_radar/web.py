@@ -939,8 +939,8 @@ INDEX_HTML = r"""<!doctype html>
       .momentum-card strong { color: var(--wine); }
       .momentum-delta { font: 650 24px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
       .weight-snapshot-board { margin: 0 20px 14px; }
-      .weight-snapshot { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(260px, 1.3fr) minmax(260px, 1fr); gap: 12px; padding: 12px; }
-      .weight-hero, .weight-metric, .weight-lane, .weight-gap-card {
+      .weight-snapshot { display: grid; grid-template-columns: minmax(190px, .62fr) minmax(300px, 1.15fr) minmax(260px, 1fr); gap: 12px; padding: 12px; }
+      .weight-hero, .weight-radar-map, .weight-metric, .weight-lane, .weight-gap-card {
         border: 1px solid var(--line);
         border-radius: 8px;
         background: #fffaf8;
@@ -948,6 +948,58 @@ INDEX_HTML = r"""<!doctype html>
       .weight-hero { display: grid; gap: 9px; align-content: start; padding: 12px; background: linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)); box-shadow: inset 0 0 0 4px rgba(255,255,255,.48); }
       .weight-hero strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
       .weight-hero p, .weight-metric span, .weight-lane span, .weight-gap-card p { margin: 0; color: var(--muted); }
+      .weight-command-title { color: var(--wine); font: 650 13px/1.2 Georgia, "Times New Roman", serif; text-transform: uppercase; }
+      .weight-radar-map {
+        position: relative;
+        min-height: 260px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 50%, rgba(255,255,255,.96) 0 18%, transparent 19%),
+          repeating-radial-gradient(circle at 50% 50%, rgba(180,87,111,.13) 0 1px, transparent 1px 34px),
+          conic-gradient(from -90deg, rgba(180,87,111,.18), rgba(169,120,44,.15), rgba(15,103,96,.13), rgba(97,27,49,.16), rgba(180,87,111,.18)),
+          linear-gradient(135deg, rgba(255,243,246,.84), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.5);
+      }
+      .weight-radar-center {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 112px;
+        min-height: 82px;
+        transform: translate(-50%, -50%);
+        display: grid;
+        place-items: center;
+        gap: 3px;
+        padding: 9px;
+        border: 1px solid rgba(97,27,49,.16);
+        border-radius: 8px;
+        background: rgba(255,253,251,.9);
+        text-align: center;
+      }
+      .weight-radar-center strong { color: var(--wine); font: 650 24px/1 Georgia, "Times New Roman", serif; }
+      .weight-radar-center span { color: var(--muted); font-size: 11px; }
+      .weight-radar-node {
+        position: absolute;
+        left: var(--x);
+        top: var(--y);
+        width: 66px;
+        min-height: 54px;
+        transform: translate(-50%, -50%);
+        display: grid;
+        gap: 2px;
+        align-content: center;
+        padding: 7px 6px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 34%, var(--line));
+        border-radius: 8px;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.92), color-mix(in srgb, var(--brand-paper, #fff3f6) 72%, #fff));
+        box-shadow: 0 8px 18px rgba(75,38,47,.09);
+        text-align: center;
+      }
+      .weight-radar-node b { color: var(--wine); font: 650 15px/1 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+      .weight-radar-node em { color: var(--brand-accent, var(--rose)); font-style: normal; font-weight: 700; }
+      .weight-radar-node span { color: var(--muted); font-size: 10px; }
+      .weight-command-panel { display: grid; gap: 8px; align-content: start; }
       .weight-metrics { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 8px; }
       .weight-metric { display: grid; gap: 5px; min-height: 72px; padding: 10px; }
       .weight-metric strong { color: var(--wine); font: 650 24px/1 Georgia, "Times New Roman", serif; }
@@ -1627,6 +1679,9 @@ INDEX_HTML = r"""<!doctype html>
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
+        .weight-radar-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; min-height: 0; padding: 98px 10px 10px; }
+        .weight-radar-center { top: 10px; transform: translateX(-50%); min-height: 70px; }
+        .weight-radar-node { position: static; width: auto; min-height: 48px; transform: none; }
         .seed-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .weight-draft-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .weight-draft-warning { grid-template-columns: 1fr; }
@@ -2196,6 +2251,12 @@ INDEX_HTML = r"""<!doctype html>
           weightEvidenceCoverage: "证据覆盖",
           weightNeedsEvidence: "待补证据",
           weightDistribution: "权重分布",
+          weightCommandDeck: "品牌权重司令塔",
+          weightCommandHint: "优先看高权重、低样本和强溢价交叉点",
+          weightRadarMap: "品牌权重盘",
+          weightRadarCore: "核心",
+          weightRadarWatch: "观察",
+          weightRadarArchive: "档案",
           profileWeight: "权重",
           profileHeat: "热度",
           profileEvidence: "证据",
@@ -2663,6 +2724,12 @@ INDEX_HTML = r"""<!doctype html>
           weightEvidenceCoverage: "evidence coverage",
           weightNeedsEvidence: "needs evidence",
           weightDistribution: "weight distribution",
+          weightCommandDeck: "Brand Weight Command",
+          weightCommandHint: "Prioritize where high weight, thin samples, and premium heat intersect",
+          weightRadarMap: "brand weight radar",
+          weightRadarCore: "core",
+          weightRadarWatch: "watch",
+          weightRadarArchive: "archive",
           profileWeight: "weight",
           profileHeat: "heat",
           profileEvidence: "evidence",
@@ -3145,10 +3212,11 @@ INDEX_HTML = r"""<!doctype html>
       function brandVisualStyle(brand) {
         const accent = cssHexColor(brand.visual?.accent);
         const paper = cssHexColor(brand.visual?.paper);
-        return [
+        const styles = [
           accent ? `--brand-accent: ${accent}` : "",
           paper ? `--brand-paper: ${paper}` : "",
-        ].filter(Boolean).join("; ");
+        ].filter(Boolean);
+        return styles.length ? `${styles.join("; ")};` : "";
       }
 
       function cssHexColor(value) {
@@ -3690,6 +3758,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderWeightSnapshot(rows) {
         const stats = weightSnapshotStats(rows);
+        const radarNodes = weightRadarNodes(rows);
         const lanes = [
           ["weightCoreCount", stats.core.count, stats.core.avg],
           ["weightWatchCount", stats.watch.count, stats.watch.avg],
@@ -3700,28 +3769,43 @@ INDEX_HTML = r"""<!doctype html>
             <strong>${escapeHtml(stats.average)}</strong>
             <p>${escapeHtml(t("weightAverage"))}</p>
             <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.average)}%"></span></div>
+            <span class="weight-command-title">${escapeHtml(t("weightCommandDeck"))}</span>
+            <p>${escapeHtml(t("weightCommandHint"))}</p>
           </article>
-          <div class="weight-metrics">
-            <article class="weight-metric"><strong>${escapeHtml(stats.core.avg)}</strong><span>${escapeHtml(t("weightCoreAverage"))}</span></article>
-            <article class="weight-metric"><strong>${escapeHtml(stats.evidencePercent)}%</strong><span>${escapeHtml(t("weightEvidenceCoverage"))}</span></article>
-            <article class="weight-metric"><strong>${escapeHtml(stats.needsEvidence)}</strong><span>${escapeHtml(t("weightNeedsEvidence"))}</span></article>
-            <article class="weight-metric"><strong>${escapeHtml(stats.total)}</strong><span>${escapeHtml(t("weightDistribution"))}</span></article>
+          <div class="weight-radar-map" aria-label="${escapeHtml(t("weightRadarMap"))}">
+            <div class="weight-radar-center">
+              <strong>${escapeHtml(stats.core.count)}/${escapeHtml(stats.watch.count)}/${escapeHtml(stats.archive.count)}</strong>
+              <span>${escapeHtml(t("weightRadarCore"))} · ${escapeHtml(t("weightRadarWatch"))} · ${escapeHtml(t("weightRadarArchive"))}</span>
+            </div>
+            ${radarNodes.map((entry) => `<div class="weight-radar-node" style="${escapeHtml(brandVisualStyle(entry))} --x: ${escapeHtml(entry.radar_x)}%; --y: ${escapeHtml(entry.radar_y)}%;">
+              <b>${escapeHtml(entry.alias)}</b>
+              <em>${escapeHtml(entry.brand_weight)}</em>
+              <span>${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)} ${escapeHtml(t("samples"))}</span>
+            </div>`).join("")}
           </div>
-          <div class="weight-lanes">
-            ${lanes.map(([label, count, avg]) => `<article class="weight-lane">
-              <strong>${escapeHtml(count)}</strong>
-              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(avg)}%"></span></div>
-              <span>${escapeHtml(t(label))}</span>
-            </article>`).join("")}
-            <p class="muted">${escapeHtml(t("weightTopGap"))}</p>
-            <div class="weight-gaps">
-              ${stats.gaps.length ? stats.gaps.map((entry) => `<article class="weight-gap-card">
-                <div>
-                  <strong>${escapeHtml(entry.alias)}</strong>
-                  <p>${escapeHtml(entry.name)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
-                </div>
-                <button type="button" class="secondary" data-weight-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("tuningAddSample"))}</button>
-              </article>`).join("") : `<div class="row">${escapeHtml(t("weightNoGap"))}</div>`}
+          <div class="weight-command-panel">
+            <div class="weight-metrics">
+              <article class="weight-metric"><strong>${escapeHtml(stats.core.avg)}</strong><span>${escapeHtml(t("weightCoreAverage"))}</span></article>
+              <article class="weight-metric"><strong>${escapeHtml(stats.evidencePercent)}%</strong><span>${escapeHtml(t("weightEvidenceCoverage"))}</span></article>
+              <article class="weight-metric"><strong>${escapeHtml(stats.needsEvidence)}</strong><span>${escapeHtml(t("weightNeedsEvidence"))}</span></article>
+              <article class="weight-metric"><strong>${escapeHtml(stats.total)}</strong><span>${escapeHtml(t("weightDistribution"))}</span></article>
+            </div>
+            <div class="weight-lanes">
+              ${lanes.map(([label, count, avg]) => `<article class="weight-lane">
+                <strong>${escapeHtml(count)}</strong>
+                <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(avg)}%"></span></div>
+                <span>${escapeHtml(t(label))}</span>
+              </article>`).join("")}
+              <p class="muted">${escapeHtml(t("weightTopGap"))}</p>
+              <div class="weight-gaps">
+                ${stats.gaps.length ? stats.gaps.map((entry) => `<article class="weight-gap-card">
+                  <div>
+                    <strong>${escapeHtml(entry.alias)}</strong>
+                    <p>${escapeHtml(entry.name)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
+                  </div>
+                  <button type="button" class="secondary" data-weight-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("tuningAddSample"))}</button>
+                </article>`).join("") : `<div class="row">${escapeHtml(t("weightNoGap"))}</div>`}
+              </div>
             </div>
           </div>
         `;
@@ -3848,6 +3932,31 @@ INDEX_HTML = r"""<!doctype html>
           evidencePercent: total ? Math.round((evidenceRows.length / total) * 100) : 0,
           needsEvidence: rows.filter((entry) => Number(entry.sample_count) < 2 && Number(entry.brand_weight) >= 70).length,
           gaps,
+        };
+      }
+
+      function weightRadarNodes(rows) {
+        const visible = [...(rows || [])]
+          .sort((a, b) => (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0) || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0))
+          .slice(0, 7);
+        return visible.map((entry, index) => {
+          const point = weightRadarPoint(index, visible.length, entry.brand_weight);
+          return {
+            ...entry,
+            target_samples: sampleTarget(entry.brand_weight, entry.tier),
+            radar_x: point.x,
+            radar_y: point.y,
+          };
+        });
+      }
+
+      function weightRadarPoint(index, total, weight) {
+        const count = Math.max(1, Number(total) || 1);
+        const angle = -Math.PI / 2 + (index / count) * Math.PI * 2;
+        const radius = 23 + clampScore(weight) * .16;
+        return {
+          x: Math.round((50 + Math.cos(angle) * radius) * 10) / 10,
+          y: Math.round((50 + Math.sin(angle) * radius) * 10) / 10,
         };
       }
 

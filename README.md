@@ -119,7 +119,9 @@ premium signals are visible before they become broad averages. A
 sample-coverage panel shows how much price evidence backs the radar and which
 high-weight brands need samples next. A weight-profile panel summarizes average
 weight, tier distribution, market-evidence coverage, and the highest-priority
-sample gaps so brand weights are easier to audit before saving. A brand-weight
+sample gaps so brand weights are easier to audit before saving; it also renders
+a brand-weight radar map where AP, BABY, AATP, and other high-priority labels are
+plotted by current weight with sample progress beside each label. A brand-weight
 strategy panel converts the current saved or draft weights into calibration
 moves such as collecting evidence, raising premium-supported brands, or cooling
 discounted brands. A weight-trajectory panel then turns the same evidence into
