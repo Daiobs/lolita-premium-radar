@@ -150,10 +150,11 @@ scores and deltas, review unsaved changes, reset drafts, and save them back to
 the configured brand-weight file. Scenario buttons can also draft a full weighting
 mode for release-first, premium-first, or evidence-first reviews without saving
 immediately. A draft audit list shows the exact saved weight, draft weight, and
-delta for every unsaved brand before you persist changes. The current saved/draft
-brand-weight table can
-also be exported as CSV with identity metadata, premium evidence, sample counts,
-market keywords, and an auditable formula target for spreadsheet review. The
+delta for every unsaved brand, plus average shift, raise/lower counts, and the
+largest move before you persist changes. The current saved/draft brand-weight
+table can also be exported as CSV with identity metadata, premium evidence,
+sample counts, market keywords, and an auditable formula target for spreadsheet
+review. The
 formula panel breaks each target into baseline tier weight, resale premium,
 sample evidence, keyword depth, and watch-link readiness; applying a formula
 target, from either the formula cards or the trajectory path, only creates an

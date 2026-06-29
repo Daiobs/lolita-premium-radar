@@ -698,6 +698,22 @@ INDEX_HTML = r"""<!doctype html>
         border-style: dashed;
         background: rgba(255,253,251,.55);
       }
+      .weight-draft-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(78px, 1fr));
+        gap: 7px;
+      }
+      .weight-draft-stat {
+        display: grid;
+        gap: 3px;
+        min-height: 52px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+      }
+      .weight-draft-stat strong { color: var(--wine); font: 650 20px/1 Georgia, "Times New Roman", serif; }
+      .weight-draft-stat span { color: var(--muted); font-size: 11px; }
       .weight-draft-head, .weight-draft-row {
         display: grid;
         grid-template-columns: minmax(110px, 1fr) 64px 64px 58px;
@@ -1363,6 +1379,7 @@ INDEX_HTML = r"""<!doctype html>
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
+        .weight-draft-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .sample-plan-summary, .sample-plan-stats { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
@@ -1770,6 +1787,10 @@ INDEX_HTML = r"""<!doctype html>
           weightDraftSaved: "原",
           weightDraftCurrent: "新",
           weightDraftDelta: "变化",
+          weightDraftAvgDelta: "均值变化",
+          weightDraftRaised: "上调",
+          weightDraftLowered: "下调",
+          weightDraftMaxMove: "最大变化",
           draftPreview: "草稿预览",
           scoreDelta: "变化",
           weightsReset: "品牌权重已重置",
@@ -2189,6 +2210,10 @@ INDEX_HTML = r"""<!doctype html>
           weightDraftSaved: "saved",
           weightDraftCurrent: "draft",
           weightDraftDelta: "delta",
+          weightDraftAvgDelta: "avg delta",
+          weightDraftRaised: "raised",
+          weightDraftLowered: "lowered",
+          weightDraftMaxMove: "largest move",
           draftPreview: "draft preview",
           scoreDelta: "delta",
           weightsReset: "brand weights reset",
@@ -4359,7 +4384,14 @@ INDEX_HTML = r"""<!doctype html>
           return;
         }
         audit.classList.remove("empty");
+        const stats = weightDraftStats(rows);
         audit.innerHTML = `
+          <div class="weight-draft-summary">
+            <article class="weight-draft-stat"><strong>${escapeHtml(formatDelta(stats.avgDelta))}</strong><span>${escapeHtml(t("weightDraftAvgDelta"))}</span></article>
+            <article class="weight-draft-stat"><strong>${escapeHtml(stats.raised)}</strong><span>${escapeHtml(t("weightDraftRaised"))}</span></article>
+            <article class="weight-draft-stat"><strong>${escapeHtml(stats.lowered)}</strong><span>${escapeHtml(t("weightDraftLowered"))}</span></article>
+            <article class="weight-draft-stat"><strong>${escapeHtml(stats.maxAlias)} ${escapeHtml(formatDelta(stats.maxDelta))}</strong><span>${escapeHtml(t("weightDraftMaxMove"))}</span></article>
+          </div>
           <div class="weight-draft-head">
             <strong>${escapeHtml(t("weightDraftAudit"))}</strong>
             <span>${escapeHtml(t("weightDraftSaved"))}</span>
@@ -4376,6 +4408,18 @@ INDEX_HTML = r"""<!doctype html>
           </div>
           <span class="muted">${escapeHtml(rows.length)} ${escapeHtml(t("weightDraftChanged"))}</span>
         `;
+      }
+
+      function weightDraftStats(rows) {
+        const total = rows.length || 0;
+        const strongest = [...rows].sort((a, b) => Math.abs(Number(b.delta) || 0) - Math.abs(Number(a.delta) || 0))[0] || {};
+        return {
+          avgDelta: total ? Math.round(rows.reduce((sum, row) => sum + (Number(row.delta) || 0), 0) / total) : 0,
+          raised: rows.filter((row) => Number(row.delta) > 0).length,
+          lowered: rows.filter((row) => Number(row.delta) < 0).length,
+          maxAlias: strongest.alias || "-",
+          maxDelta: Number(strongest.delta) || 0,
+        };
       }
 
       function buildDraftOpportunityRadar() {
