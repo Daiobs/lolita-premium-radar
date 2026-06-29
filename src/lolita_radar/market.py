@@ -117,6 +117,59 @@ def summarize_market_observations(
     }
 
 
+def build_market_momentum(
+    observations: list[dict[str, Any]],
+    brand_weights: list[dict[str, Any]] | None = None,
+    limit: int = 8,
+) -> list[dict[str, Any]]:
+    weight_by_alias = {
+        text(brand.get("alias")).upper(): clamp_int(brand.get("weight"), default=50)
+        for brand in brand_weights or []
+    }
+    brand_rows: dict[str, list[dict[str, Any]]] = {}
+    for index, observation in enumerate(observations):
+        row = {**observation, "_index": index}
+        brand_rows.setdefault(text(observation.get("brand_alias")).upper(), []).append(row)
+
+    momentum = []
+    for alias, rows in brand_rows.items():
+        if len(rows) < 2:
+            continue
+        ordered = sorted(rows, key=observation_sort_key)
+        latest = ordered[-1]
+        previous = ordered[:-1]
+        previous_average = sum(float(row.get("premium_rate") or 0) for row in previous) / len(previous)
+        latest_premium = float(latest.get("premium_rate") or 0)
+        delta = latest_premium - previous_average
+        weight = weight_by_alias.get(alias, 50)
+        momentum.append(
+            {
+                "brand_alias": alias,
+                "latest_item": text(latest.get("item_name")),
+                "latest_premium_rate": round(latest_premium, 4),
+                "previous_premium_rate": round(previous_average, 4),
+                "delta": round(delta, 4),
+                "direction": momentum_direction(delta),
+                "sample_count": len(rows),
+                "brand_weight": weight,
+                "priority_score": momentum_priority_score(delta, latest_premium, weight, len(rows)),
+                "observed_at": text(latest.get("observed_at")),
+                "source": text(latest.get("source")),
+                "currency": text(latest.get("currency")) or "CNY",
+            }
+        )
+    return sorted(
+        momentum,
+        key=lambda row: (
+            int(row["priority_score"]),
+            abs(float(row["delta"])),
+            float(row["latest_premium_rate"]),
+            int(row["brand_weight"]),
+        ),
+        reverse=True,
+    )[:limit]
+
+
 def build_opportunity_radar(
     brand_weights: list[dict[str, Any]],
     market_brands: list[dict[str, Any]],
@@ -537,6 +590,14 @@ def premium_priority_score(premium_rate: float, brand_weight: int, sample_count:
     return max(0, min(100, round(total)))
 
 
+def momentum_priority_score(delta: float, latest_premium_rate: float, brand_weight: int, sample_count: int) -> int:
+    direction_points = max(0, delta) * 35
+    latest_points = max(0, latest_premium_rate) * 30
+    brand_points = clamp_int(brand_weight, default=50) * 0.25
+    sample_points = min(10, max(0, sample_count) * 2)
+    return max(0, min(100, round(direction_points + latest_points + brand_points + sample_points)))
+
+
 def premium_score_breakdown(premium_rate: float, brand_weight: int, sample_count: int) -> dict[str, int]:
     premium_points = max(0, premium_rate) * 55
     brand_points = clamp_int(brand_weight, default=50) * 0.4
@@ -553,6 +614,18 @@ def clamp_int(value: Any, default: int) -> int:
         return max(0, min(100, int(value)))
     except (TypeError, ValueError):
         return default
+
+
+def observation_sort_key(observation: dict[str, Any]) -> tuple[str, int]:
+    return (text(observation.get("observed_at")), int(observation.get("_index") or 0))
+
+
+def momentum_direction(delta: float) -> str:
+    if delta >= 0.15:
+        return "rising"
+    if delta <= -0.15:
+        return "cooling"
+    return "steady"
 
 
 def text(value: Any) -> str:

@@ -7,6 +7,7 @@ from lolita_radar.market import (
     append_market_observation,
     build_brand_weight_profile,
     build_market_alerts,
+    build_market_momentum,
     build_opportunity_radar,
     build_pattern_radar,
     load_market_observations,
@@ -229,6 +230,44 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(shell["evidence"][0]["source"], "xianyu")
         self.assertEqual(shell["evidence"][0]["url"], "https://example.com/shell")
         self.assertEqual(shell["evidence"][0]["quality_score"], 77)
+
+    def test_build_market_momentum_compares_latest_to_previous_average(self) -> None:
+        momentum = build_market_momentum(
+            observations=[
+                {
+                    "brand_alias": "AP",
+                    "item_name": "白贝壳 JSK",
+                    "premium_rate": 0.2,
+                    "observed_at": "2026-06-01",
+                    "currency": "CNY",
+                },
+                {
+                    "brand_alias": "AP",
+                    "item_name": "白贝壳 OP",
+                    "premium_rate": 0.7,
+                    "observed_at": "2026-06-29",
+                    "source": "xianyu",
+                    "currency": "CNY",
+                },
+                {
+                    "brand_alias": "BABY",
+                    "item_name": "Kumya JSK",
+                    "premium_rate": 0.4,
+                    "observed_at": "2026-06-10",
+                },
+            ],
+            brand_weights=[{"alias": "AP", "weight": 100}, {"alias": "BABY", "weight": 95}],
+        )
+
+        self.assertEqual(len(momentum), 1)
+        self.assertEqual(momentum[0]["brand_alias"], "AP")
+        self.assertEqual(momentum[0]["latest_item"], "白贝壳 OP")
+        self.assertEqual(momentum[0]["previous_premium_rate"], 0.2)
+        self.assertEqual(momentum[0]["latest_premium_rate"], 0.7)
+        self.assertEqual(momentum[0]["delta"], 0.5)
+        self.assertEqual(momentum[0]["direction"], "rising")
+        self.assertEqual(momentum[0]["brand_weight"], 100)
+        self.assertGreater(momentum[0]["priority_score"], 0)
 
 
 if __name__ == "__main__":

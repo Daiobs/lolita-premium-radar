@@ -105,7 +105,9 @@ weights, sample counts, and resale-premium rates into watch actions such as
 tracking releases, collecting more price samples, or cooling down a brand, with
 band counts, filters, and score breakdowns for scanning each action tier. A
 radar alert line elevates collector/hot premium spikes, brand-level heat, and
-core-brand sample gaps into one action summary. A
+core-brand sample gaps into one action summary. A resale-momentum panel compares
+each brand's latest sample against its previous average so rising and cooling
+premium signals are visible before they become broad averages. A
 sample-coverage panel shows how much price evidence backs the radar and which
 high-weight brands need samples next. A weight-profile panel summarizes average
 weight, tier distribution, market-evidence coverage, and the highest-priority
@@ -159,7 +161,10 @@ dashboard calculates premium rates and brand-level averages. You can edit this
 file directly or add samples from the web dashboard's resale-premium form, which
 previews premium rate, spread, and a single-sample score before submission.
 Sample links and notes are kept as evidence, and matching pattern-premium cards
-show the highest-premium evidence rows that support the radar score. Each sample
+show the highest-premium evidence rows that support the radar score. Once a
+brand has at least two samples, the dashboard also calculates a momentum row
+with the latest premium, previous average, delta, direction, and weighted score.
+Each sample
 also gets a quality score based on source, URL, observed date, condition, and
 notes. Each recorded sample also gets a `premium_band` so the dashboard can
 filter collector-level, hot, ordinary premium, near-retail, and discount samples.

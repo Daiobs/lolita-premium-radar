@@ -15,6 +15,7 @@ from .market import (
     append_market_observation,
     build_brand_weight_profile,
     build_market_alerts,
+    build_market_momentum,
     build_opportunity_radar,
     build_pattern_radar,
     default_market_observations_path,
@@ -208,6 +209,7 @@ def get_dashboard_state(
         "market": {
             "observations": market_observations,
             "summary": market_summary,
+            "momentum": build_market_momentum(market_observations, brand_weights),
             "patterns": build_pattern_radar(brand_weights, market_observations),
         },
         "sources": [source_to_dict(source) for source in sources.values()],
@@ -541,6 +543,30 @@ INDEX_HTML = r"""<!doctype html>
       .alert-card { display: grid; gap: 8px; padding: 12px; }
       .alert-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
       .alert-card strong { color: var(--wine); }
+      .momentum-board { margin: 0 20px 14px; }
+      .momentum-grid { display: grid; grid-template-columns: minmax(220px, .68fr) minmax(300px, 1.32fr); gap: 12px; padding: 12px; }
+      .momentum-brief, .momentum-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .momentum-brief {
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(15,103,96,.12), transparent 34%),
+          linear-gradient(135deg, rgba(248,251,250,.9), rgba(255,247,232,.76));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+      }
+      .momentum-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .momentum-brief p, .momentum-card p { margin: 0; color: var(--muted); }
+      .momentum-list { display: grid; gap: 8px; }
+      .momentum-card { display: grid; gap: 8px; padding: 12px; }
+      .momentum-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .momentum-card strong { color: var(--wine); }
+      .momentum-delta { font: 650 24px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
       .weight-snapshot-board { margin: 0 20px 14px; }
       .weight-snapshot { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(260px, 1.3fr) minmax(260px, 1fr); gap: 12px; padding: 12px; }
       .weight-hero, .weight-metric, .weight-lane, .weight-gap-card {
@@ -883,7 +909,7 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -942,6 +968,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="marketAlertLine" class="alert-grid"></div>
+    </section>
+    <section class="panel momentum-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="marketMomentum">二手价动量</h2>
+          <span class="muted" data-i18n="marketMomentumHint">比较同品牌最新样本与前序均值，判断升温或降温</span>
+        </div>
+      </div>
+      <div id="marketMomentum" class="momentum-grid"></div>
     </section>
     <section class="panel weight-snapshot-board">
       <div class="toolbar">
@@ -1220,6 +1255,19 @@ INDEX_HTML = r"""<!doctype html>
           alertSampleGap: "缺样本",
           alertScore: "预警分",
           noAlerts: "暂无预警项",
+          marketMomentum: "二手价动量",
+          marketMomentumHint: "比较同品牌最新样本与前序均值，判断升温或降温",
+          momentumTotal: "动量品牌",
+          momentumRisingCount: "升温",
+          momentumCoolingCount: "降温",
+          momentumSteadyCount: "稳定",
+          momentumLatest: "最新",
+          momentumPrevious: "前序均值",
+          momentumDelta: "变化",
+          momentumRising: "升温",
+          momentumCooling: "降温",
+          momentumSteady: "稳定",
+          noMomentum: "至少需要同品牌 2 条样本后显示走势",
           marketPremium: "二手溢价观察",
           premiumByBrand: "品牌溢价排行",
           premiumRecords: "高溢价样本",
@@ -1527,6 +1575,19 @@ INDEX_HTML = r"""<!doctype html>
           alertSampleGap: "sample gaps",
           alertScore: "alert score",
           noAlerts: "No alerts yet",
+          marketMomentum: "Resale Momentum",
+          marketMomentumHint: "Compare each brand's latest sample with its previous average",
+          momentumTotal: "momentum brands",
+          momentumRisingCount: "rising",
+          momentumCoolingCount: "cooling",
+          momentumSteadyCount: "steady",
+          momentumLatest: "latest",
+          momentumPrevious: "previous avg",
+          momentumDelta: "delta",
+          momentumRising: "rising",
+          momentumCooling: "cooling",
+          momentumSteady: "steady",
+          noMomentum: "Add at least 2 samples for one brand to show momentum",
           marketPremium: "Resale Premium Watch",
           premiumByBrand: "Premium by Brand",
           premiumRecords: "High-Premium Samples",
@@ -1820,6 +1881,7 @@ INDEX_HTML = r"""<!doctype html>
         renderBrandKeywordRadar(state.brand_weights || []);
         renderFocusQueue(state.focus_queue || []);
         renderMarketAlertLine(state.market_alerts || {});
+        renderMarketMomentum(state.market?.momentum || []);
         renderBrandRadarViews();
         renderOpportunityRadar(state.opportunity_radar || []);
         renderMarketSignal(state.events || [], state.items || []);
@@ -2005,6 +2067,53 @@ INDEX_HTML = r"""<!doctype html>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(alert.score || 0)}%"></span></div>
           <p class="muted">${escapeHtml(details)}</p>
         </article>`;
+      }
+
+      function renderMarketMomentum(momentum) {
+        const rows = momentum || [];
+        const counts = {
+          rising: rows.filter((row) => row.direction === "rising").length,
+          cooling: rows.filter((row) => row.direction === "cooling").length,
+          steady: rows.filter((row) => row.direction === "steady").length,
+        };
+        const topScore = rows.length ? Math.max(...rows.map((row) => Number(row.priority_score) || 0)) : 0;
+        $("marketMomentum").innerHTML = `
+          <article class="momentum-brief">
+            <strong>${escapeHtml(topScore)}</strong>
+            <p>${escapeHtml(t("priorityScore"))} · ${escapeHtml(rows.length)} ${escapeHtml(t("momentumTotal"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(topScore)}%"></span></div>
+            <div class="coverage-stats">
+              <article class="coverage-stat"><strong>${escapeHtml(counts.rising)}</strong><span class="muted">${escapeHtml(t("momentumRisingCount"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(counts.cooling)}</strong><span class="muted">${escapeHtml(t("momentumCoolingCount"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(counts.steady)}</strong><span class="muted">${escapeHtml(t("momentumSteadyCount"))}</span></article>
+            </div>
+          </article>
+          <div class="momentum-list">
+            ${rows.length ? rows.map((row) => `<article class="momentum-card">
+              <header>
+                <div>
+                  <strong>${escapeHtml(row.brand_alias)} · ${escapeHtml(row.latest_item || "-")}</strong>
+                  <p>${escapeHtml([row.source, row.observed_at].filter(Boolean).join(" · ") || t("undated"))}</p>
+                </div>
+                <span class="pill ${momentumPill(row.direction)}">${escapeHtml(momentumDirection(row.direction))}</span>
+              </header>
+              <div class="momentum-delta">${escapeHtml(formatDeltaPercent(row.delta))}</div>
+              <div class="score-breakdown">
+                ${momentumBar(t("momentumLatest"), row.latest_premium_rate)}
+                ${momentumBar(t("momentumPrevious"), row.previous_premium_rate)}
+              </div>
+              <p>${escapeHtml(t("samples"))} ${escapeHtml(row.sample_count)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(row.brand_weight)} · ${escapeHtml(t("priorityScore"))} ${escapeHtml(row.priority_score)}</p>
+            </article>`).join("") : `<div class="row">${escapeHtml(t("noMomentum"))}</div>`}
+          </div>
+        `;
+      }
+
+      function momentumBar(label, value) {
+        return `<div class="profile-row">
+          <span>${escapeHtml(label)}</span>
+          <div class="score-track" aria-hidden="true"><span style="--score: ${escapeHtml(percentScore(value))}%"></span></div>
+          <span>${escapeHtml(formatPercent(value))}</span>
+        </div>`;
       }
 
       function renderOpportunityRadar(opportunities) {
@@ -2947,6 +3056,15 @@ INDEX_HTML = r"""<!doctype html>
         return number > 0 ? `+${number}` : String(number);
       }
 
+      function formatDeltaPercent(value) {
+        const points = Math.round((Number(value) || 0) * 100);
+        return points > 0 ? `+${points}%` : `${points}%`;
+      }
+
+      function percentScore(value) {
+        return clampScore((Number(value) || 0) * 100);
+      }
+
       function hasScoreDelta(value) {
         return (Number(value) || 0) !== 0;
       }
@@ -2992,6 +3110,18 @@ INDEX_HTML = r"""<!doctype html>
 
       function formatPercent(value) {
         return `${Math.round((Number(value) || 0) * 100)}%`;
+      }
+
+      function momentumDirection(direction) {
+        if (direction === "rising") return t("momentumRising");
+        if (direction === "cooling") return t("momentumCooling");
+        return t("momentumSteady");
+      }
+
+      function momentumPill(direction) {
+        if (direction === "rising") return "rose";
+        if (direction === "cooling") return "gold";
+        return "off";
       }
 
       function premiumWidth(value) {
