@@ -141,6 +141,11 @@ near-retail, and discount bands, with dashboard filters for scanning the
 strongest signals first by band and brand. The currently filtered sample set can
 be exported as CSV for spreadsheet review or sharing.
 
+The web dashboard includes a Lolita theme switcher with Sweet, Classic, and
+Gothic palettes. The setting is saved locally in the browser, so visual review
+can move between a sweeter AP-like mood, a calmer classic archive desk, and a
+darker gothic radar without changing market data or brand weights.
+
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,
 and IW/VM/MM/JetJ 65. The dashboard also builds a focus queue from those weights

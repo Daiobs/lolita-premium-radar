@@ -294,18 +294,111 @@ INDEX_HTML = r"""<!doctype html>
         --teal: #0f6760;
         --gold: #a9782c;
         --warn: #a44322;
+        --theme-rose-rgb: 180,87,111;
+        --theme-wine-rgb: 97,27,49;
+        --button-top: #93415b;
+        --topbar-bg:
+          radial-gradient(circle at 92% 28%, rgba(246,216,223,.22) 0 2px, transparent 2px),
+          radial-gradient(circle at 18% 16%, rgba(255,255,255,.14) 0 1px, transparent 2px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 12px, rgba(255,255,255,0) 12px 24px),
+          linear-gradient(135deg, rgba(136,59,80,.92), rgba(32,21,29,.96) 50%, rgba(15,111,106,.86)),
+          #241c21;
         --shadow: 0 18px 44px rgba(63, 39, 47, .13);
         --pearl-shadow: 0 1px 0 rgba(255,255,255,.88), 0 7px 18px rgba(97,27,49,.1);
         --ribbon-shadow: 0 11px 22px rgba(97,27,49,.16);
+      }
+      :root[data-lolita-theme="sweet"] {
+        --bg: #f7edf1;
+        --bg-soft: #fff5f8;
+        --panel: #fffbfd;
+        --ivory: #fff7f1;
+        --porcelain: #fffefe;
+        --powder: #f8dce7;
+        --mint: #ecf8f3;
+        --satin: #f4c7d5;
+        --velvet: #4a1429;
+        --text: #2d1722;
+        --muted: #7b6672;
+        --line: #ead0da;
+        --lace: #f4e0e8;
+        --ink: #24131d;
+        --rose: #c45f82;
+        --rose-dark: #84314f;
+        --wine: #681932;
+        --teal: #2f756a;
+        --gold: #b88735;
+        --theme-rose-rgb: 196,95,130;
+        --theme-wine-rgb: 104,25,50;
+        --button-top: #b45373;
+        --topbar-bg:
+          radial-gradient(circle at 92% 28%, rgba(255,232,240,.34) 0 2px, transparent 2px),
+          radial-gradient(circle at 18% 16%, rgba(255,255,255,.2) 0 1px, transparent 2px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 12px, rgba(255,255,255,0) 12px 24px),
+          linear-gradient(135deg, rgba(188,86,119,.94), rgba(78,24,45,.96) 52%, rgba(47,117,106,.82)),
+          #351724;
+      }
+      :root[data-lolita-theme="classic"] {
+        --bg: #f4eee9;
+        --bg-soft: #fff8f5;
+        --panel: #fffdfb;
+        --ivory: #fffaf2;
+        --porcelain: #fffefb;
+        --powder: #f7e4e8;
+        --mint: #eaf6f1;
+        --satin: #f6d8df;
+        --velvet: #421323;
+        --text: #24171f;
+        --muted: #766871;
+        --line: #e4d3cf;
+        --lace: #f0e5df;
+        --ink: #20151d;
+        --rose: #b4576f;
+        --rose-dark: #7c3148;
+        --wine: #611b31;
+        --teal: #0f6760;
+        --gold: #a9782c;
+        --theme-rose-rgb: 180,87,111;
+        --theme-wine-rgb: 97,27,49;
+        --button-top: #93415b;
+      }
+      :root[data-lolita-theme="gothic"] {
+        --bg: #ede8ea;
+        --bg-soft: #fbf8fa;
+        --panel: #fffdfd;
+        --ivory: #f9f3ed;
+        --porcelain: #fffdfd;
+        --powder: #eadbe4;
+        --mint: #e7f2f0;
+        --satin: #d8b7c6;
+        --velvet: #1f141c;
+        --text: #211720;
+        --muted: #716673;
+        --line: #d8ccd4;
+        --lace: #e9dee5;
+        --ink: #181116;
+        --rose: #7b2b4b;
+        --rose-dark: #4d1930;
+        --wine: #421127;
+        --teal: #245f61;
+        --gold: #9b7a37;
+        --theme-rose-rgb: 123,43,75;
+        --theme-wine-rgb: 66,17,39;
+        --button-top: #6f2945;
+        --topbar-bg:
+          radial-gradient(circle at 92% 28%, rgba(216,183,198,.26) 0 2px, transparent 2px),
+          radial-gradient(circle at 18% 16%, rgba(255,255,255,.13) 0 1px, transparent 2px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 12px, rgba(255,255,255,0) 12px 24px),
+          linear-gradient(135deg, rgba(66,17,39,.96), rgba(24,17,22,.98) 54%, rgba(36,95,97,.88)),
+          #181116;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background:
           radial-gradient(circle at 50% 0, rgba(255,255,255,.72) 0 7px, transparent 7px) 0 0 / 22px 14px repeat-x,
-          radial-gradient(circle at 50% 14px, rgba(180,87,111,.11) 0 1px, transparent 2px) 0 0 / 22px 14px repeat-x,
-          radial-gradient(circle at 16px 16px, rgba(180,87,111,.09) 0 2px, transparent 2px),
-          linear-gradient(90deg, rgba(97,27,49,.045) 1px, transparent 1px),
+          radial-gradient(circle at 50% 14px, rgba(var(--theme-rose-rgb), .11) 0 1px, transparent 2px) 0 0 / 22px 14px repeat-x,
+          radial-gradient(circle at 16px 16px, rgba(var(--theme-rose-rgb), .09) 0 2px, transparent 2px),
+          linear-gradient(90deg, rgba(var(--theme-wine-rgb), .045) 1px, transparent 1px),
           linear-gradient(rgba(15,103,96,.035) 1px, transparent 1px),
           repeating-linear-gradient(90deg, rgba(255,255,255,.34) 0 18px, rgba(255,255,255,0) 18px 36px),
           var(--bg);
@@ -321,7 +414,7 @@ INDEX_HTML = r"""<!doctype html>
         border-radius: 6px;
         padding: 0 13px;
         color: #fff;
-        background: linear-gradient(180deg, #93415b, var(--rose-dark));
+        background: linear-gradient(180deg, var(--button-top), var(--rose-dark));
         box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 8px 18px rgba(97,27,49,.16);
         cursor: pointer;
         font: inherit;
@@ -343,12 +436,7 @@ INDEX_HTML = r"""<!doctype html>
         align-items: center;
         padding: 28px 24px 20px;
         color: #fff;
-        background:
-          radial-gradient(circle at 92% 28%, rgba(246,216,223,.22) 0 2px, transparent 2px),
-          radial-gradient(circle at 18% 16%, rgba(255,255,255,.14) 0 1px, transparent 2px),
-          repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 12px, rgba(255,255,255,0) 12px 24px),
-          linear-gradient(135deg, rgba(136,59,80,.92), rgba(32,21,29,.96) 50%, rgba(15,111,106,.86)),
-          #241c21;
+        background: var(--topbar-bg);
         border-bottom: 5px double rgba(255,255,255,.24);
         overflow: hidden;
       }
@@ -464,9 +552,23 @@ INDEX_HTML = r"""<!doctype html>
         box-shadow: var(--pearl-shadow);
       }
       .actions { display: flex; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
-      .language-switch { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid rgba(255,255,255,.18); border-radius: 7px; background: rgba(255,255,255,.08); }
-      .language-switch button { min-height: 32px; padding: 0 10px; border-radius: 5px; background: transparent; color: #c9d6dc; }
-      .language-switch button.active { background: #fff; color: #14242d; }
+      .preference-stack { display: grid; gap: 6px; justify-items: end; }
+      .language-switch, .theme-switch { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid rgba(255,255,255,.18); border-radius: 7px; background: rgba(255,255,255,.08); }
+      .language-switch button, .theme-switch button { min-height: 32px; padding: 0 10px; border-radius: 5px; background: transparent; color: #c9d6dc; box-shadow: none; }
+      .language-switch button.active, .theme-switch button.active { background: #fff; color: #14242d; }
+      .theme-switch button { display: inline-flex; align-items: center; gap: 6px; }
+      .theme-swatch {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.72);
+        background: var(--swatch, var(--rose));
+        box-shadow: var(--pearl-shadow);
+      }
+      .theme-swatch.sweet { --swatch: #c45f82; }
+      .theme-swatch.classic { --swatch: #a9782c; }
+      .theme-swatch.gothic { --swatch: #421127; }
       .metrics { display: grid; grid-template-columns: repeat(5, minmax(132px, 1fr)); gap: 12px; padding: 22px 20px 12px; }
       .radar-nav {
         position: sticky;
@@ -1390,6 +1492,7 @@ INDEX_HTML = r"""<!doctype html>
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
+        .preference-stack { justify-items: start; }
         .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
@@ -1425,9 +1528,16 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </aside>
       <div class="actions">
-        <div class="language-switch" role="group" aria-label="Language">
-          <button type="button" data-language="zh">中文</button>
-          <button type="button" data-language="en">EN</button>
+        <div class="preference-stack">
+          <div class="language-switch" role="group" aria-label="Language">
+            <button type="button" data-language="zh">中文</button>
+            <button type="button" data-language="en">EN</button>
+          </div>
+          <div class="theme-switch" role="group" aria-label="Lolita theme">
+            <button type="button" data-theme-control="sweet"><span class="theme-swatch sweet"></span><span data-i18n="themeSweet">Sweet</span></button>
+            <button type="button" data-theme-control="classic"><span class="theme-swatch classic"></span><span data-i18n="themeClassic">Classic</span></button>
+            <button type="button" data-theme-control="gothic"><span class="theme-swatch gothic"></span><span data-i18n="themeGothic">Gothic</span></button>
+          </div>
         </div>
         <button id="checkAllBtn" data-i18n="checkAll">检查全部</button>
         <button id="refreshBtn" class="secondary" data-i18n="refresh">刷新</button>
@@ -1779,6 +1889,10 @@ INDEX_HTML = r"""<!doctype html>
           navEvidence: "证据",
           navSampling: "采样",
           navSources: "监控源",
+          themeSweet: "Sweet",
+          themeClassic: "Classic",
+          themeGothic: "Gothic",
+          themeChanged: "主题已切换",
           checkAll: "检查全部",
           refresh: "刷新",
           sourcesHeading: "监控源",
@@ -2211,6 +2325,10 @@ INDEX_HTML = r"""<!doctype html>
           navEvidence: "Evidence",
           navSampling: "Sampling",
           navSources: "Sources",
+          themeSweet: "Sweet",
+          themeClassic: "Classic",
+          themeGothic: "Gothic",
+          themeChanged: "theme changed",
           checkAll: "Check All",
           refresh: "Refresh",
           sourcesHeading: "Watch Sources",
@@ -2630,6 +2748,7 @@ INDEX_HTML = r"""<!doctype html>
       };
       let currentState = null;
       let currentLanguage = localStorage.getItem("radarLanguage") || "zh";
+      let currentTheme = localStorage.getItem("radarTheme") || "classic";
       let activeOpportunityFilter = "all";
       let activeMatrixFilter = "all";
       let activeMatrixSort = "score";
@@ -2637,6 +2756,7 @@ INDEX_HTML = r"""<!doctype html>
       let activePremiumBrandFilter = "all";
       let previewingDraftWeights = false;
       if (!translations[currentLanguage]) currentLanguage = "zh";
+      if (!["sweet", "classic", "gothic"].includes(currentTheme)) currentTheme = "classic";
 
       async function api(path, options = {}) {
         const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
@@ -4862,6 +4982,15 @@ INDEX_HTML = r"""<!doctype html>
         if (currentState) render(currentState);
       }
 
+      function applyTheme() {
+        document.documentElement.dataset.lolitaTheme = currentTheme;
+        document.querySelectorAll("[data-theme-control]").forEach((button) => {
+          const active = button.dataset.themeControl === currentTheme;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+      }
+
       function jumpToRadarSection(targetId) {
         const target = $(targetId);
         const section = target?.closest("section, main") || target;
@@ -4983,6 +5112,15 @@ INDEX_HTML = r"""<!doctype html>
           applyLanguage();
         });
       });
+      document.querySelectorAll("[data-theme-control]").forEach((button) => {
+        button.addEventListener("click", () => {
+          currentTheme = button.dataset.themeControl;
+          localStorage.setItem("radarTheme", currentTheme);
+          applyTheme();
+          toast(t("themeChanged"));
+        });
+      });
+      applyTheme();
       applyLanguage();
       loadState().catch((error) => toast(error.message));
     </script>
