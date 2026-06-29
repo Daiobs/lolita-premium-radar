@@ -639,6 +639,22 @@ INDEX_HTML = r"""<!doctype html>
       }
       .daily-stat strong { color: var(--wine); font: 650 20px/1 Georgia, "Times New Roman", serif; }
       .daily-stat span { color: var(--muted); font-size: 11px; }
+      .daily-lanes { display: grid; gap: 6px; }
+      .daily-lane {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 42px;
+        gap: 8px;
+        align-items: center;
+        min-height: 30px;
+        padding: 6px 8px;
+        border: 1px dashed rgba(97,27,49,.14);
+        border-radius: 7px;
+        background: rgba(255,253,251,.66);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .daily-lane strong { color: var(--wine); overflow-wrap: anywhere; }
+      .daily-lane span { text-align: right; color: var(--brand-accent, var(--rose)); font-weight: 650; }
       .daily-list { display: grid; gap: 9px; }
       .daily-card {
         position: relative;
@@ -2495,6 +2511,7 @@ INDEX_HTML = r"""<!doctype html>
           dailyRadarBriefHint: "把核心盯盘、权重校准和采样缺口收成今天的行动队列",
           dailyLead: "主线",
           dailyActions: "行动",
+          dailyActionLanes: "行动分组",
           dailySampleGaps: "样本缺口",
           dailyAvgPriority: "均值优先",
           dailyJump: "查看",
@@ -3053,6 +3070,7 @@ INDEX_HTML = r"""<!doctype html>
           dailyRadarBriefHint: "Turn core watch, weight tuning, and sample gaps into today's action queue",
           dailyLead: "lead",
           dailyActions: "actions",
+          dailyActionLanes: "action lanes",
           dailySampleGaps: "sample gaps",
           dailyAvgPriority: "avg priority",
           dailyJump: "view",
@@ -3672,6 +3690,7 @@ INDEX_HTML = r"""<!doctype html>
         if (!target) return;
         const actions = dailyRadarActions(rows);
         const stats = dailyRadarStats(actions, rows);
+        const lanes = dailyRadarLanes(actions);
         target.innerHTML = actions.length ? `
           <article class="daily-brief">
             <strong>${escapeHtml(stats.lead)}</strong>
@@ -3680,6 +3699,9 @@ INDEX_HTML = r"""<!doctype html>
             <div class="daily-stats">
               <article class="daily-stat"><strong>${escapeHtml(actions.length)}</strong><span>${escapeHtml(t("dailyActions"))}</span></article>
               <article class="daily-stat"><strong>${escapeHtml(stats.sampleGaps)}</strong><span>${escapeHtml(t("dailySampleGaps"))}</span></article>
+            </div>
+            <div class="daily-lanes" aria-label="${escapeHtml(t("dailyActionLanes"))}">
+              ${lanes.map((lane) => `<div class="daily-lane"><strong>${escapeHtml(t(lane.label))}</strong><span>${escapeHtml(lane.count)} · ${escapeHtml(lane.avgScore)}</span></div>`).join("")}
             </div>
             <p>${escapeHtml(t("dailyRadarBriefHint"))}</p>
           </article>
@@ -3752,6 +3774,21 @@ INDEX_HTML = r"""<!doctype html>
           sampleGaps,
           avgPriority,
         };
+      }
+
+      function dailyRadarLanes(actions) {
+        const byLabel = new Map();
+        (actions || []).forEach((entry) => {
+          const label = entry.daily_label || "dailyNoActions";
+          const bucket = byLabel.get(label) || { label, count: 0, totalScore: 0 };
+          bucket.count += 1;
+          bucket.totalScore += Number(entry.daily_score) || 0;
+          byLabel.set(label, bucket);
+        });
+        return Array.from(byLabel.values())
+          .map((lane) => ({ ...lane, avgScore: lane.count ? Math.round(lane.totalScore / lane.count) : 0 }))
+          .sort((a, b) => (b.count - a.count) || (b.avgScore - a.avgScore))
+          .slice(0, 4);
       }
 
       function dailyRadarActionHtml(entry) {
