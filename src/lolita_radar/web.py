@@ -1628,6 +1628,77 @@ INDEX_HTML = r"""<!doctype html>
         color: var(--muted);
         font-size: 12px;
       }
+      .weight-confidence {
+        display: grid;
+        grid-template-columns: minmax(210px, .42fr) minmax(0, 1fr);
+        gap: 9px;
+        margin: 0 0 10px;
+      }
+      .weight-confidence-brief, .weight-confidence-card {
+        position: relative;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 20%, var(--line));
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 74%, #fff), rgba(255,253,251,.95));
+        box-shadow: var(--paper-shadow);
+        overflow: hidden;
+      }
+      .weight-confidence-brief {
+        display: grid;
+        align-content: start;
+        gap: 10px;
+        padding: 12px;
+      }
+      .weight-confidence-brief::before, .weight-confidence-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 5px;
+        background: var(--lace-scallop), var(--ribbon-edge);
+        pointer-events: none;
+      }
+      .weight-confidence-brief strong { color: var(--wine); font: 650 28px/1 Georgia, "Times New Roman", serif; }
+      .weight-confidence-brief p, .weight-confidence-card p { margin: 0; color: var(--muted); }
+      .weight-confidence-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+      }
+      .weight-confidence-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 48px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.74);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .weight-confidence-stats strong { color: var(--wine); font: 650 17px/1 Georgia, "Times New Roman", serif; }
+      .weight-confidence-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+      .weight-confidence-card {
+        display: grid;
+        gap: 8px;
+        min-height: 168px;
+        padding: 12px 12px 15px;
+      }
+      .weight-confidence-card header { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
+      .weight-confidence-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .weight-confidence-meta, .weight-confidence-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      .weight-confidence-meta span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 23px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .weight-confidence-actions button { min-height: 29px; padding-inline: 9px; }
       .weight-scenarios {
         display: inline-flex;
         flex-wrap: wrap;
@@ -3328,7 +3399,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .style-premium-grid, .style-premium-list, .pattern-queue-grid, .pattern-queue-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-salon, .weight-salon-list, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .style-premium-grid, .style-premium-list, .pattern-queue-grid, .pattern-queue-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-salon, .weight-salon-list, .weight-confidence, .weight-confidence-list, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .scorecard-ledger { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
@@ -3526,9 +3597,10 @@ INDEX_HTML = r"""<!doctype html>
             <button id="resetWeightsBtn" type="button" class="secondary" data-i18n="resetWeights" data-disabled="true" disabled>重置</button>
             <button id="saveWeightsBtn" type="button" class="secondary" data-i18n="saveWeights" data-disabled="true" disabled>保存权重</button>
           </div>
-        </div>
-        <div id="brandWeightSalon" class="weight-salon"></div>
-        <div id="brandStyleLedger" class="brand-style-ledger"></div>
+	        </div>
+	        <div id="brandWeightSalon" class="weight-salon"></div>
+	        <div id="brandWeightConfidence" class="weight-confidence"></div>
+	        <div id="brandStyleLedger" class="brand-style-ledger"></div>
         <div id="brandWeights" class="watch-grid"></div>
         <div id="weightDraftAudit" class="weight-draft-audit empty"></div>
       </div>
@@ -4125,10 +4197,20 @@ INDEX_HTML = r"""<!doctype html>
           exportWeightsCsv: "导出权重 CSV",
           exportedWeightsCsv: "品牌权重已导出",
           noWeightsCsv: "暂无可导出的品牌权重",
-          weightsClean: "已保存",
-          weightsDirty: "项未保存",
-          weightsRisk: "项风险",
-          scenarioRelease: "新品优先",
+	          weightsClean: "已保存",
+	          weightsDirty: "项未保存",
+	          weightsRisk: "项风险",
+	          weightConfidenceBand: "权重信心带",
+	          weightConfidenceHint: "把目标权重、样本证据、款式词和监控入口收成每个品牌的可信度",
+	          weightConfidenceAvg: "均值信心",
+	          weightConfidenceLow: "低信心",
+	          weightConfidenceReady: "证据稳",
+	          weightConfidenceReview: "待复核",
+	          weightConfidenceCollect: "补证据",
+	          weightConfidenceActionSample: "补样本",
+	          weightConfidenceActionDraft: "套用目标",
+	          weightConfidenceActionKeyword: "补款式",
+	          scenarioRelease: "新品优先",
           scenarioPremium: "溢价优先",
           scenarioEvidence: "补证据优先",
           scenarioApplied: "已生成权重情景草稿",
@@ -4957,10 +5039,20 @@ INDEX_HTML = r"""<!doctype html>
           exportWeightsCsv: "export weights CSV",
           exportedWeightsCsv: "brand weights exported",
           noWeightsCsv: "no brand weights to export",
-          weightsClean: "saved",
-          weightsDirty: "unsaved",
-          weightsRisk: "risks",
-          scenarioRelease: "Release first",
+	          weightsClean: "saved",
+	          weightsDirty: "unsaved",
+	          weightsRisk: "risks",
+	          weightConfidenceBand: "Weight Confidence Band",
+	          weightConfidenceHint: "Combine target weight, sample evidence, style terms, and watch links into per-brand confidence",
+	          weightConfidenceAvg: "avg confidence",
+	          weightConfidenceLow: "low confidence",
+	          weightConfidenceReady: "evidence ready",
+	          weightConfidenceReview: "review",
+	          weightConfidenceCollect: "collect evidence",
+	          weightConfidenceActionSample: "add sample",
+	          weightConfidenceActionDraft: "apply target",
+	          weightConfidenceActionKeyword: "add term",
+	          scenarioRelease: "Release first",
           scenarioPremium: "Premium first",
           scenarioEvidence: "Evidence first",
           scenarioApplied: "weight scenario draft applied",
@@ -5837,9 +5929,9 @@ INDEX_HTML = r"""<!doctype html>
         </article>`).join("");
       }
 
-      function renderBrandWeightSalon(rows = buildBrandRadarMatrix()) {
-        const target = $("brandWeightSalon");
-        if (!target) return;
+	      function renderBrandWeightSalon(rows = buildBrandRadarMatrix()) {
+	        const target = $("brandWeightSalon");
+	        if (!target) return;
         const lanes = brandWeightSalonRows(rows);
         const lead = [...lanes].sort((a, b) => (
           (Number(b.score) || 0) - (Number(a.score) || 0)
@@ -5880,10 +5972,103 @@ INDEX_HTML = r"""<!doctype html>
               </div>
             </article>`).join("")}
           </div>
-        `;
-      }
+	        `;
+	      }
 
-      function brandWeightSalonRows(rows) {
+	      function renderBrandWeightConfidence(rows = buildBrandRadarMatrix()) {
+	        const target = $("brandWeightConfidence");
+	        if (!target) return;
+	        const cards = brandWeightConfidenceRows(rows);
+	        const stats = brandWeightConfidenceStats(cards);
+	        target.innerHTML = cards.length ? `
+	          <article class="weight-confidence-brief" style="${escapeHtml(brandVisualStyle(cards[0] || {}))}">
+	            <strong>${escapeHtml(stats.average)}%</strong>
+	            <p>${escapeHtml(t("weightConfidenceAvg"))} · ${escapeHtml(t("weightConfidenceHint"))}</p>
+	            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.average)}%"></span></div>
+	            <div class="weight-confidence-stats">
+	              <span><strong>${escapeHtml(stats.ready)}</strong>${escapeHtml(t("weightConfidenceReady"))}</span>
+	              <span><strong>${escapeHtml(stats.low)}</strong>${escapeHtml(t("weightConfidenceLow"))}</span>
+	              <span><strong>${escapeHtml(stats.review)}</strong>${escapeHtml(t("weightConfidenceReview"))}</span>
+	              <span><strong>${escapeHtml(stats.collect)}</strong>${escapeHtml(t("weightConfidenceCollect"))}</span>
+	            </div>
+	          </article>
+	          <div class="weight-confidence-list">
+	            ${cards.map(weightConfidenceCardHtml).join("")}
+	          </div>
+	        ` : `<div class="row">${escapeHtml(t("weightConfidenceHint"))}</div>`;
+	      }
+
+	      function brandWeightConfidenceRows(rows) {
+	        const formulas = new Map(buildBrandWeightFormula(rows, Number.POSITIVE_INFINITY).map((entry) => [entry.alias, entry]));
+	        return (rows || []).map((entry) => {
+	          const formula = formulas.get(entry.alias) || {};
+	          const confidence = Number(formula.confidence ?? formulaConfidence(entry)) || 0;
+	          const samples = Number(entry.sample_count) || 0;
+	          const target = sampleTarget(entry.brand_weight, entry.tier);
+	          const keywords = entry.market_keywords || [];
+	          const action = weightConfidenceAction({ ...entry, confidence, target_weight: formula.target_weight ?? entry.brand_weight });
+	          return {
+	            ...entry,
+	            confidence,
+	            target_weight: formula.target_weight ?? entry.brand_weight,
+	            weight_delta: Number(formula.target_weight ?? entry.brand_weight) - (Number(entry.brand_weight) || 0),
+	            target_samples: target,
+	            missing_samples: Math.max(0, target - samples),
+	            primary_keyword: keywords[0] || "",
+	            confidence_action: action.label,
+	            confidence_rank: action.rank,
+	            confidence_tone: action.tone,
+	          };
+	        }).sort((a, b) => (
+	          (Number(a.confidence) || 0) - (Number(b.confidence) || 0)
+	          || (Number(b.confidence_rank) || 0) - (Number(a.confidence_rank) || 0)
+	          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+	        )).slice(0, 4);
+	      }
+
+	      function brandWeightConfidenceStats(cards) {
+	        const total = cards.length || 0;
+	        return {
+	          average: total ? Math.round(cards.reduce((sum, entry) => sum + (Number(entry.confidence) || 0), 0) / total) : 0,
+	          ready: cards.filter((entry) => Number(entry.confidence) >= 70).length,
+	          low: cards.filter((entry) => Number(entry.confidence) < 45).length,
+	          review: cards.filter((entry) => Math.abs(Number(entry.weight_delta) || 0) >= 5).length,
+	          collect: cards.filter((entry) => Number(entry.missing_samples) > 0).length,
+	        };
+	      }
+
+	      function weightConfidenceCardHtml(entry) {
+	        return `<article class="weight-confidence-card" style="${escapeHtml(brandVisualStyle(entry))}">
+	          <header>
+	            <div>
+	              <strong>${escapeHtml(entry.alias)} · ${escapeHtml(entry.name)}</strong>
+	              <p>${escapeHtml(t(entry.confidence_action))}</p>
+	            </div>
+	            <span class="pill ${escapeHtml(entry.confidence_tone)}">${escapeHtml(entry.confidence)}%</span>
+	          </header>
+	          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.confidence)}%"></span></div>
+	          <div class="weight-confidence-meta">
+	            <span>${escapeHtml(t("scorecardCurrent"))} ${escapeHtml(entry.brand_weight)}</span>
+	            <span>${escapeHtml(t("scorecardTarget"))} ${escapeHtml(entry.target_weight)} ${escapeHtml(formatDelta(entry.weight_delta))}</span>
+	            <span>${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)}</span>
+	            <span>${escapeHtml(t("scorecardTermsBasis"))} ${(entry.market_keywords || []).length}</span>
+	          </div>
+	          <p>${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(valueLabel("evidenceLevel", entry.evidence_level))}</p>
+	          <div class="weight-confidence-actions">
+	            ${Number(entry.missing_samples) > 0 ? `<button type="button" class="secondary" data-confidence-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("weightConfidenceActionSample"))}</button>` : ""}
+	            ${Number(entry.weight_delta) ? `<button type="button" class="secondary" data-confidence-apply="${escapeHtml(entry.alias)}" data-confidence-target="${escapeHtml(entry.target_weight)}">${escapeHtml(t("weightConfidenceActionDraft"))}</button>` : ""}
+	            ${entry.primary_keyword ? `<button type="button" data-confidence-keyword-brand="${escapeHtml(entry.alias)}" data-confidence-keyword="${escapeHtml(entry.primary_keyword)}">${escapeHtml(t("weightConfidenceActionKeyword"))}</button>` : ""}
+	          </div>
+	        </article>`;
+	      }
+
+	      function weightConfidenceAction(entry) {
+	        if (Number(entry.confidence) < 45 || Number(entry.sample_count) < 2) return { label: "weightConfidenceCollect", rank: 4, tone: "gold" };
+	        if (Math.abs(Number(entry.target_weight) - Number(entry.brand_weight)) >= 5) return { label: "weightConfidenceReview", rank: 3, tone: "warn" };
+	        return { label: "weightConfidenceReady", rank: 1, tone: "rose" };
+	      }
+
+	      function brandWeightSalonRows(rows) {
         const families = ["sweet", "classic", "gothic", "release", "art"];
         const formulas = new Map(buildBrandWeightFormula(rows, Number.POSITIVE_INFINITY).map((entry) => [entry.alias, entry]));
         return families.map((family) => {
@@ -9761,10 +9946,11 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
-        renderStyleCompass(rows);
-        renderWardrobeTape(rows);
-        renderBrandWeightSalon(rows);
-        renderNorthStarRadar(rows);
+	        renderStyleCompass(rows);
+	        renderWardrobeTape(rows);
+	        renderBrandWeightSalon(rows);
+	        renderBrandWeightConfidence(rows);
+	        renderNorthStarRadar(rows);
         renderBrandCrownQueue(rows);
         renderDraftRiskRadar();
         renderStylePremiumTape(rows);
@@ -11066,11 +11252,25 @@ INDEX_HTML = r"""<!doctype html>
         $(id).addEventListener("change", renderSamplePreview);
       });
       $("brandWeights").addEventListener("input", handleWeightInput);
-      $("weightScenarios").addEventListener("click", (event) => {
-        const button = event.target.closest("[data-weight-scenario]");
-        if (button) applyWeightScenario(button.dataset.weightScenario);
-      });
-      $("brandWeightRubric").addEventListener("click", (event) => {
+	      $("weightScenarios").addEventListener("click", (event) => {
+	        const button = event.target.closest("[data-weight-scenario]");
+	        if (button) applyWeightScenario(button.dataset.weightScenario);
+	      });
+	      $("brandWeightConfidence").addEventListener("click", (event) => {
+	        const applyButton = event.target.closest("[data-confidence-apply]");
+	        if (applyButton) {
+	          applyFormulaDraft(applyButton.dataset.confidenceApply, applyButton.dataset.confidenceTarget);
+	          return;
+	        }
+	        const keywordButton = event.target.closest("[data-confidence-keyword-brand]");
+	        if (keywordButton) {
+	          prepareKeywordSample(keywordButton.dataset.confidenceKeywordBrand, keywordButton.dataset.confidenceKeyword);
+	          return;
+	        }
+	        const sampleButton = event.target.closest("[data-confidence-sample]");
+	        if (sampleButton) prepareMarketSample(sampleButton.dataset.confidenceSample);
+	      });
+	      $("brandWeightRubric").addEventListener("click", (event) => {
         const jumpButton = event.target.closest("[data-rubric-jump]");
         if (jumpButton) {
           jumpToRadarSection(jumpButton.dataset.rubricJump);

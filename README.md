@@ -253,7 +253,10 @@ average draft weight, lead labels, core share, and style keywords so the Lolita
 visual strategy is visible while tuning weights. A brand-weight salon sits beside
 that ledger with draft-vs-formula averages, evidence gaps, premium signals, and a
 line-level action for each Lolita style family, making portfolio drift visible
-before individual sliders are saved. A premium seed radar turns those
+before individual sliders are saved. A weight confidence band now highlights the
+lowest-confidence brand calls with sample gaps, formula targets, signature terms,
+and one-click sample/draft/keyword actions, so AP-style core weighting stays tied
+to auditable evidence. A premium seed radar turns those
 weights and signature market keywords into the next sample-collection targets
 before enough resale observations exist, so terms such as AP `贝壳`, BABY
 `Usakumya`, or AATP `Vampire Requiem` can be pushed straight into the price
