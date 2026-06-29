@@ -197,7 +197,8 @@ The dashboard also builds a sample collection plan from brand weights and
 current evidence gaps: core brands target five resale samples, watch brands
 target three, and archive brands target two. Each task carries suggested market
 keywords, watch links, missing-sample counts, and a button to prefill the sample
-form for the next observation.
+form for the next observation. The same task queue can be exported as
+`lolita-sample-plan.csv` for spreadsheet review or a shopping/research checklist.
 Each sample
 also gets a quality score based on source, URL, observed date, condition, and
 notes. Each recorded sample also gets a `premium_band` so the dashboard can

@@ -1514,6 +1514,9 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="samplePlan">样本采集计划</h2>
           <span class="muted" data-i18n="samplePlanHint">按品牌权重和证据缺口安排下一批二手价样本</span>
         </div>
+        <div class="brand-actions">
+          <button id="exportSamplePlanCsvBtn" type="button" class="secondary" data-i18n="exportSamplePlanCsv">导出采样 CSV</button>
+        </div>
       </div>
       <div id="samplePlan" class="sample-plan-grid"></div>
     </section>
@@ -1912,6 +1915,9 @@ INDEX_HTML = r"""<!doctype html>
           samplePlanBackfill: "档案补样",
           samplePlanDone: "已达标",
           samplePlanSampleReady: "已选中采样品牌",
+          exportSamplePlanCsv: "导出采样 CSV",
+          exportedSamplePlanCsv: "采样计划已导出",
+          noSamplePlanCsv: "暂无可导出的采样计划",
           coverageReady: "充分",
           coverageThin: "偏薄",
           coverageMissing: "缺样本",
@@ -2303,6 +2309,9 @@ INDEX_HTML = r"""<!doctype html>
           samplePlanBackfill: "archive backfill",
           samplePlanDone: "covered",
           samplePlanSampleReady: "sampling brand selected",
+          exportSamplePlanCsv: "export sampling CSV",
+          exportedSamplePlanCsv: "sample plan exported",
+          noSamplePlanCsv: "no sample plan to export",
           coverageReady: "ready",
           coverageThin: "thin",
           coverageMissing: "missing",
@@ -3579,6 +3588,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedWeightsCsv"));
       }
 
+      function exportSamplePlanCsv() {
+        const rows = buildSamplePlanRows(buildBrandRadarMatrix());
+        if (!rows.length) {
+          toast(t("noSamplePlanCsv"));
+          return;
+        }
+        const csv = csvFromSamplePlanRows(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-sample-plan.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedSamplePlanCsv"));
+      }
+
       function premiumCsvFilename() {
         const brand = activePremiumBrandFilter === "all" ? "all-brands" : activePremiumBrandFilter.toLowerCase();
         const band = activePremiumFilter === "all" ? "all-bands" : activePremiumFilter;
@@ -3606,6 +3634,33 @@ INDEX_HTML = r"""<!doctype html>
         const lines = [
           fields.map(([header]) => csvCell(header)).join(","),
           ...(records || []).map((record) => fields.map(([, key]) => csvCell(record[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromSamplePlanRows(rows) {
+        const fields = [
+          ["alias", "alias"],
+          ["name", "name"],
+          ["urgency", "urgency"],
+          ["next_action", "next_action"],
+          ["priority_score", "priority_score"],
+          ["brand_weight", "brand_weight"],
+          ["sample_count", "sample_count"],
+          ["target_samples", "target_samples"],
+          ["missing_samples", "missing_samples"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["market_keywords", "market_keywords"],
+          ["watch_urls", "watch_urls"],
+        ];
+        const enriched = (rows || []).map((row) => ({
+          ...row,
+          market_keywords: (row.market_keywords || []).join(" | "),
+          watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
+        }));
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
         ];
         return lines.join("\n");
       }
@@ -4400,6 +4455,7 @@ INDEX_HTML = r"""<!doctype html>
       });
       $("brandWeights").addEventListener("input", handleWeightInput);
       $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
+      $("exportSamplePlanCsvBtn").addEventListener("click", exportSamplePlanCsv);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);
       $("applyTuningBatchBtn").addEventListener("click", applyAllTuningDrafts);
