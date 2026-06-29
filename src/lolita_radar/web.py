@@ -767,6 +767,7 @@ INDEX_HTML = r"""<!doctype html>
       .crown-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .crown-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
       .crown-score { font: 650 30px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
+      .crown-score-stack { display: grid; justify-items: end; gap: 6px; }
       .crown-meta, .crown-keywords { display: flex; flex-wrap: wrap; gap: 6px; }
       .crown-meta span, .crown-keywords span {
         padding: 4px 7px;
@@ -2921,6 +2922,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="brandCrownQueue">品牌皇冠队列</h2>
           <span class="muted" data-i18n="brandCrownHint">把核心品牌、贝壳等款式词、二手溢价和上新命中排成今日重点</span>
         </div>
+        <button id="exportCrownCsvBtn" type="button" class="secondary" data-i18n="exportCrownCsv">导出皇冠 CSV</button>
       </div>
       <div id="brandCrownQueue" class="crown-grid"></div>
     </section>
@@ -3474,6 +3476,13 @@ INDEX_HTML = r"""<!doctype html>
           crownKeywordSample: "补款式",
           crownOpenRelease: "看发售",
           crownNoRows: "暂无皇冠品牌",
+          crownConfidence: "置信度",
+          crownConfidenceHigh: "证据稳",
+          crownConfidenceMedium: "可观察",
+          crownConfidenceLow: "待补证据",
+          exportCrownCsv: "导出皇冠 CSV",
+          exportedCrownCsv: "品牌皇冠队列已导出",
+          noCrownCsv: "暂无可导出的皇冠队列",
           dailyRadarBrief: "今日雷达简报",
           dailyRadarBriefHint: "把核心盯盘、权重校准和采样缺口收成今天的行动队列",
           dailyLead: "主线",
@@ -4226,6 +4235,13 @@ INDEX_HTML = r"""<!doctype html>
           crownKeywordSample: "add term sample",
           crownOpenRelease: "view release",
           crownNoRows: "No crown brands yet",
+          crownConfidence: "confidence",
+          crownConfidenceHigh: "evidence ready",
+          crownConfidenceMedium: "watchable",
+          crownConfidenceLow: "needs evidence",
+          exportCrownCsv: "export crown CSV",
+          exportedCrownCsv: "brand crown queue exported",
+          noCrownCsv: "no crown queue to export",
           dailyRadarBrief: "Daily Radar Brief",
           dailyRadarBriefHint: "Turn core watch, weight tuning, and sample gaps into today's action queue",
           dailyLead: "lead",
@@ -6985,6 +7001,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedDailyCsv"));
       }
 
+      function exportCrownCsv() {
+        const rows = brandCrownRows(buildBrandRadarMatrix());
+        if (!rows.length) {
+          toast(t("noCrownCsv"));
+          return;
+        }
+        const csv = csvFromCrownRows(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-brand-crown.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedCrownCsv"));
+      }
+
       function exportSamplePlanCsv() {
         const rows = buildSamplePlanRows(buildBrandRadarMatrix());
         if (!rows.length) {
@@ -7405,6 +7440,41 @@ INDEX_HTML = r"""<!doctype html>
           core_gaps: stats.core_gaps,
           hot_count: stats.hot_count,
           drift_count: stats.drift_count,
+        }));
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromCrownRows(rows) {
+        const fields = [
+          ["rank", "rank"],
+          ["alias", "alias"],
+          ["name", "name"],
+          ["crown_score", "crown_score"],
+          ["confidence_score", "confidence_score"],
+          ["confidence", "confidence_label_text"],
+          ["action", "action_label_text"],
+          ["brand_weight", "brand_weight"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["sample_count", "sample_count"],
+          ["target_samples", "target_samples"],
+          ["release_score", "release_score"],
+          ["primary_keyword", "primary_keyword"],
+          ["market_keywords", "market_keywords"],
+          ["watch_urls", "watch_urls"],
+          ["radar_cue", "radar_cue"],
+        ];
+        const enriched = (rows || []).map((row, index) => ({
+          ...row,
+          rank: index + 1,
+          confidence_label_text: t(row.confidence_label),
+          action_label_text: t(row.action_label),
+          market_keywords: (row.keywords || row.market_keywords || []).join(" | "),
+          watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
+          radar_cue: row.visual?.radar_cue || "",
         }));
         const lines = [
           fields.map(([header]) => csvCell(header)).join(","),
@@ -8601,7 +8671,10 @@ INDEX_HTML = r"""<!doctype html>
               <strong>${escapeHtml(entry.alias)}</strong>
               <p>${escapeHtml(entry.name || entry.alias)} · ${escapeHtml(t(entry.action_label))}</p>
             </div>
-            <span class="crown-score">${escapeHtml(entry.crown_score)}</span>
+            <div class="crown-score-stack">
+              <span class="crown-score">${escapeHtml(entry.crown_score)}</span>
+              <span class="pill ${escapeHtml(entry.confidence_band)}">${escapeHtml(t(entry.confidence_label))} ${escapeHtml(entry.confidence_score)}</span>
+            </div>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.crown_score)}%"></span></div>
           <div class="crown-meta">
@@ -8650,6 +8723,7 @@ INDEX_HTML = r"""<!doctype html>
             + sampleGapBonus
             + keywordBonus
           );
+          const confidenceScore = crownConfidenceScore({ ...entry, sample_count: sampleCount, release_score: releaseScore });
           return {
             ...entry,
             target_samples: targetSamples,
@@ -8657,6 +8731,9 @@ INDEX_HTML = r"""<!doctype html>
             primary_keyword: release.primary_keyword || keywords[0] || entry.alias,
             keywords,
             crown_score: crownScore,
+            confidence_score: confidenceScore,
+            confidence_band: crownConfidenceBand(confidenceScore),
+            confidence_label: crownConfidenceLabel(confidenceScore),
             action_label: crownActionLabel({ ...entry, release_score: releaseScore, target_samples: targetSamples, crown_score: crownScore }),
           };
         }).filter((entry) => Number(entry.brand_weight) >= 75 || Number(entry.avg_premium_rate) >= 0.25 || Number(entry.release_score) >= 55)
@@ -8689,6 +8766,29 @@ INDEX_HTML = r"""<!doctype html>
         if (releaseScore >= 60) return "crownActionRelease";
         if (premium >= 0.25) return "crownActionPremium";
         return "crownActionHold";
+      }
+
+      function crownConfidenceScore(entry) {
+        const samplePoints = Math.min(50, (Number(entry.sample_count) || 0) * 14);
+        const watchPoints = Math.min(20, (entry.watch_urls || []).length * 5);
+        const keywordPoints = Math.min(15, (entry.market_keywords || []).length * 3);
+        const releasePoints = Number(entry.release_score) > 0 ? 10 : 0;
+        const premiumPoints = Number(entry.avg_premium_rate) >= 0.25 ? 5 : 0;
+        return clampScore(samplePoints + watchPoints + keywordPoints + releasePoints + premiumPoints);
+      }
+
+      function crownConfidenceBand(score) {
+        const value = Number(score) || 0;
+        if (value >= 70) return "rose";
+        if (value >= 45) return "gold";
+        return "warn";
+      }
+
+      function crownConfidenceLabel(score) {
+        const value = Number(score) || 0;
+        if (value >= 70) return "crownConfidenceHigh";
+        if (value >= 45) return "crownConfidenceMedium";
+        return "crownConfidenceLow";
       }
 
       function renderBrandPortfolio(rows) {
@@ -9736,6 +9836,7 @@ INDEX_HTML = r"""<!doctype html>
       $("exportScorecardsCsvBtn").addEventListener("click", exportBrandWeightScorecardsCsv);
       $("exportGuardrailsCsvBtn").addEventListener("click", exportBrandWeightGuardrailsCsv);
       $("exportScenariosCsvBtn").addEventListener("click", exportWeightScenariosCsv);
+      $("exportCrownCsvBtn").addEventListener("click", exportCrownCsv);
       $("exportRunSheetCsvBtn").addEventListener("click", exportRunSheetCsv);
       $("exportReleaseWatchCsvBtn").addEventListener("click", exportReleaseWatchCsv);
       $("exportPortfolioCsvBtn").addEventListener("click", exportPortfolioCsv);
