@@ -420,6 +420,13 @@ INDEX_HTML = r"""<!doctype html>
       .market-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; padding: 12px; }
       .market-list { display: grid; gap: 9px; }
       .opportunity-board { margin: 0 20px 14px; }
+      .opportunity-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 10px; align-items: center; }
+      .opportunity-summary { display: flex; flex-wrap: wrap; gap: 7px; }
+      .summary-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,253,251,.78); color: var(--muted); font-size: 12px; }
+      .summary-chip strong { color: var(--wine); font: 650 15px/1 Georgia, "Times New Roman", serif; }
+      .segmented { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,253,251,.78); }
+      .segmented button { min-height: 30px; padding: 0 9px; border: 0; border-radius: 5px; background: transparent; box-shadow: none; color: var(--muted); }
+      .segmented button.active { background: var(--wine); color: #fff; }
       .opportunity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; padding: 12px; }
       .opportunity-card {
         display: grid;
@@ -462,6 +469,7 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
+        .opportunity-toolbar { grid-template-columns: 1fr; }
         .brand-tools { align-items: flex-start; flex-direction: column; }
         .metrics, .watch-grid, .event-list, .item-list, .market-form { grid-template-columns: 1fr; }
         .market-form .wide { grid-column: span 1; }
@@ -504,9 +512,19 @@ INDEX_HTML = r"""<!doctype html>
       </div>
     </section>
     <section class="panel opportunity-board">
-      <div class="toolbar">
-        <h2 data-i18n="opportunityRadar">机会雷达</h2>
-        <span class="muted" data-i18n="opportunityHint">基于品牌权重与二手溢价生成关注建议</span>
+      <div class="toolbar opportunity-toolbar">
+        <div>
+          <h2 data-i18n="opportunityRadar">机会雷达</h2>
+          <span class="muted" data-i18n="opportunityHint">基于品牌权重与二手溢价生成关注建议</span>
+          <div id="opportunitySummary" class="opportunity-summary"></div>
+        </div>
+        <div id="opportunityFilters" class="segmented" role="group" aria-label="Opportunity filter">
+          <button type="button" data-opportunity-filter="all" data-i18n="filterAll">全部</button>
+          <button type="button" data-opportunity-filter="lead" data-i18n="filterLead">重点</button>
+          <button type="button" data-opportunity-filter="watch" data-i18n="filterWatch">观察</button>
+          <button type="button" data-opportunity-filter="collect_samples" data-i18n="filterSamples">补样本</button>
+          <button type="button" data-opportunity-filter="cooldown" data-i18n="filterCooldown">暂缓</button>
+        </div>
       </div>
       <div id="opportunityRadar" class="opportunity-grid"></div>
     </section>
@@ -601,6 +619,11 @@ INDEX_HTML = r"""<!doctype html>
           weightsSaved: "品牌权重已保存",
           opportunityRadar: "机会雷达",
           opportunityHint: "基于品牌权重与二手溢价生成关注建议",
+          filterAll: "全部",
+          filterLead: "重点",
+          filterWatch: "观察",
+          filterSamples: "补样本",
+          filterCooldown: "暂缓",
           focusQueue: "重点关注队列",
           marketPremium: "二手溢价观察",
           premiumByBrand: "品牌溢价排行",
@@ -702,6 +725,11 @@ INDEX_HTML = r"""<!doctype html>
           weightsSaved: "brand weights saved",
           opportunityRadar: "Opportunity Radar",
           opportunityHint: "Attention suggestions from brand weight and resale premium",
+          filterAll: "All",
+          filterLead: "Lead",
+          filterWatch: "Watch",
+          filterSamples: "Samples",
+          filterCooldown: "Cooldown",
           focusQueue: "Focus Queue",
           marketPremium: "Resale Premium Watch",
           premiumByBrand: "Premium by Brand",
@@ -792,6 +820,7 @@ INDEX_HTML = r"""<!doctype html>
       };
       let currentState = null;
       let currentLanguage = localStorage.getItem("radarLanguage") || "zh";
+      let activeOpportunityFilter = "all";
       if (!translations[currentLanguage]) currentLanguage = "zh";
 
       async function api(path, options = {}) {
@@ -864,7 +893,10 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function renderOpportunityRadar(opportunities) {
-        $("opportunityRadar").innerHTML = opportunities.length ? opportunities.map((entry) => `<article class="opportunity-card">
+        renderOpportunitySummary(opportunities);
+        syncOpportunityFilterButtons();
+        const visible = activeOpportunityFilter === "all" ? opportunities : opportunities.filter((entry) => entry.band === activeOpportunityFilter);
+        $("opportunityRadar").innerHTML = visible.length ? visible.map((entry) => `<article class="opportunity-card">
           <header>
             <div>
               <strong>${escapeHtml(entry.alias)}</strong>
@@ -877,6 +909,23 @@ INDEX_HTML = r"""<!doctype html>
           <p class="muted">${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
           <p class="muted">${escapeHtml(reasonLabels(entry.reason_codes).join(" · "))}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noOpportunity"))}</div>`;
+      }
+
+      function renderOpportunitySummary(opportunities) {
+        const counts = countBy(opportunities, "band");
+        const bands = ["lead", "watch", "collect_samples", "cooldown"];
+        $("opportunitySummary").innerHTML = bands.map((band) => `<span class="summary-chip">
+          <strong>${escapeHtml(counts[band] || 0)}</strong>
+          <span>${escapeHtml(valueLabel("opportunityBand", band))}</span>
+        </span>`).join("");
+      }
+
+      function syncOpportunityFilterButtons() {
+        document.querySelectorAll("[data-opportunity-filter]").forEach((button) => {
+          const active = button.dataset.opportunityFilter === activeOpportunityFilter;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+        });
       }
 
       function renderMarketSignal(events, items) {
@@ -1113,6 +1162,12 @@ INDEX_HTML = r"""<!doctype html>
       $("marketForm").addEventListener("submit", addMarketObservation);
       $("brandWeights").addEventListener("input", handleWeightInput);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
+      $("opportunityFilters").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-opportunity-filter]");
+        if (!button) return;
+        activeOpportunityFilter = button.dataset.opportunityFilter || "all";
+        renderOpportunityRadar(currentState?.opportunity_radar || []);
+      });
       $("refreshBtn").addEventListener("click", () => loadState().then(() => toast(t("refreshed"))).catch((error) => toast(error.message)));
       $("sources").addEventListener("click", (event) => {
         const button = event.target.closest("button[data-source]");

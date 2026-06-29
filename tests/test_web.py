@@ -74,6 +74,8 @@ sources:
         self.assertIn("marketSignal", INDEX_HTML)
         self.assertIn("focusQueue", INDEX_HTML)
         self.assertIn("opportunityRadar", INDEX_HTML)
+        self.assertIn("opportunitySummary", INDEX_HTML)
+        self.assertIn("data-opportunity-filter", INDEX_HTML)
         self.assertIn("marketPremium", INDEX_HTML)
         self.assertIn("marketForm", INDEX_HTML)
         self.assertIn("/api/market/observations", INDEX_HTML)
