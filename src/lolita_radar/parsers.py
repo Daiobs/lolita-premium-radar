@@ -35,6 +35,7 @@ class LinkCandidate:
     url: str
     text: str
     published_at: str = ""
+    context: str = ""
 
 
 class LinkTextParser(HTMLParser):
@@ -42,11 +43,14 @@ class LinkTextParser(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.base_url = base_url
         self._stack: list[dict[str, str]] = []
+        self._containers: list[dict[str, object]] = []
         self.links: list[LinkCandidate] = []
         self.text_parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attr = {key.lower(): value or "" for key, value in attrs}
+        if tag.lower() in {"li", "article", "section", "div", "tr", "p"}:
+            self._containers.append({"tag": tag.lower(), "text_parts": [], "link_indices": []})
         if tag.lower() == "a":
             self._stack.append(
                 {
@@ -60,25 +64,56 @@ class LinkTextParser(HTMLParser):
         if not cleaned:
             return
         self.text_parts.append(cleaned)
+        for container in self._containers:
+            text_parts = container["text_parts"]
+            if isinstance(text_parts, list):
+                text_parts.append(cleaned)
         if self._stack:
             self._stack[-1]["text"] += " " + cleaned
 
     def handle_endtag(self, tag: str) -> None:
-        if tag.lower() != "a" or not self._stack:
+        lowered_tag = tag.lower()
+        if lowered_tag == "a" and self._stack:
+            raw = self._stack.pop()
+            title = clean_text(raw["text"])
+            href = raw["href"].strip()
+            if title and href and not href.startswith("#"):
+                index = len(self.links)
+                self.links.append(
+                    LinkCandidate(
+                        title=title,
+                        url=urljoin(self.base_url, href),
+                        text=title,
+                        published_at=extract_date(title),
+                    )
+                )
+                for container in self._containers:
+                    link_indices = container["link_indices"]
+                    if isinstance(link_indices, list):
+                        link_indices.append(index)
             return
-        raw = self._stack.pop()
-        title = clean_text(raw["text"])
-        href = raw["href"].strip()
-        if not title or not href or href.startswith("#"):
-            return
-        self.links.append(
-            LinkCandidate(
-                title=title,
-                url=urljoin(self.base_url, href),
-                text=title,
-                published_at=extract_date(title),
-            )
-        )
+        if lowered_tag in {"li", "article", "section", "div", "tr", "p"}:
+            for index in range(len(self._containers) - 1, -1, -1):
+                container = self._containers[index]
+                if container.get("tag") != lowered_tag:
+                    continue
+                self._containers.pop(index)
+                context = clean_text(" ".join(str(part) for part in container.get("text_parts", [])))
+                for link_index in container.get("link_indices", []):
+                    if not isinstance(link_index, int) or link_index >= len(self.links):
+                        continue
+                    link = self.links[link_index]
+                    if link.context:
+                        continue
+                    full_text = clean_text(f"{context} {link.title}")
+                    self.links[link_index] = LinkCandidate(
+                        title=link.title,
+                        url=link.url,
+                        text=full_text,
+                        published_at=link.published_at or extract_date(context),
+                        context=context,
+                    )
+                return
 
 
 def parse_generic_text(html_text: str) -> str:
@@ -282,7 +317,7 @@ def is_navigation_link(link: LinkCandidate) -> bool:
 
 
 def angelic_pretty_category(link: LinkCandidate) -> str:
-    lowered = f"{link.title} {link.url}".lower()
+    lowered = f"{link.title} {link.context} {link.url}".lower()
     categories = (
         ("preorder", ("pre order", "pre-order", "preorder", "予約", "受注", "ご予約")),
         ("restock", ("restock", "再入荷", "再販")),
@@ -296,7 +331,7 @@ def angelic_pretty_category(link: LinkCandidate) -> str:
 
 
 def baby_category(link: LinkCandidate) -> str:
-    lowered = f"{link.title} {link.url}".lower()
+    lowered = f"{link.title} {link.context} {link.url}".lower()
     categories = (
         ("preorder", ("pre order", "pre-order", "preorder", "reservation", "予約", "受注", "ご予約")),
         ("restock", ("restock", "再入荷", "再販")),
@@ -311,7 +346,7 @@ def baby_category(link: LinkCandidate) -> str:
 
 
 def moitie_category(link: LinkCandidate) -> str:
-    lowered = f"{link.title} {link.url}".lower()
+    lowered = f"{link.title} {link.context} {link.url}".lower()
     categories = (
         ("sale", ("sale", "セール")),
         ("event", ("event", "イベント")),
@@ -327,7 +362,7 @@ def moitie_category(link: LinkCandidate) -> str:
 
 
 def is_aatp_link(link: LinkCandidate) -> bool:
-    lowered = f"{link.title} {link.url}".lower()
+    lowered = f"{link.title} {link.context} {link.url}".lower()
     return any(token in lowered for token in ("alice and the pirates", "aatp", "pirates", "パイレーツ"))
 
 
@@ -345,7 +380,7 @@ def brand_metadata(brand: str, source: str, category: str, link: LinkCandidate) 
 
 
 def infer_section(link: LinkCandidate) -> str:
-    lowered = f"{link.title} {link.url}".lower()
+    lowered = f"{link.title} {link.context} {link.url}".lower()
     sections = (
         ("dress", ("jsk", "onepiece", "one-piece", "op", "dress", "ジャンパースカート", "ワンピース")),
         ("blouse", ("blouse", "ブラウス")),

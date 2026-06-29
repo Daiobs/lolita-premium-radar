@@ -114,6 +114,10 @@ python -m lolita_radar.cli check --all --baseline-only
 
 `baseline-only` stores current items but writes no events and sends no
 notifications, so historical releases do not flood the first alert run.
+It is intended only for first deployment or rebuilding a database. If selected
+sources already have tracked items, the command stops with a guardrail error;
+use `--force-baseline` only when you intentionally want to overwrite existing
+tracked state.
 
 Check one source:
 

@@ -1,16 +1,19 @@
 import tempfile
 import unittest
-from contextlib import redirect_stdout
 import io
+from contextlib import redirect_stdout
+from contextlib import redirect_stderr
 from pathlib import Path
 
 import lolita_radar.runner as runner
 from lolita_radar.cli import main
 from lolita_radar.models import ItemStatus, RadarItem
-from lolita_radar.storage import connect, list_events, storage_counts
+from lolita_radar.storage import connect, list_events, list_items, storage_counts
 
 
 class BaselineFakeAdapter:
+    content = "baseline content"
+
     def __init__(self, config) -> None:
         self.config = config
 
@@ -21,7 +24,7 @@ class BaselineFakeAdapter:
                 title="New Arrival: Baseline JSK",
                 url=f"{self.config.url}/baseline",
                 status=ItemStatus.NEW_ARRIVAL,
-                content="baseline content",
+                content=self.content,
             )
         ]
 
@@ -61,6 +64,93 @@ sources:
             self.assertEqual(counts["items"], 1)
             self.assertEqual(counts["events"], 0)
             self.assertEqual(stored_events, [])
+
+    def test_existing_source_baseline_without_force_fails_without_updating_content_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root)
+            db_path = root / "radar.sqlite"
+            original = dict(runner.ADAPTERS)
+            old_content = BaselineFakeAdapter.content
+            try:
+                runner.ADAPTERS.update({"baseline_fake": BaselineFakeAdapter})
+                BaselineFakeAdapter.content = "first baseline content"
+                runner.check_sources(config_path=config_path, db_path=db_path, notify=False, baseline_only=True)
+                old_hash = self.item_hash(db_path)
+
+                BaselineFakeAdapter.content = "changed content that must not be absorbed"
+                with self.assertRaisesRegex(ValueError, "baseline-only is intended for first deployment"):
+                    runner.check_sources(config_path=config_path, db_path=db_path, notify=False, baseline_only=True)
+
+                self.assertEqual(self.item_hash(db_path), old_hash)
+            finally:
+                BaselineFakeAdapter.content = old_content
+                runner.ADAPTERS.clear()
+                runner.ADAPTERS.update(original)
+
+    def test_force_baseline_allows_existing_source_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root)
+            db_path = root / "radar.sqlite"
+            original = dict(runner.ADAPTERS)
+            old_content = BaselineFakeAdapter.content
+            try:
+                runner.ADAPTERS.update({"baseline_fake": BaselineFakeAdapter})
+                BaselineFakeAdapter.content = "first baseline content"
+                runner.check_sources(config_path=config_path, db_path=db_path, notify=False, baseline_only=True)
+                old_hash = self.item_hash(db_path)
+
+                BaselineFakeAdapter.content = "forced baseline content"
+                events = runner.check_sources(
+                    config_path=config_path,
+                    db_path=db_path,
+                    notify=False,
+                    baseline_only=True,
+                    force_baseline=True,
+                )
+                connection = connect(db_path)
+                try:
+                    stored_events = list_events(connection)
+                finally:
+                    connection.close()
+            finally:
+                BaselineFakeAdapter.content = old_content
+                runner.ADAPTERS.clear()
+                runner.ADAPTERS.update(original)
+
+            self.assertEqual(events, [])
+            self.assertNotEqual(self.item_hash(db_path), old_hash)
+            self.assertEqual(stored_events, [])
+
+    def test_cli_baseline_guardrail_returns_non_zero(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root)
+            db_path = root / "radar.sqlite"
+            original = dict(runner.ADAPTERS)
+            stderr = io.StringIO()
+            try:
+                runner.ADAPTERS.update({"baseline_fake": BaselineFakeAdapter})
+                runner.check_sources(config_path=config_path, db_path=db_path, notify=False, baseline_only=True)
+                with redirect_stderr(stderr):
+                    exit_code = main(
+                        [
+                            "check",
+                            "--config",
+                            str(config_path),
+                            "--db",
+                            str(db_path),
+                            "--all",
+                            "--baseline-only",
+                        ]
+                    )
+            finally:
+                runner.ADAPTERS.clear()
+                runner.ADAPTERS.update(original)
+
+            self.assertEqual(exit_code, 2)
+            self.assertIn("baseline-only is intended for first deployment", stderr.getvalue())
 
     def test_suppress_initial_notify_writes_events_without_notifying(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -111,6 +201,28 @@ sources:
             self.assertIn("events=1", stdout.getvalue())
             self.assertEqual(len(stored_events), 1)
             self.assertEqual(notify_calls, [])
+
+    def write_config(self, root: Path) -> Path:
+        config_path = root / "sources.yaml"
+        config_path.write_text(
+            """
+sources:
+  baseline_source:
+    type: baseline_fake
+    enabled: true
+    url: "https://example.com/source"
+    keywords: []
+""".strip(),
+            encoding="utf-8",
+        )
+        return config_path
+
+    def item_hash(self, db_path: Path) -> str:
+        connection = connect(db_path)
+        try:
+            return str(list_items(connection)[0]["content_hash"])
+        finally:
+            connection.close()
 
 
 if __name__ == "__main__":

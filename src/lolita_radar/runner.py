@@ -17,7 +17,7 @@ from .adapters import (
 from .config import load_sources
 from .models import RadarEvent, RadarItem
 from .notifiers import build_notifiers_from_env, notify_all
-from .storage import connect, diff_and_store, list_latest_source_runs, record_source_run
+from .storage import connect, count_items_for_sources, diff_and_store, list_latest_source_runs, record_source_run
 
 
 ADAPTERS: dict[str, type[SourceAdapter]] = {
@@ -53,11 +53,14 @@ def check_sources(
     source_name: str | None = None,
     notify: bool = True,
     baseline_only: bool = False,
+    force_baseline: bool = False,
 ) -> list[RadarEvent]:
     sources = load_sources(config_path)
     selected = select_sources(sources, source_name)
     connection = connect(db_path)
     try:
+        if baseline_only and not force_baseline:
+            guard_baseline_only(connection, selected)
         all_events: list[RadarEvent] = []
         for source in selected:
             try:
@@ -78,6 +81,20 @@ def check_sources(
     if notify and not baseline_only:
         notify_all(build_notifiers_from_env(), all_events)
     return all_events
+
+
+def guard_baseline_only(connection, selected: list[SourceConfig]) -> None:
+    existing = {
+        source: count
+        for source, count in count_items_for_sources(connection, [source.name for source in selected]).items()
+        if count > 0
+    }
+    if existing:
+        sources = ", ".join(f"{source}({count})" for source, count in sorted(existing.items()))
+        raise ValueError(
+            "baseline-only is intended for first deployment; use --force-baseline to overwrite existing tracked state. "
+            f"Existing tracked sources: {sources}"
+        )
 
 
 def inspect_sources(config_path: Path, source_name: str | None = None) -> list[InspectResult]:

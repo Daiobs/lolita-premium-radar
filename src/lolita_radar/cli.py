@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from .brands import default_brand_weights_path
@@ -25,6 +26,11 @@ def main(argv: list[str] | None = None) -> int:
     check_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
     check_parser.add_argument("--no-notify", action="store_true")
     check_parser.add_argument("--baseline-only", action="store_true", help="store fetched items without events or notifications")
+    check_parser.add_argument(
+        "--force-baseline",
+        action="store_true",
+        help="allow baseline-only to overwrite existing tracked state for selected sources",
+    )
     check_parser.add_argument(
         "--suppress-initial-notify",
         action="store_true",
@@ -52,13 +58,18 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "check":
-        events = check_sources(
-            config_path=args.config,
-            db_path=args.db,
-            source_name=args.source,
-            notify=not (args.no_notify or args.suppress_initial_notify or args.baseline_only),
-            baseline_only=args.baseline_only,
-        )
+        try:
+            events = check_sources(
+                config_path=args.config,
+                db_path=args.db,
+                source_name=args.source,
+                notify=not (args.no_notify or args.suppress_initial_notify or args.baseline_only),
+                baseline_only=args.baseline_only,
+                force_baseline=args.force_baseline,
+            )
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         print(f"events={len(events)}")
         return 0
     if args.command == "inspect":

@@ -238,6 +238,17 @@ def storage_counts(connection: sqlite3.Connection) -> dict[str, int]:
     return {"items": item_count, "events": event_count}
 
 
+def count_items_for_sources(connection: sqlite3.Connection, sources: Iterable[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for source in sources:
+        row = connection.execute(
+            "SELECT COUNT(*) AS count FROM items WHERE source = ?",
+            (source,),
+        ).fetchone()
+        counts[str(source)] = int(row["count"])
+    return counts
+
+
 def record_source_run(
     connection: sqlite3.Connection,
     source: str,
