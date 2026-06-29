@@ -108,7 +108,9 @@ and IW/VM/MM/JetJ 65. The dashboard also builds a focus queue from those weights
 and the currently observed items/events. You can adjust existing brand weights
 from the web dashboard, preview how draft weights change opportunity radar
 scores and deltas, review unsaved changes, reset drafts, and save them back to
-the configured brand-weight file.
+the configured brand-weight file. Each brand card also explains the current
+weight band, monitoring intent, and keyword coverage so the score is easier to
+audit before changing it.
 
 Use another brand-weight file:
 

@@ -381,6 +381,9 @@ INDEX_HTML = r"""<!doctype html>
       .brand-chip span { color: var(--muted); font-size: 12px; }
       .brand-chip input[type="range"] { width: 100%; accent-color: var(--rose-dark); }
       .weight-control { display: grid; gap: 4px; margin-top: 7px; color: var(--muted); font-size: 12px; }
+      .weight-insight { display: grid; gap: 5px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(97,27,49,.16); }
+      .weight-insight p { margin: 0; color: var(--muted); font-size: 12px; }
+      .weight-insight strong { display: inline; color: var(--wine); }
       .brand-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
       .brand-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
       .focus-list { display: grid; gap: 8px; }
@@ -732,6 +735,15 @@ INDEX_HTML = r"""<!doctype html>
           tierWatch: "观察",
           tierArchive: "档案",
           weightLabel: "权重",
+          weightBand: "权重档",
+          weightIntent: "用途",
+          keywordCount: "关键词",
+          weightBandCore: "核心发售",
+          weightBandWatch: "重点观察",
+          weightBandArchive: "档案采样",
+          weightIntentCore: "新品、预约、淘宝上新优先提醒",
+          weightIntentWatch: "结合溢价和样本决定是否升级",
+          weightIntentArchive: "先补二手样本，异常溢价再上调",
           radarScore: "雷达分",
           observed: "已捕捉",
           noFocusQueue: "暂无关注队列",
@@ -865,6 +877,15 @@ INDEX_HTML = r"""<!doctype html>
           tierWatch: "watch",
           tierArchive: "archive",
           weightLabel: "weight",
+          weightBand: "band",
+          weightIntent: "intent",
+          keywordCount: "keywords",
+          weightBandCore: "core release",
+          weightBandWatch: "watch priority",
+          weightBandArchive: "archive sampling",
+          weightIntentCore: "prioritize release, preorder, and Taobao alerts",
+          weightIntentWatch: "promote when premium and samples support it",
+          weightIntentArchive: "collect resale samples before raising weight",
           radarScore: "radar score",
           observed: "observed",
           noFocusQueue: "No focus queue yet",
@@ -995,8 +1016,34 @@ INDEX_HTML = r"""<!doctype html>
             <input type="range" min="0" max="100" step="1" value="${escapeHtml(brand.weight)}" data-original-weight="${escapeHtml(brand.weight)}" data-brand-weight="${escapeHtml(brand.alias)}">
           </label>
           <p class="muted">${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(styleLabel(brand.style))}</p>
+          <div class="weight-insight" data-weight-insight="${escapeHtml(brand.alias)}">
+            ${brandWeightInsightHtml(brand, brand.weight)}
+          </div>
         </article>`).join("");
         updateWeightDirtyState();
+      }
+
+      function brandWeightInsightHtml(brand, weightValue) {
+        const weight = clampScore(weightValue ?? brand.weight);
+        const band = weightBandKey(weight);
+        const intent = weightIntentKey(weight);
+        return `
+          <p><strong>${escapeHtml(t("weightBand"))}</strong> ${escapeHtml(t(band))}</p>
+          <p><strong>${escapeHtml(t("weightIntent"))}</strong> ${escapeHtml(t(intent))}</p>
+          <p><strong>${escapeHtml(t("keywordCount"))}</strong> ${escapeHtml((brand.keywords || []).length)}</p>
+        `;
+      }
+
+      function weightBandKey(weight) {
+        if (clampScore(weight) >= 90) return "weightBandCore";
+        if (clampScore(weight) >= 70) return "weightBandWatch";
+        return "weightBandArchive";
+      }
+
+      function weightIntentKey(weight) {
+        if (clampScore(weight) >= 90) return "weightIntentCore";
+        if (clampScore(weight) >= 70) return "weightIntentWatch";
+        return "weightIntentArchive";
       }
 
       function renderMarketForm(weights) {
@@ -1276,8 +1323,11 @@ INDEX_HTML = r"""<!doctype html>
         const card = input.closest(".brand-chip");
         const label = card?.querySelector("[data-weight-label]");
         const bar = card?.querySelector(".signal-bar span");
+        const insight = card?.querySelector("[data-weight-insight]");
+        const brand = brandByAlias(input.dataset.brandWeight);
         if (label) label.textContent = `${t("weightLabel")} ${input.value}`;
         if (bar) bar.style.setProperty("--score", `${input.value}%`);
+        if (insight && brand) insight.innerHTML = brandWeightInsightHtml(brand, input.value);
         if (card) card.classList.toggle("dirty", input.value !== input.dataset.originalWeight);
         updateWeightDirtyState();
         renderBrandRadarMatrix(buildBrandRadarMatrix());
@@ -1381,6 +1431,10 @@ INDEX_HTML = r"""<!doctype html>
 
       function clampScore(value) {
         return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+      }
+
+      function brandByAlias(alias) {
+        return (currentState?.brand_weights || []).find((brand) => brand.alias === alias);
       }
 
       function formatDelta(value) {
