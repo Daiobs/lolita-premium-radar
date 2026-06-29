@@ -126,7 +126,17 @@ class MarketTests(unittest.TestCase):
                 }
             ],
             observations=[
-                {"brand_alias": "AP", "item_name": "白贝壳 JSK", "premium_rate": 0.6},
+                {
+                    "brand_alias": "AP",
+                    "item_name": "白贝壳 JSK",
+                    "premium_rate": 0.6,
+                    "resale_price": 1800,
+                    "retail_price": 1000,
+                    "currency": "CNY",
+                    "source": "xianyu",
+                    "url": "https://example.com/shell",
+                    "notes": "with KC",
+                },
                 {"brand_alias": "AP", "item_name": "Holy Lantern OP", "premium_rate": 0.2},
                 {"brand_alias": "BABY", "item_name": "贝壳 JSK", "premium_rate": 0.9},
             ],
@@ -137,6 +147,8 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(shell["sample_count"], 1)
         self.assertEqual(shell["avg_premium_rate"], 0.6)
         self.assertGreater(shell["priority_score"], 0)
+        self.assertEqual(shell["evidence"][0]["source"], "xianyu")
+        self.assertEqual(shell["evidence"][0]["url"], "https://example.com/shell")
 
 
 if __name__ == "__main__":

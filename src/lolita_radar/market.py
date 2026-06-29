@@ -192,6 +192,7 @@ def build_pattern_radar(
                     "priority_score": score,
                     "band": opportunity_band(score, avg_premium_rate, len(rows), weight),
                     "reason_codes": opportunity_reasons(avg_premium_rate, len(rows), weight),
+                    "evidence": pattern_evidence(rows),
                 }
             )
     return sorted(
@@ -216,6 +217,24 @@ def keyword_in_observation(keyword: str, observation: dict[str, Any]) -> bool:
         ]
     ).casefold()
     return keyword.casefold() in haystack
+
+
+def pattern_evidence(rows: list[dict[str, Any]], limit: int = 3) -> list[dict[str, Any]]:
+    sorted_rows = sorted(rows, key=lambda row: float(row.get("premium_rate") or 0), reverse=True)
+    return [
+        {
+            "item_name": text(row.get("item_name")),
+            "premium_rate": float(row.get("premium_rate") or 0),
+            "retail_price": float(row.get("retail_price") or 0),
+            "resale_price": float(row.get("resale_price") or 0),
+            "currency": text(row.get("currency")) or "CNY",
+            "source": text(row.get("source")),
+            "url": text(row.get("url")),
+            "observed_at": text(row.get("observed_at")),
+            "notes": text(row.get("notes")),
+        }
+        for row in sorted_rows[:limit]
+    ]
 
 
 def opportunity_band(score: int, avg_premium_rate: float, sample_count: int, brand_weight: int) -> str:

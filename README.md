@@ -140,8 +140,10 @@ price samples with the same currency for `retail_price` and `resale_price`; the
 dashboard calculates premium rates and brand-level averages. You can edit this
 file directly or add samples from the web dashboard's resale-premium form, which
 previews premium rate, spread, and a single-sample score before submission.
-Brand premium rows include a weighted priority score that combines resale
-premium, sample count, and the configured brand weight.
+Sample links and notes are kept as evidence, and matching pattern-premium cards
+show the highest-premium evidence rows that support the radar score. Brand
+premium rows include a weighted priority score that combines resale premium,
+sample count, and the configured brand weight.
 
 ```json
 [
@@ -153,7 +155,9 @@ premium, sample count, and the configured brand weight.
     "currency": "CNY",
     "condition": "used",
     "source": "xianyu",
-    "observed_at": "2026-06-29"
+    "url": "https://example.com/listing",
+    "observed_at": "2026-06-29",
+    "notes": "with headbow"
   }
 ]
 ```

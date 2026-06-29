@@ -443,6 +443,9 @@ INDEX_HTML = r"""<!doctype html>
       .pattern-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
       .pattern-card strong { color: var(--wine); }
       .pattern-card button { justify-self: start; min-height: 30px; padding-inline: 10px; }
+      .evidence-list { display: grid; gap: 6px; }
+      .evidence-list article { border-top: 1px dashed rgba(97,27,49,.16); padding-top: 7px; }
+      .evidence-list a { color: var(--teal); }
       .action-board { margin: 0 20px 14px; }
       .action-grid { display: grid; grid-template-columns: minmax(240px, .7fr) minmax(280px, 1.3fr); gap: 12px; padding: 12px; }
       .action-brief, .action-list article {
@@ -809,6 +812,14 @@ INDEX_HTML = r"""<!doctype html>
           <span data-i18n="observedAt">日期</span>
           <input id="marketObservedAt" name="observed_at" type="date">
         </label>
+        <label class="wide">
+          <span data-i18n="sampleUrl">链接</span>
+          <input id="marketUrl" name="url" type="url" placeholder="https://">
+        </label>
+        <label class="wide">
+          <span data-i18n="sampleNotes">备注</span>
+          <input id="marketNotes" name="notes" type="text">
+        </label>
         <button id="addMarketBtn" type="submit" data-i18n="addSample">加入样本</button>
       </form>
       <div id="samplePreview" class="sample-preview"></div>
@@ -995,6 +1006,10 @@ INDEX_HTML = r"""<!doctype html>
           condition: "成色",
           sourceName: "来源",
           observedAt: "日期",
+          sampleUrl: "链接",
+          sampleNotes: "备注",
+          evidence: "证据",
+          noEvidence: "暂无匹配证据",
           addSample: "加入样本",
           sampleAdded: "价格样本已加入",
           samplePreview: "样本预览",
@@ -1204,6 +1219,10 @@ INDEX_HTML = r"""<!doctype html>
           condition: "condition",
           sourceName: "source",
           observedAt: "date",
+          sampleUrl: "link",
+          sampleNotes: "notes",
+          evidence: "evidence",
+          noEvidence: "No matching evidence yet",
           addSample: "Add Sample",
           sampleAdded: "price sample added",
           samplePreview: "Sample Preview",
@@ -1818,8 +1837,20 @@ INDEX_HTML = r"""<!doctype html>
           <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(pattern.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(pattern.brand_weight)}</p>
           <p class="muted">${escapeHtml(t("samples"))} ${escapeHtml(pattern.sample_count)} · ${escapeHtml(t("maxPremium"))} ${escapeHtml(formatPercent(pattern.max_premium_rate))}</p>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(pattern.priority_score) || 0}%"></span></div>
+          ${renderPatternEvidence(pattern.evidence || [])}
           <button type="button" class="secondary" data-pattern-brand="${escapeHtml(pattern.alias)}" data-pattern-keyword="${escapeHtml(pattern.keyword)}">${escapeHtml(t("patternSample"))}</button>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noPatternPremium"))}</div>`;
+      }
+
+      function renderPatternEvidence(evidence) {
+        if (!evidence.length) return `<p class="muted">${escapeHtml(t("noEvidence"))}</p>`;
+        return `<div class="evidence-list">
+          <p class="muted">${escapeHtml(t("evidence"))}</p>
+          ${evidence.map((row) => `<article>
+            <p class="muted"><strong>${escapeHtml(row.item_name || "-")}</strong> · ${escapeHtml(formatPercent(row.premium_rate))} · ${escapeHtml(formatMoney(row.resale_price, row.currency))}</p>
+            <p class="muted">${escapeHtml([row.source, row.observed_at, row.notes].filter(Boolean).join(" · "))}${row.url ? ` · <a href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer">${escapeHtml(t("sampleUrl"))}</a>` : ""}</p>
+          </article>`).join("")}
+        </div>`;
       }
 
       function renderSource(source) {
@@ -1882,6 +1913,8 @@ INDEX_HTML = r"""<!doctype html>
           $("marketItem").value = "";
           $("marketRetail").value = "";
           $("marketResale").value = "";
+          $("marketUrl").value = "";
+          $("marketNotes").value = "";
           renderSamplePreview();
           toast(t("sampleAdded"));
         } catch (error) {
