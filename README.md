@@ -199,6 +199,9 @@ target three, and archive brands target two. Each task carries suggested market
 keywords, watch links, missing-sample counts, and a button to prefill the sample
 form for the next observation. The same task queue can be exported as
 `lolita-sample-plan.csv` for spreadsheet review or a shopping/research checklist.
+The sample plan board also shows completion rate, open brand count, core gaps,
+total missing samples, and average task priority so the next research session is
+easy to scan.
 Each sample
 also gets a quality score based on source, URL, observed date, condition, and
 notes. Each recorded sample also gets a `premium_band` so the dashboard can

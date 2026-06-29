@@ -1192,6 +1192,24 @@ INDEX_HTML = r"""<!doctype html>
       .sample-plan-meta, .sample-plan-links, .sample-plan-keywords { display: flex; flex-wrap: wrap; gap: 6px; }
       .sample-plan-keywords span { display: inline-flex; align-items: center; min-height: 23px; padding: 0 7px; border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line)); border-radius: 999px; background: rgba(255,253,251,.72); color: var(--muted); font-size: 12px; }
       .sample-plan-card button { justify-self: start; min-height: 30px; }
+      .sample-plan-summary {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(180px, .72fr) minmax(260px, 1.28fr);
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(180,87,111,.12), transparent 36%),
+          linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+      }
+      .sample-plan-hero { display: grid; gap: 8px; align-content: start; }
+      .sample-plan-hero strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .sample-plan-stats { display: grid; grid-template-columns: repeat(4, minmax(80px, 1fr)); gap: 8px; }
+      .sample-plan-stat { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: rgba(255,253,251,.74); }
+      .sample-plan-stat strong { display: block; color: var(--wine); font: 650 22px/1 Georgia, "Times New Roman", serif; }
       .tuning-board { margin: 0 20px 14px; }
       .tuning-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 12px; }
       .tuning-card {
@@ -1302,6 +1320,7 @@ INDEX_HTML = r"""<!doctype html>
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
+        .sample-plan-summary, .sample-plan-stats { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
         .identity-card { grid-template-columns: 48px 1fr; }
@@ -1918,6 +1937,11 @@ INDEX_HTML = r"""<!doctype html>
           exportSamplePlanCsv: "导出采样 CSV",
           exportedSamplePlanCsv: "采样计划已导出",
           noSamplePlanCsv: "暂无可导出的采样计划",
+          samplePlanCompletion: "完成率",
+          samplePlanOpenBrands: "待采品牌",
+          samplePlanCoreGaps: "核心缺口",
+          samplePlanTotalMissing: "总缺口",
+          samplePlanAvgPriority: "均值优先分",
           coverageReady: "充分",
           coverageThin: "偏薄",
           coverageMissing: "缺样本",
@@ -2312,6 +2336,11 @@ INDEX_HTML = r"""<!doctype html>
           exportSamplePlanCsv: "export sampling CSV",
           exportedSamplePlanCsv: "sample plan exported",
           noSamplePlanCsv: "no sample plan to export",
+          samplePlanCompletion: "completion",
+          samplePlanOpenBrands: "open brands",
+          samplePlanCoreGaps: "core gaps",
+          samplePlanTotalMissing: "missing total",
+          samplePlanAvgPriority: "avg priority",
           coverageReady: "ready",
           coverageThin: "thin",
           coverageMissing: "missing",
@@ -2842,7 +2871,8 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderSamplePlan(rows) {
         const plan = buildSamplePlanRows(rows);
-        $("samplePlan").innerHTML = plan.length ? plan.map((entry) => `<article class="sample-plan-card" style="${escapeHtml(brandVisualStyle(entry))}">
+        $("samplePlan").innerHTML = plan.length ? `${samplePlanSummaryHtml(plan, rows)}
+          ${plan.map((entry) => `<article class="sample-plan-card" style="${escapeHtml(brandVisualStyle(entry))}">
           <header>
             <div>
               <strong>${escapeHtml(entry.alias)}</strong>
@@ -2859,7 +2889,40 @@ INDEX_HTML = r"""<!doctype html>
             ${(entry.watch_urls || []).slice(0, 3).map((link) => safeUrl(link.url) ? `<a href="${escapeHtml(safeUrl(link.url))}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>` : "").join("")}
           </div>
           <button type="button" class="secondary" data-sample-plan="${escapeHtml(entry.alias)}">${escapeHtml(t(samplePlanActionLabel(entry.next_action)))}</button>
-        </article>`).join("") : `<div class="row">${escapeHtml(t("samplePlanNoRows"))}</div>`;
+        </article>`).join("")}` : `<div class="row">${escapeHtml(t("samplePlanNoRows"))}</div>`;
+      }
+
+      function samplePlanSummaryHtml(plan, rows) {
+        const stats = samplePlanStats(plan, rows);
+        return `<article class="sample-plan-summary">
+          <div class="sample-plan-hero">
+            <strong>${escapeHtml(stats.completion)}%</strong>
+            <p class="muted">${escapeHtml(t("samplePlanCompletion"))} · ${escapeHtml(stats.sampled)}/${escapeHtml(stats.target)} ${escapeHtml(t("samples"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.completion)}%"></span></div>
+          </div>
+          <div class="sample-plan-stats">
+            <article class="sample-plan-stat"><strong>${escapeHtml(stats.openBrands)}</strong><span class="muted">${escapeHtml(t("samplePlanOpenBrands"))}</span></article>
+            <article class="sample-plan-stat"><strong>${escapeHtml(stats.coreGaps)}</strong><span class="muted">${escapeHtml(t("samplePlanCoreGaps"))}</span></article>
+            <article class="sample-plan-stat"><strong>${escapeHtml(stats.missing)}</strong><span class="muted">${escapeHtml(t("samplePlanTotalMissing"))}</span></article>
+            <article class="sample-plan-stat"><strong>${escapeHtml(stats.avgPriority)}</strong><span class="muted">${escapeHtml(t("samplePlanAvgPriority"))}</span></article>
+          </div>
+        </article>`;
+      }
+
+      function samplePlanStats(plan, rows) {
+        const allTargets = (rows || []).reduce((sum, entry) => sum + sampleTarget(Number(entry.brand_weight) || 0, entry.tier), 0);
+        const sampled = (rows || []).reduce((sum, entry) => sum + Math.min(Number(entry.sample_count) || 0, sampleTarget(Number(entry.brand_weight) || 0, entry.tier)), 0);
+        const missing = (plan || []).reduce((sum, entry) => sum + (Number(entry.missing_samples) || 0), 0);
+        const priorities = (plan || []).map((entry) => Number(entry.priority_score) || 0);
+        return {
+          target: allTargets,
+          sampled,
+          missing,
+          completion: allTargets ? Math.round(sampled / allTargets * 100) : 0,
+          openBrands: (plan || []).filter((entry) => Number(entry.missing_samples) > 0).length,
+          coreGaps: (plan || []).filter((entry) => entry.urgency === "critical").length,
+          avgPriority: priorities.length ? Math.round(priorities.reduce((sum, value) => sum + value, 0) / priorities.length) : 0,
+        };
       }
 
       function buildSamplePlanRows(rows) {
