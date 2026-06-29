@@ -1780,6 +1780,9 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="premiumSeedRadar">溢价关注种子</h2>
           <span class="muted" data-i18n="premiumSeedHint">没有足够二手价样本前，先把高权重品牌和代表款式词排进采样队列</span>
         </div>
+        <div class="brand-actions">
+          <button id="exportPremiumSeedsCsvBtn" type="button" class="secondary" data-i18n="exportPremiumSeedsCsv">导出种子 CSV</button>
+        </div>
       </div>
       <div id="premiumSeedRadar" class="seed-grid"></div>
     </section>
@@ -2245,6 +2248,9 @@ INDEX_HTML = r"""<!doctype html>
           premiumSeedIntentPremium: "已有正溢价线索，继续追踪代表款",
           premiumSeedIntentSeed: "先建立原价/二手价样本底座",
           premiumSeedIntentWatch: "样本可继续扩展，观察价格走向",
+          exportPremiumSeedsCsv: "导出种子 CSV",
+          exportedPremiumSeedsCsv: "溢价种子已导出",
+          noPremiumSeedsCsv: "暂无可导出的溢价种子",
           marketKeywords: "二级市场词",
           noMarketKeywords: "暂无热门款式词",
           keywordSampleReady: "已填入款式词，可补价格样本",
@@ -2701,6 +2707,9 @@ INDEX_HTML = r"""<!doctype html>
           premiumSeedIntentPremium: "positive premium signal exists; keep tracking signature pieces",
           premiumSeedIntentSeed: "build the retail/resale sample baseline first",
           premiumSeedIntentWatch: "expand samples and watch price direction",
+          exportPremiumSeedsCsv: "export seed CSV",
+          exportedPremiumSeedsCsv: "premium seeds exported",
+          noPremiumSeedsCsv: "no premium seeds to export",
           marketKeywords: "market terms",
           noMarketKeywords: "No hot pattern keywords yet",
           keywordSampleReady: "keyword filled for price sample",
@@ -4348,6 +4357,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedSamplePlanCsv"));
       }
 
+      function exportPremiumSeedsCsv() {
+        const rows = premiumSeedRows(buildBrandRadarMatrix());
+        if (!rows.length) {
+          toast(t("noPremiumSeedsCsv"));
+          return;
+        }
+        const csv = csvFromPremiumSeedRows(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-premium-seeds.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedPremiumSeedsCsv"));
+      }
+
       function premiumCsvFilename() {
         const brand = activePremiumBrandFilter === "all" ? "all-brands" : activePremiumBrandFilter.toLowerCase();
         const band = activePremiumFilter === "all" ? "all-bands" : activePremiumFilter;
@@ -4404,6 +4432,53 @@ INDEX_HTML = r"""<!doctype html>
           ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
         ];
         return lines.join("\n");
+      }
+
+      function csvFromPremiumSeedRows(rows) {
+        const fields = [
+          ["brand_alias", "alias"],
+          ["brand_name", "name"],
+          ["seed_term", "seed_term"],
+          ["seed_score", "seed_score"],
+          ["brand_weight", "brand_weight"],
+          ["tier", "tier"],
+          ["style", "style"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["sample_count", "sample_count"],
+          ["intent", "intent"],
+          ["radar_cue", "radar_cue"],
+          ["goofish_url", "goofish_url"],
+          ["taobao_url", "taobao_url"],
+          ["mercari_url", "mercari_url"],
+          ["yahoo_url", "yahoo_url"],
+        ];
+        const tasks = [];
+        (rows || []).forEach((row) => {
+          const links = row.watch_urls || [];
+          (row.seed_terms || []).forEach((term) => {
+            tasks.push({
+              ...row,
+              seed_term: term,
+              intent: t(premiumSeedIntentKey(row)),
+              radar_cue: row.visual?.radar_cue || "",
+              goofish_url: seedWatchUrl(links, "闲鱼", "Goofish"),
+              taobao_url: seedWatchUrl(links, "淘宝", "Taobao"),
+              mercari_url: seedWatchUrl(links, "Mercari"),
+              yahoo_url: seedWatchUrl(links, "雅虎拍卖", "Yahoo"),
+            });
+          });
+        });
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...tasks.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function seedWatchUrl(links, ...labels) {
+        const wanted = labels.map((label) => String(label || "").toLowerCase());
+        const match = (links || []).find((link) => wanted.some((label) => String(link.label || "").toLowerCase().includes(label)));
+        return match?.url || "";
       }
 
       function csvFromBrandWeights(rows) {
@@ -5323,6 +5398,7 @@ INDEX_HTML = r"""<!doctype html>
         if (button) applyWeightScenario(button.dataset.weightScenario);
       });
       $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
+      $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);
       $("exportSamplePlanCsvBtn").addEventListener("click", exportSamplePlanCsv);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);

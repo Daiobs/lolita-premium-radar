@@ -161,7 +161,8 @@ visual strategy is visible while tuning weights. A premium seed radar turns thos
 weights and signature market keywords into the next sample-collection targets
 before enough resale observations exist, so terms such as AP `贝壳`, BABY
 `Usakumya`, or AATP `Vampire Requiem` can be pushed straight into the price
-sample form. A draft audit list shows the
+sample form or exported as one seed-task row per brand/term in
+`lolita-premium-seeds.csv`. A draft audit list shows the
 exact saved weight, draft weight, and
 delta for every unsaved brand, plus average shift, raise/lower counts, and the
 largest move before you persist changes. The same audit flags save-before-review
