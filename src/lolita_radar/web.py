@@ -410,6 +410,22 @@ INDEX_HTML = r"""<!doctype html>
       .weight-gap-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 10px; }
       .weight-gap-card strong { color: var(--wine); }
       .weight-gap-card button { min-height: 30px; padding-inline: 10px; }
+      .keyword-board { margin: 0 20px 14px; }
+      .keyword-radar { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; padding: 12px; }
+      .keyword-card {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background:
+          linear-gradient(135deg, rgba(248,251,250,.92), rgba(255,247,232,.72)),
+          #fffaf8;
+      }
+      .keyword-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .keyword-card strong { color: var(--wine); }
+      .keyword-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .keyword-chips button { min-height: 28px; padding: 0 8px; border-color: rgba(15,103,96,.18); background: #f8fbfa; box-shadow: none; color: var(--teal); }
       .signal-strip { display: grid; gap: 8px; align-content: start; }
       .signal-bar { height: 11px; overflow: hidden; border-radius: 999px; background: var(--lace); box-shadow: inset 0 0 0 1px rgba(97,27,49,.06); }
       .signal-bar span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--teal), var(--rose), var(--gold)); }
@@ -634,6 +650,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
       <div id="weightSnapshot" class="weight-snapshot"></div>
     </section>
+    <section class="panel keyword-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandKeywordRadar">热门款式词</h2>
+          <span class="muted" data-i18n="brandKeywordHint">把 AP 贝壳这类款式线索接到价格样本录入</span>
+        </div>
+      </div>
+      <div id="brandKeywordRadar" class="keyword-radar"></div>
+    </section>
     <section class="panel matrix-board">
       <div class="toolbar matrix-toolbar">
         <div>
@@ -853,6 +878,11 @@ INDEX_HTML = r"""<!doctype html>
           weightArchiveCount: "档案档",
           weightTopGap: "优先补样本",
           weightNoGap: "样本缺口已清空",
+          brandKeywordRadar: "热门款式词",
+          brandKeywordHint: "把 AP 贝壳这类款式线索接到价格样本录入",
+          marketKeywords: "二级市场词",
+          noMarketKeywords: "暂无热门款式词",
+          keywordSampleReady: "已填入款式词，可补价格样本",
           weightTuning: "权重校准建议",
           weightTuningHint: "把溢价、样本和当前权重翻译成下一步动作",
           noWeightTuning: "暂无校准建议",
@@ -1042,6 +1072,11 @@ INDEX_HTML = r"""<!doctype html>
           weightArchiveCount: "archive tier",
           weightTopGap: "sample next",
           weightNoGap: "sample gaps cleared",
+          brandKeywordRadar: "Hot Pattern Keywords",
+          brandKeywordHint: "Connect item-level signals such as AP shell to price-sample entry",
+          marketKeywords: "market terms",
+          noMarketKeywords: "No hot pattern keywords yet",
+          keywordSampleReady: "keyword filled for price sample",
           weightTuning: "Weight Tuning",
           weightTuningHint: "Turn premium, sample count, and current weight into next actions",
           noWeightTuning: "No tuning suggestions yet",
@@ -1186,6 +1221,7 @@ INDEX_HTML = r"""<!doctype html>
         renderMarketForm(state.brand_weights || []);
         renderSamplePreview();
         renderBrandWeights(state.brand_weights || []);
+        renderBrandKeywordRadar(state.brand_weights || []);
         renderFocusQueue(state.focus_queue || []);
         renderBrandRadarViews();
         renderOpportunityRadar(state.opportunity_radar || []);
@@ -1236,6 +1272,25 @@ INDEX_HTML = r"""<!doctype html>
         if (clampScore(weight) >= 90) return "weightIntentCore";
         if (clampScore(weight) >= 70) return "weightIntentWatch";
         return "weightIntentArchive";
+      }
+
+      function renderBrandKeywordRadar(weights) {
+        const brands = [...weights].sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0));
+        $("brandKeywordRadar").innerHTML = brands.map((brand) => {
+          const terms = brand.market_keywords || [];
+          return `<article class="keyword-card">
+            <header>
+              <div>
+                <strong>${escapeHtml(brand.alias)}</strong>
+                <p class="muted">${escapeHtml(brand.name)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)}</p>
+              </div>
+              <span class="pill ${brand.weight >= 90 ? "rose" : ""}">${escapeHtml(t("marketKeywords"))} ${escapeHtml(terms.length)}</span>
+            </header>
+            <div class="keyword-chips">
+              ${terms.length ? terms.map((term) => `<button type="button" class="secondary" data-keyword-brand="${escapeHtml(brand.alias)}" data-keyword-term="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("") : `<span class="muted">${escapeHtml(t("noMarketKeywords"))}</span>`}
+            </div>
+          </article>`;
+        }).join("");
       }
 
       function renderMarketForm(weights) {
@@ -1743,6 +1798,18 @@ INDEX_HTML = r"""<!doctype html>
         toast(`${alias} ${t("tuningSampleReady")}`);
       }
 
+      function prepareKeywordSample(alias, keyword) {
+        const select = $("marketBrand");
+        if (Array.from(select.options).some((option) => option.value === alias)) {
+          select.value = alias;
+        }
+        $("marketItem").value = keyword || "";
+        $("marketRetail").focus();
+        $("marketForm").scrollIntoView({ behavior: "smooth", block: "center" });
+        renderSamplePreview();
+        toast(`${alias} · ${keyword} ${t("keywordSampleReady")}`);
+      }
+
       function updateWeightDirtyState() {
         const dirtyCount = Array.from(document.querySelectorAll("[data-brand-weight]")).filter((input) => input.value !== input.dataset.originalWeight).length;
         const dirty = dirtyCount > 0;
@@ -1998,6 +2065,10 @@ INDEX_HTML = r"""<!doctype html>
       $("weightSnapshot").addEventListener("click", (event) => {
         const sampleButton = event.target.closest("[data-weight-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.weightSample);
+      });
+      $("brandKeywordRadar").addEventListener("click", (event) => {
+        const keywordButton = event.target.closest("[data-keyword-brand]");
+        if (keywordButton) prepareKeywordSample(keywordButton.dataset.keywordBrand, keywordButton.dataset.keywordTerm);
       });
       $("matrixFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-matrix-filter]");

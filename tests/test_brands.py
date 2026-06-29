@@ -14,7 +14,13 @@ class BrandTests(unittest.TestCase):
                 json.dumps(
                     [
                         {"name": "Meta", "alias": "Meta", "weight": 80, "keywords": ["metamorphose"]},
-                        {"name": "Angelic Pretty", "alias": "AP", "weight": 100, "keywords": ["angelic pretty"]},
+                        {
+                            "name": "Angelic Pretty",
+                            "alias": "AP",
+                            "weight": 100,
+                            "keywords": ["angelic pretty"],
+                            "market_keywords": ["贝壳", "Holy Lantern"],
+                        },
                     ]
                 ),
                 encoding="utf-8",
@@ -24,6 +30,7 @@ class BrandTests(unittest.TestCase):
 
             self.assertEqual([brand["alias"] for brand in brands], ["AP", "Meta"])
             self.assertIn("ap", brands[0]["keywords"])
+            self.assertEqual(brands[0]["market_keywords"], ["贝壳", "Holy Lantern"])
 
     def test_save_brand_weights_updates_existing_aliases(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -46,6 +53,12 @@ class BrandTests(unittest.TestCase):
             self.assertIn("metamorphose", meta["keywords"])
             saved = load_brand_weights(path)
             self.assertEqual(next(brand for brand in saved if brand["alias"] == "Meta")["weight"], 94)
+
+    def test_default_weights_include_market_keywords(self) -> None:
+        brands = load_brand_weights()
+        ap = next(brand for brand in brands if brand["alias"] == "AP")
+
+        self.assertIn("贝壳", ap["market_keywords"])
 
     def test_short_alias_requires_word_boundary(self) -> None:
         self.assertFalse(keyword_matches("ap", "new arrival in april"))

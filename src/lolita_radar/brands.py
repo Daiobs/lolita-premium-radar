@@ -14,6 +14,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "tier": "core",
         "style": "sweet print",
         "keywords": ["angelic pretty", "ap", "アンジェリックプリティ"],
+        "market_keywords": ["贝壳", "白贝壳", "Holy Lantern", "Sugary Carnival", "Melty Cream Donut", "Wonder Cookie"],
     },
     {
         "name": "BABY, THE STARS SHINE BRIGHT",
@@ -22,6 +23,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "tier": "core",
         "style": "classic sweet",
         "keywords": ["baby the stars shine bright", "btssb", "baby"],
+        "market_keywords": ["うさくみゃ", "Usakumya", "Kumakumya", "Baby Doll", "Elizabeth", "Little Red Riding Hood"],
     },
     {
         "name": "ALICE and the PIRATES",
@@ -30,6 +32,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "tier": "core",
         "style": "gothic prince",
         "keywords": ["alice and the pirates", "aatp", "pirates"],
+        "market_keywords": ["海盗", "Vampire Requiem", "Chess Game of Destiny", "Midsummer Night's Dream"],
     },
     {
         "name": "Metamorphose temps de fille",
@@ -38,6 +41,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "tier": "watch",
         "style": "release/restock",
         "keywords": ["metamorphose", "meta", "metamor"],
+        "market_keywords": ["Swan Lake", "Pintuck", "Gobelin", "Lucky Pack"],
     },
     {
         "name": "Moi-meme-Moitie",
@@ -46,6 +50,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "tier": "watch",
         "style": "gothic",
         "keywords": ["moi-meme-moitie", "moitie", "mmm"],
+        "market_keywords": ["Iron Gate", "Stained Glass", "Silent Moon", "十字架"],
     },
     {
         "name": "Innocent World",
@@ -54,6 +59,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "tier": "archive",
         "style": "classic",
         "keywords": ["innocent world", "iw"],
+        "market_keywords": ["Rose Basket", "Lotus", "Classical", "圆领"],
     },
     {
         "name": "Victorian Maiden",
@@ -62,6 +68,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "tier": "archive",
         "style": "classic",
         "keywords": ["victorian maiden", "vm"],
+        "market_keywords": ["Regimental", "Rose", "Frill", "classic"],
     },
     {
         "name": "Mary Magdalene",
@@ -70,6 +77,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "tier": "archive",
         "style": "classic",
         "keywords": ["mary magdalene", "mm"],
+        "market_keywords": ["Elodie", "Rose Basket", "Fleur", "classical"],
     },
     {
         "name": "Juliette et Justine",
@@ -78,6 +86,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "tier": "archive",
         "style": "art print",
         "keywords": ["juliette et justine", "jetj"],
+        "market_keywords": ["La Danse", "Le Cadre", "art print", "肖像"],
     },
 ]
 
@@ -133,6 +142,9 @@ def normalize_brand_weights(rows: list[Any]) -> list[dict[str, Any]]:
         keywords = raw.get("keywords") or []
         if not isinstance(keywords, list):
             keywords = []
+        market_keywords = raw.get("market_keywords") or []
+        if not isinstance(market_keywords, list):
+            market_keywords = []
         brand = {
             "name": name,
             "alias": alias,
@@ -140,6 +152,7 @@ def normalize_brand_weights(rows: list[Any]) -> list[dict[str, Any]]:
             "tier": text(raw.get("tier")) or "watch",
             "style": text(raw.get("style")) or "general",
             "keywords": sorted({text(keyword).lower() for keyword in keywords if text(keyword)}),
+            "market_keywords": ordered_unique_texts(market_keywords),
         }
         brand["keywords"] = sorted({*brand["keywords"], name.lower(), alias.lower()})
         brands.append(brand)
@@ -204,6 +217,19 @@ def keyword_matches(keyword: str, haystack: str) -> bool:
     if keyword.isascii() and keyword.replace("-", "").replace(" ", "").isalnum() and len(keyword) <= 3:
         return re.search(rf"(?<![a-z0-9]){re.escape(keyword)}(?![a-z0-9])", haystack) is not None
     return keyword in haystack
+
+
+def ordered_unique_texts(values: list[Any]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        normalized = text(value)
+        key = normalized.casefold()
+        if not normalized or key in seen:
+            continue
+        seen.add(key)
+        result.append(normalized)
+    return result
 
 
 def clamp_int(value: Any, default: int) -> int:

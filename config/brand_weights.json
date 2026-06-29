@@ -5,7 +5,8 @@
     "weight": 100,
     "tier": "core",
     "style": "sweet print",
-    "keywords": ["angelic pretty", "ap", "アンジェリックプリティ"]
+    "keywords": ["angelic pretty", "ap", "アンジェリックプリティ"],
+    "market_keywords": ["贝壳", "白贝壳", "Holy Lantern", "Sugary Carnival", "Melty Cream Donut", "Wonder Cookie"]
   },
   {
     "name": "BABY, THE STARS SHINE BRIGHT",
@@ -13,7 +14,8 @@
     "weight": 95,
     "tier": "core",
     "style": "classic sweet",
-    "keywords": ["baby the stars shine bright", "btssb", "baby"]
+    "keywords": ["baby the stars shine bright", "btssb", "baby"],
+    "market_keywords": ["うさくみゃ", "Usakumya", "Kumakumya", "Baby Doll", "Elizabeth", "Little Red Riding Hood"]
   },
   {
     "name": "ALICE and the PIRATES",
@@ -21,7 +23,8 @@
     "weight": 90,
     "tier": "core",
     "style": "gothic prince",
-    "keywords": ["alice and the pirates", "aatp", "pirates"]
+    "keywords": ["alice and the pirates", "aatp", "pirates"],
+    "market_keywords": ["海盗", "Vampire Requiem", "Chess Game of Destiny", "Midsummer Night's Dream"]
   },
   {
     "name": "Metamorphose temps de fille",
@@ -29,7 +32,8 @@
     "weight": 80,
     "tier": "watch",
     "style": "release/restock",
-    "keywords": ["metamorphose", "meta", "metamor"]
+    "keywords": ["metamorphose", "meta", "metamor"],
+    "market_keywords": ["Swan Lake", "Pintuck", "Gobelin", "Lucky Pack"]
   },
   {
     "name": "Moi-meme-Moitie",
@@ -37,7 +41,8 @@
     "weight": 75,
     "tier": "watch",
     "style": "gothic",
-    "keywords": ["moi-meme-moitie", "moitie", "mmm"]
+    "keywords": ["moi-meme-moitie", "moitie", "mmm"],
+    "market_keywords": ["Iron Gate", "Stained Glass", "Silent Moon", "十字架"]
   },
   {
     "name": "Innocent World",
@@ -45,7 +50,8 @@
     "weight": 65,
     "tier": "archive",
     "style": "classic",
-    "keywords": ["innocent world", "iw"]
+    "keywords": ["innocent world", "iw"],
+    "market_keywords": ["Rose Basket", "Lotus", "Classical", "圆领"]
   },
   {
     "name": "Victorian Maiden",
@@ -53,7 +59,8 @@
     "weight": 65,
     "tier": "archive",
     "style": "classic",
-    "keywords": ["victorian maiden", "vm"]
+    "keywords": ["victorian maiden", "vm"],
+    "market_keywords": ["Regimental", "Rose", "Frill", "classic"]
   },
   {
     "name": "Mary Magdalene",
@@ -61,7 +68,8 @@
     "weight": 65,
     "tier": "archive",
     "style": "classic",
-    "keywords": ["mary magdalene", "mm"]
+    "keywords": ["mary magdalene", "mm"],
+    "market_keywords": ["Elodie", "Rose Basket", "Fleur", "classical"]
   },
   {
     "name": "Juliette et Justine",
@@ -69,6 +77,7 @@
     "weight": 65,
     "tier": "archive",
     "style": "art print",
-    "keywords": ["juliette et justine", "jetj"]
+    "keywords": ["juliette et justine", "jetj"],
+    "market_keywords": ["La Danse", "Le Cadre", "art print", "肖像"]
   }
 ]

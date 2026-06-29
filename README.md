@@ -104,7 +104,9 @@ band counts, filters, and score breakdowns for scanning each action tier. A
 sample-coverage panel shows how much price evidence backs the radar and which
 high-weight brands need samples next. A weight-profile panel summarizes average
 weight, tier distribution, market-evidence coverage, and the highest-priority
-sample gaps so brand weights are easier to audit before saving.
+sample gaps so brand weights are easier to audit before saving. A hot-pattern
+keyword radar turns item-level terms such as `AP` + `贝壳` into one-click sample
+entry seeds.
 
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,
@@ -118,6 +120,9 @@ audit before changing it. A weight-tuning queue turns current premium, sample
 count, and weight into concrete actions such as collecting price samples,
 considering an upgrade, holding, or cooling down; the action buttons can prefill
 the sample form or apply a suggested target weight as an unsaved draft.
+Use `market_keywords` on each brand for secondary-market search/sample seeds;
+these are kept separate from broad source-matching `keywords` to avoid noisy
+alerts from generic item names.
 
 Use another brand-weight file:
 
