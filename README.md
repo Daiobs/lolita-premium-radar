@@ -153,7 +153,8 @@ immediately. A draft audit list shows the exact saved weight, draft weight, and
 delta for every unsaved brand, plus average shift, raise/lower counts, and the
 largest move before you persist changes. The same audit flags save-before-review
 risks such as lowering core brands, raising thin-evidence brands, making large
-weight moves, or promoting archive labels into the watch tier. The current
+weight moves, or promoting archive labels into the watch tier, and the toolbar
+status includes the current risk count while a draft is active. The current
 saved/draft brand-weight table can also be exported as CSV with identity
 metadata, premium evidence, sample counts, market keywords, and an auditable
 formula target for spreadsheet review. The

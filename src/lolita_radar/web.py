@@ -1793,6 +1793,7 @@ INDEX_HTML = r"""<!doctype html>
           noWeightsCsv: "暂无可导出的品牌权重",
           weightsClean: "已保存",
           weightsDirty: "项未保存",
+          weightsRisk: "项风险",
           scenarioRelease: "新品优先",
           scenarioPremium: "溢价优先",
           scenarioEvidence: "补证据优先",
@@ -2224,6 +2225,7 @@ INDEX_HTML = r"""<!doctype html>
           noWeightsCsv: "no brand weights to export",
           weightsClean: "saved",
           weightsDirty: "unsaved",
+          weightsRisk: "risks",
           scenarioRelease: "Release first",
           scenarioPremium: "Premium first",
           scenarioEvidence: "Evidence first",
@@ -4377,6 +4379,7 @@ INDEX_HTML = r"""<!doctype html>
         const draftRows = weightDraftRows();
         const dirtyCount = draftRows.length;
         const dirty = dirtyCount > 0;
+        const riskCount = dirty ? weightDraftRisks(draftRows, Infinity).length : 0;
         previewingDraftWeights = dirty;
         const saveButton = $("saveWeightsBtn");
         const resetButton = $("resetWeightsBtn");
@@ -4386,9 +4389,14 @@ INDEX_HTML = r"""<!doctype html>
         });
         const status = $("weightDirtyStatus");
         if (status) {
-          status.textContent = dirty ? `${dirtyCount} ${t("weightsDirty")}` : t("weightsClean");
+          status.textContent = dirty ? weightDirtyStatusText(dirtyCount, riskCount) : t("weightsClean");
         }
         renderWeightDraftAudit(draftRows);
+      }
+
+      function weightDirtyStatusText(dirtyCount, riskCount) {
+        const base = `${dirtyCount} ${t("weightsDirty")}`;
+        return riskCount ? `${base} · ${riskCount} ${t("weightsRisk")}` : base;
       }
 
       function weightDraftRows() {
@@ -4460,7 +4468,7 @@ INDEX_HTML = r"""<!doctype html>
         };
       }
 
-      function weightDraftRisks(rows) {
+      function weightDraftRisks(rows, limit = 4) {
         const risks = [];
         rows.forEach((row) => {
           const saved = Number(row.saved_weight) || 0;
@@ -4480,7 +4488,8 @@ INDEX_HTML = r"""<!doctype html>
             risks.push({ alias: row.alias, label: "weightDraftRiskArchiveJump", hint: "weightDraftRiskArchiveJumpHint", rank: 1 });
           }
         });
-        return risks.sort((a, b) => (Number(b.rank) || 0) - (Number(a.rank) || 0) || String(a.alias).localeCompare(String(b.alias))).slice(0, 4);
+        const sorted = risks.sort((a, b) => (Number(b.rank) || 0) - (Number(a.rank) || 0) || String(a.alias).localeCompare(String(b.alias)));
+        return Number.isFinite(limit) ? sorted.slice(0, limit) : sorted;
       }
 
       function buildDraftOpportunityRadar() {
