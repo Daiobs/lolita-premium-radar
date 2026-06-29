@@ -954,6 +954,10 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="weightTuning">权重校准建议</h2>
           <span class="muted" data-i18n="weightTuningHint">把溢价、样本和当前权重翻译成下一步动作</span>
         </div>
+        <div class="brand-actions">
+          <span id="tuningBatchSummary" class="muted"></span>
+          <button id="applyTuningBatchBtn" type="button" class="secondary" data-disabled="true" disabled data-i18n="tuningApplyAll">全部套用为草稿</button>
+        </div>
       </div>
       <div id="weightTuning" class="tuning-grid"></div>
     </section>
@@ -1216,6 +1220,10 @@ INDEX_HTML = r"""<!doctype html>
           tuningBaselineReason: "低权重且样本不足，保持低频观察",
           tuningAddSample: "去补样本",
           tuningApplyDraft: "套用为草稿",
+          tuningApplyAll: "全部套用为草稿",
+          tuningBatchReady: "条可套用",
+          tuningBatchEmpty: "暂无可套用",
+          tuningBatchApplied: "已批量套用权重草稿",
           tuningDraftApplied: "已套用建议权重",
           tuningSampleReady: "已选中品牌，可补价格样本",
           sampleCoverage: "样本覆盖",
@@ -1495,6 +1503,10 @@ INDEX_HTML = r"""<!doctype html>
           tuningBaselineReason: "low weight and thin samples; keep low-frequency watch",
           tuningAddSample: "add sample",
           tuningApplyDraft: "apply draft",
+          tuningApplyAll: "apply all drafts",
+          tuningBatchReady: "ready to apply",
+          tuningBatchEmpty: "nothing to apply",
+          tuningBatchApplied: "draft weights applied",
           tuningDraftApplied: "draft weight applied",
           tuningSampleReady: "brand selected for price sample",
           sampleCoverage: "Sample Coverage",
@@ -2031,6 +2043,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderWeightTuning(rows) {
         const suggestions = buildWeightTuning(rows);
+        syncTuningBatchControls(suggestions);
         $("weightTuning").innerHTML = suggestions.length ? suggestions.map((entry) => `<article class="tuning-card">
           <header>
             <div>
@@ -2044,6 +2057,21 @@ INDEX_HTML = r"""<!doctype html>
           <p class="muted">${escapeHtml(t("tuningReason"))} · ${escapeHtml(t(entry.reason))}</p>
           ${tuningActionHtml(entry)}
         </article>`).join("") : `<div class="row">${escapeHtml(t("noWeightTuning"))}</div>`;
+      }
+
+      function syncTuningBatchControls(suggestions) {
+        const actionable = actionableTuningSuggestions(suggestions);
+        const button = $("applyTuningBatchBtn");
+        const summary = $("tuningBatchSummary");
+        if (summary) summary.textContent = actionable.length ? `${actionable.length} ${t("tuningBatchReady")}` : t("tuningBatchEmpty");
+        if (button) {
+          button.dataset.disabled = actionable.length ? "false" : "true";
+          button.disabled = !actionable.length;
+        }
+      }
+
+      function actionableTuningSuggestions(suggestions) {
+        return (suggestions || []).filter((entry) => Number(entry.target_weight) !== Number(entry.brand_weight));
       }
 
       function tuningActionHtml(entry) {
@@ -2429,6 +2457,13 @@ INDEX_HTML = r"""<!doctype html>
       function handleWeightInput(event) {
         const input = event.target.closest("[data-brand-weight]");
         if (!input) return;
+        updateWeightDraftInput(input);
+        updateWeightDirtyState();
+        renderBrandRadarViews();
+        renderOpportunityRadar(buildDraftOpportunityRadar());
+      }
+
+      function updateWeightDraftInput(input) {
         const card = input.closest(".brand-chip");
         const label = card?.querySelector("[data-weight-label]");
         const bar = card?.querySelector(".signal-bar span");
@@ -2438,18 +2473,33 @@ INDEX_HTML = r"""<!doctype html>
         if (bar) bar.style.setProperty("--score", `${input.value}%`);
         if (insight && brand) insight.innerHTML = brandWeightInsightHtml(brand, input.value);
         if (card) card.classList.toggle("dirty", input.value !== input.dataset.originalWeight);
-        updateWeightDirtyState();
-        renderBrandRadarViews();
-        renderOpportunityRadar(buildDraftOpportunityRadar());
       }
 
       function applyTuningDraft(alias, targetWeight) {
         const input = document.querySelector(`[data-brand-weight="${cssEscape(alias)}"]`);
         if (!input) return;
         input.value = clampScore(targetWeight);
-        handleWeightInput({ target: input });
+        updateWeightDraftInput(input);
+        updateWeightDirtyState();
+        renderBrandRadarViews();
+        renderOpportunityRadar(buildDraftOpportunityRadar());
         input.scrollIntoView({ behavior: "smooth", block: "center" });
         toast(`${alias} ${t("tuningDraftApplied")}`);
+      }
+
+      function applyAllTuningDrafts() {
+        const suggestions = actionableTuningSuggestions(buildWeightTuning(buildBrandRadarMatrix()));
+        if (!suggestions.length) return;
+        suggestions.forEach((entry) => {
+          const input = document.querySelector(`[data-brand-weight="${cssEscape(entry.alias)}"]`);
+          if (!input) return;
+          input.value = clampScore(entry.target_weight);
+          updateWeightDraftInput(input);
+        });
+        updateWeightDirtyState();
+        renderBrandRadarViews();
+        renderOpportunityRadar(buildDraftOpportunityRadar());
+        toast(`${suggestions.length} ${t("tuningBatchApplied")}`);
       }
 
       function prepareMarketSample(alias) {
@@ -2763,6 +2813,7 @@ INDEX_HTML = r"""<!doctype html>
       $("brandWeights").addEventListener("input", handleWeightInput);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);
+      $("applyTuningBatchBtn").addEventListener("click", applyAllTuningDrafts);
       $("weightTuning").addEventListener("click", (event) => {
         const applyButton = event.target.closest("[data-tuning-apply]");
         if (applyButton) {

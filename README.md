@@ -134,7 +134,9 @@ and market keywords, plus `market_alerts` for critical/watch/sample-gap
 recommendations. A weight-tuning queue turns current premium, sample count, and
 weight into concrete actions such as collecting price samples, considering an
 upgrade, holding, or cooling down; the action buttons can prefill the sample form
-or apply a suggested target weight as an unsaved draft.
+or apply a suggested target weight as an unsaved draft. When multiple suggestions
+change weights, the dashboard can batch-apply all suggested target weights as a
+draft before you decide whether to save or reset them.
 Use `market_keywords` on each brand for secondary-market search/sample seeds;
 these are kept separate from broad source-matching `keywords` to avoid noisy
 alerts from generic item names.
