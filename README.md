@@ -154,7 +154,11 @@ from the web dashboard, preview how draft weights change opportunity radar
 scores and deltas, review unsaved changes, reset drafts, and save them back to
 the configured brand-weight file. Scenario buttons can also draft a full weighting
 mode for release-first, premium-first, or evidence-first reviews without saving
-immediately. A draft audit list shows the exact saved weight, draft weight, and
+immediately. A style ledger above the weight cards groups labels into Sweet,
+Classic, Gothic, Release, and Art Print lanes, showing each lane's brand count,
+average draft weight, lead labels, core share, and style keywords so the Lolita
+visual strategy is visible while tuning weights. A draft audit list shows the
+exact saved weight, draft weight, and
 delta for every unsaved brand, plus average shift, raise/lower counts, and the
 largest move before you persist changes. The same audit flags save-before-review
 risks such as lowering core brands, raising thin-evidence brands, making large

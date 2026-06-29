@@ -775,6 +775,52 @@ INDEX_HTML = r"""<!doctype html>
       .weight-insight strong { display: inline; color: var(--wine); }
       .brand-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
       .brand-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
+      .brand-style-ledger {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 8px;
+        margin: 0 0 10px;
+      }
+      .style-ledger-card {
+        position: relative;
+        display: grid;
+        gap: 7px;
+        min-height: 132px;
+        padding: 11px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 22%, var(--line));
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 16%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 74%, #fff), rgba(255,253,251,.94));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .style-ledger-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 5px;
+        background:
+          radial-gradient(circle at 8px 0, rgba(255,255,255,.82) 0 5px, transparent 5px) 0 0 / 16px 5px repeat-x,
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .style-ledger-card header { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
+      .style-ledger-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .style-ledger-score { font: 650 26px/1 Georgia, "Times New Roman", serif; color: var(--wine); }
+      .style-ledger-meta, .style-ledger-keywords { display: flex; gap: 5px; flex-wrap: wrap; }
+      .style-ledger-meta span, .style-ledger-keywords span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
       .weight-scenarios {
         display: inline-flex;
         flex-wrap: wrap;
@@ -1579,6 +1625,7 @@ INDEX_HTML = r"""<!doctype html>
             <button id="saveWeightsBtn" type="button" class="secondary" data-i18n="saveWeights" data-disabled="true" disabled>保存权重</button>
           </div>
         </div>
+        <div id="brandStyleLedger" class="brand-style-ledger"></div>
         <div id="brandWeights" class="watch-grid"></div>
         <div id="weightDraftAudit" class="weight-draft-audit empty"></div>
       </div>
@@ -1934,6 +1981,18 @@ INDEX_HTML = r"""<!doctype html>
           scoreDelta: "变化",
           weightsReset: "品牌权重已重置",
           weightsSaved: "品牌权重已保存",
+          styleFamilySweet: "Sweet 印花线",
+          styleFamilyClassic: "Classic 古典线",
+          styleFamilyGothic: "Gothic 暗色线",
+          styleFamilyRelease: "Release 上新线",
+          styleFamilyArt: "Art Print 艺术线",
+          styleBrands: "个品牌",
+          styleAvgWeight: "均权",
+          styleLeader: "领跑",
+          styleWeightTotal: "总权重",
+          styleCoreShare: "核心",
+          styleKeywords: "风格款式词",
+          styleNoKeywords: "暂无款式词",
           brandRadarMatrix: "品牌雷达矩阵",
           matrixHint: "把权重、溢价、样本和动作放在一起看",
           matrixBrand: "品牌",
@@ -2370,6 +2429,18 @@ INDEX_HTML = r"""<!doctype html>
           scoreDelta: "delta",
           weightsReset: "brand weights reset",
           weightsSaved: "brand weights saved",
+          styleFamilySweet: "Sweet prints",
+          styleFamilyClassic: "Classic archive",
+          styleFamilyGothic: "Gothic line",
+          styleFamilyRelease: "Release watch",
+          styleFamilyArt: "Art prints",
+          styleBrands: "brands",
+          styleAvgWeight: "avg weight",
+          styleLeader: "lead",
+          styleWeightTotal: "total weight",
+          styleCoreShare: "core",
+          styleKeywords: "style terms",
+          styleNoKeywords: "no terms yet",
           brandRadarMatrix: "Brand Radar Matrix",
           matrixHint: "Weight, premium, samples, and action in one view",
           matrixBrand: "brand",
@@ -2832,6 +2903,92 @@ INDEX_HTML = r"""<!doctype html>
           </div>
         </article>`).join("");
         updateWeightDirtyState();
+      }
+
+      function renderBrandStyleLedger(rows = brandStyleLedgerRows()) {
+        const target = $("brandStyleLedger");
+        if (!target) return;
+        const lanes = brandStyleLedgerLanes(rows);
+        target.innerHTML = lanes.map((lane) => `<article class="style-ledger-card" data-style-family="${escapeHtml(lane.family)}" style="${escapeHtml(styleFamilyVisualStyle(lane.family))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(t(styleFamilyLabelKey(lane.family)))}</strong>
+              <p class="muted">${escapeHtml(lane.count)} ${escapeHtml(t("styleBrands"))} · ${escapeHtml(t("styleAvgWeight"))} ${escapeHtml(lane.avgWeight)}</p>
+            </div>
+            <div class="style-ledger-score">${escapeHtml(lane.avgWeight)}</div>
+          </header>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lane.avgWeight)}%"></span></div>
+          <p class="muted">${escapeHtml(t("styleLeader"))} ${escapeHtml(lane.leaders || "-")}</p>
+          <div class="style-ledger-meta">
+            <span>${escapeHtml(t("styleWeightTotal"))} ${escapeHtml(lane.totalWeight)}</span>
+            <span>${escapeHtml(t("styleCoreShare"))} ${escapeHtml(lane.coreCount)}/${escapeHtml(lane.count)}</span>
+          </div>
+          <div class="style-ledger-keywords" aria-label="${escapeHtml(t("styleKeywords"))}">
+            ${lane.keywords.length ? lane.keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("styleNoKeywords"))}</span>`}
+          </div>
+        </article>`).join("");
+      }
+
+      function brandStyleLedgerRows() {
+        const draftWeights = new Map(Array.from(document.querySelectorAll("[data-brand-weight]")).map((input) => [input.dataset.brandWeight, Number(input.value) || 0]));
+        return (currentState?.brand_weights || []).map((brand) => ({
+          ...brand,
+          weight: clampScore(draftWeights.get(brand.alias) ?? brand.weight),
+        }));
+      }
+
+      function brandStyleLedgerLanes(rows) {
+        const families = ["sweet", "classic", "gothic", "release", "art"];
+        return families.map((family) => {
+          const members = (rows || [])
+            .filter((brand) => brandStyleFamily(brand) === family)
+            .sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0) || String(a.alias).localeCompare(String(b.alias)));
+          const totalWeight = members.reduce((sum, brand) => sum + (Number(brand.weight) || 0), 0);
+          const avgWeight = members.length ? Math.round(totalWeight / members.length) : 0;
+          const keywords = uniqueValues(members.flatMap((brand) => brand.market_keywords || []).filter(Boolean)).slice(0, 4);
+          return {
+            family,
+            count: members.length,
+            avgWeight,
+            totalWeight,
+            coreCount: members.filter((brand) => brand.tier === "core" || Number(brand.weight) >= 90).length,
+            leaders: members.slice(0, 2).map((brand) => brand.alias).join(" / "),
+            keywords,
+          };
+        });
+      }
+
+      function brandStyleFamily(brand) {
+        const style = String(brand?.style || "").toLowerCase();
+        if (style.includes("gothic") || style.includes("prince")) return "gothic";
+        if (style.includes("release") || style.includes("restock")) return "release";
+        if (style.includes("art")) return "art";
+        if (style.includes("classic")) return "classic";
+        return "sweet";
+      }
+
+      function styleFamilyLabelKey(family) {
+        return {
+          sweet: "styleFamilySweet",
+          classic: "styleFamilyClassic",
+          gothic: "styleFamilyGothic",
+          release: "styleFamilyRelease",
+          art: "styleFamilyArt",
+        }[family] || "styleFamilySweet";
+      }
+
+      function styleFamilyVisualStyle(family) {
+        return {
+          sweet: "--brand-accent: #c45f82; --brand-paper: #fff5f8;",
+          classic: "--brand-accent: #a9782c; --brand-paper: #fff8ec;",
+          gothic: "--brand-accent: #611b31; --brand-paper: #fff3f5;",
+          release: "--brand-accent: #0f6760; --brand-paper: #f1fbf8;",
+          art: "--brand-accent: #426a70; --brand-paper: #f1fbfb;",
+        }[family] || "";
+      }
+
+      function uniqueValues(values) {
+        return [...new Set((values || []).map((value) => String(value || "").trim()).filter(Boolean))];
       }
 
       function brandKeywordPearlsHtml(brand) {
@@ -4511,6 +4668,7 @@ INDEX_HTML = r"""<!doctype html>
         if (status) {
           status.textContent = dirty ? weightDirtyStatusText(dirtyCount, riskCount) : t("weightsClean");
         }
+        renderBrandStyleLedger();
         renderWeightDraftAudit(draftRows);
       }
 
