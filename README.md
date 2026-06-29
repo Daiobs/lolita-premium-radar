@@ -233,7 +233,10 @@ mode for release-first, premium-first, or evidence-first reviews without saving
 immediately. A style ledger above the weight cards groups labels into Sweet,
 Classic, Gothic, Release, and Art Print lanes, showing each lane's brand count,
 average draft weight, lead labels, core share, and style keywords so the Lolita
-visual strategy is visible while tuning weights. A premium seed radar turns those
+visual strategy is visible while tuning weights. A brand-weight salon sits beside
+that ledger with draft-vs-formula averages, evidence gaps, premium signals, and a
+line-level action for each Lolita style family, making portfolio drift visible
+before individual sliders are saved. A premium seed radar turns those
 weights and signature market keywords into the next sample-collection targets
 before enough resale observations exist, so terms such as AP `贝壳`, BABY
 `Usakumya`, or AATP `Vampire Requiem` can be pushed straight into the price

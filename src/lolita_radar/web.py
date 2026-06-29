@@ -1269,6 +1269,90 @@ INDEX_HTML = r"""<!doctype html>
         color: var(--muted);
         font-size: 12px;
       }
+      .weight-salon {
+        display: grid;
+        grid-template-columns: minmax(210px, .42fr) minmax(0, 1fr);
+        gap: 9px;
+        margin: 0 0 10px;
+      }
+      .weight-salon-brief, .weight-salon-card {
+        position: relative;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 20%, var(--line));
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 14%, transparent), transparent 36%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 76%, #fff), rgba(255,253,251,.95));
+        box-shadow: var(--paper-shadow);
+        overflow: hidden;
+      }
+      .weight-salon-brief {
+        display: grid;
+        align-content: start;
+        gap: 10px;
+        padding: 12px;
+      }
+      .weight-salon-brief::before, .weight-salon-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 5px;
+        background:
+          radial-gradient(circle at 8px 0, rgba(255,255,255,.82) 0 5px, transparent 5px) 0 0 / 16px 5px repeat-x,
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .weight-salon-brief strong { color: var(--wine); font: 650 28px/1 Georgia, "Times New Roman", serif; }
+      .weight-salon-brief p, .weight-salon-card p { margin: 0; color: var(--muted); }
+      .weight-salon-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+      }
+      .weight-salon-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 48px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.74);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .weight-salon-stats strong { color: var(--wine); font: 650 17px/1 Georgia, "Times New Roman", serif; }
+      .weight-salon-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 8px; }
+      .weight-salon-card {
+        display: grid;
+        gap: 8px;
+        min-height: 150px;
+        padding: 12px;
+      }
+      .weight-salon-card header { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
+      .weight-salon-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .weight-salon-track {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 7px;
+        align-items: center;
+      }
+      .weight-salon-track span {
+        display: grid;
+        gap: 2px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .weight-salon-track strong { font-size: 18px; }
+      .weight-salon-meta { display: flex; flex-wrap: wrap; gap: 5px; }
+      .weight-salon-meta span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
       .weight-scenarios {
         display: inline-flex;
         flex-wrap: wrap;
@@ -2922,7 +3006,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-salon, .weight-salon-list, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -3098,6 +3182,7 @@ INDEX_HTML = r"""<!doctype html>
             <button id="saveWeightsBtn" type="button" class="secondary" data-i18n="saveWeights" data-disabled="true" disabled>保存权重</button>
           </div>
         </div>
+        <div id="brandWeightSalon" class="weight-salon"></div>
         <div id="brandStyleLedger" class="brand-style-ledger"></div>
         <div id="brandWeights" class="watch-grid"></div>
         <div id="weightDraftAudit" class="weight-draft-audit empty"></div>
@@ -3751,6 +3836,19 @@ INDEX_HTML = r"""<!doctype html>
           styleCoreShare: "核心",
           styleKeywords: "风格款式词",
           styleNoKeywords: "暂无款式词",
+          brandWeightSalon: "品牌权重沙龙",
+          brandWeightSalonHint: "按 Lolita 风格线复核草稿权重、配方目标和证据缺口",
+          salonLead: "领跑风格",
+          salonAvgDraft: "草稿均权",
+          salonTargetAvg: "配方均权",
+          salonEvidenceGap: "证据缺口",
+          salonCoreShare: "核心占比",
+          salonPremiumSignals: "溢价信号",
+          salonMove: "移动",
+          salonActionCollect: "先补证据",
+          salonActionLift: "可上调",
+          salonActionTrim: "可降温",
+          salonActionHold: "维持观察",
           brandLookbook: "品牌权重造型册",
           brandLookbookHint: "用 Lolita 风格线索解释权重、样本和下一步盯盘动作",
           lookbookLead: "主推",
@@ -4527,6 +4625,19 @@ INDEX_HTML = r"""<!doctype html>
           styleCoreShare: "core",
           styleKeywords: "style terms",
           styleNoKeywords: "no terms yet",
+          brandWeightSalon: "Brand Weight Salon",
+          brandWeightSalonHint: "Review draft weights, formula targets, and evidence gaps by Lolita style line",
+          salonLead: "lead style",
+          salonAvgDraft: "draft avg",
+          salonTargetAvg: "formula avg",
+          salonEvidenceGap: "evidence gaps",
+          salonCoreShare: "core share",
+          salonPremiumSignals: "premium signals",
+          salonMove: "move",
+          salonActionCollect: "collect evidence",
+          salonActionLift: "lift line",
+          salonActionTrim: "cool line",
+          salonActionHold: "hold watch",
           brandLookbook: "Brand Weight Lookbook",
           brandLookbookHint: "Explain weights, samples, and next watch moves through Lolita style cues",
           lookbookLead: "lead",
@@ -5289,6 +5400,110 @@ INDEX_HTML = r"""<!doctype html>
             ${lane.keywords.length ? lane.keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("styleNoKeywords"))}</span>`}
           </div>
         </article>`).join("");
+      }
+
+      function renderBrandWeightSalon(rows = buildBrandRadarMatrix()) {
+        const target = $("brandWeightSalon");
+        if (!target) return;
+        const lanes = brandWeightSalonRows(rows);
+        const lead = [...lanes].sort((a, b) => (
+          (Number(b.score) || 0) - (Number(a.score) || 0)
+          || (Number(b.avgDraft) || 0) - (Number(a.avgDraft) || 0)
+        ))[0] || {};
+        target.innerHTML = `
+          <article class="weight-salon-brief" style="${escapeHtml(styleFamilyVisualStyle(lead.family || "sweet"))}">
+            <strong>${escapeHtml(t("brandWeightSalon"))}</strong>
+            <p>${escapeHtml(t("brandWeightSalonHint"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lead.score || 0)}%"></span></div>
+            <div class="weight-salon-stats">
+              <span><strong>${escapeHtml(t(styleFamilyLabelKey(lead.family || "sweet")))}</strong>${escapeHtml(t("salonLead"))}</span>
+              <span><strong>${escapeHtml(lead.avgDraft || 0)}</strong>${escapeHtml(t("salonAvgDraft"))}</span>
+              <span><strong>${escapeHtml(lead.avgTarget || 0)}</strong>${escapeHtml(t("salonTargetAvg"))}</span>
+              <span><strong>${escapeHtml(lead.evidenceGaps || 0)}</strong>${escapeHtml(t("salonEvidenceGap"))}</span>
+            </div>
+          </article>
+          <div class="weight-salon-list">
+            ${lanes.map((lane) => `<article class="weight-salon-card" data-weight-salon="${escapeHtml(lane.family)}" style="${escapeHtml(styleFamilyVisualStyle(lane.family))}">
+              <header>
+                <div>
+                  <strong>${escapeHtml(t(styleFamilyLabelKey(lane.family)))}</strong>
+                  <p>${escapeHtml(lane.count)} ${escapeHtml(t("styleBrands"))} · ${escapeHtml(t("styleLeader"))} ${escapeHtml(lane.leaders || "-")}</p>
+                </div>
+                <span class="pill ${escapeHtml(salonActionPill(lane.action))}">${escapeHtml(t(salonActionLabel(lane.action)))}</span>
+              </header>
+              <div class="weight-salon-track">
+                <span><strong>${escapeHtml(lane.avgDraft)}</strong>${escapeHtml(t("salonAvgDraft"))}</span>
+                <strong>${escapeHtml(formatDelta(lane.move))}</strong>
+                <span><strong>${escapeHtml(lane.avgTarget)}</strong>${escapeHtml(t("salonTargetAvg"))}</span>
+              </div>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lane.score)}%"></span></div>
+              <div class="weight-salon-meta">
+                <span>${escapeHtml(t("salonCoreShare"))} ${escapeHtml(lane.coreCount)}/${escapeHtml(lane.count)}</span>
+                <span>${escapeHtml(t("salonEvidenceGap"))} ${escapeHtml(lane.evidenceGaps)}</span>
+                <span>${escapeHtml(t("salonPremiumSignals"))} ${escapeHtml(lane.premiumSignals)}</span>
+                <span>${escapeHtml(t("salonMove"))} ${escapeHtml(formatDelta(lane.move))}</span>
+              </div>
+            </article>`).join("")}
+          </div>
+        `;
+      }
+
+      function brandWeightSalonRows(rows) {
+        const families = ["sweet", "classic", "gothic", "release", "art"];
+        const formulas = new Map(buildBrandWeightFormula(rows, Number.POSITIVE_INFINITY).map((entry) => [entry.alias, entry]));
+        return families.map((family) => {
+          const members = (rows || [])
+            .filter((brand) => brandStyleFamily(brand) === family)
+            .sort((a, b) => (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0) || String(a.alias).localeCompare(String(b.alias)));
+          const totalDraft = members.reduce((sum, brand) => sum + (Number(brand.brand_weight) || Number(brand.weight) || 0), 0);
+          const totalTarget = members.reduce((sum, brand) => {
+            const formula = formulas.get(brand.alias);
+            return sum + (Number(formula?.target_weight) || Number(brand.brand_weight) || Number(brand.weight) || 0);
+          }, 0);
+          const count = members.length;
+          const avgDraft = count ? Math.round(totalDraft / count) : 0;
+          const avgTarget = count ? Math.round(totalTarget / count) : 0;
+          const evidenceGaps = members.filter((brand) => Number(brand.sample_count) < sampleTarget(brand.brand_weight, brand.tier)).length;
+          const evidenceReady = count ? Math.round((count - evidenceGaps) / count * 100) : 0;
+          const premiumSignals = members.filter((brand) => Number(brand.avg_premium_rate) >= 0.25).length;
+          const lane = {
+            family,
+            count,
+            avgDraft,
+            avgTarget,
+            move: avgTarget - avgDraft,
+            coreCount: members.filter((brand) => brand.tier === "core" || Number(brand.brand_weight) >= 90).length,
+            evidenceGaps,
+            premiumSignals,
+            leaders: members.slice(0, 2).map((brand) => brand.alias).join(" / "),
+            score: clampScore(avgDraft * .34 + avgTarget * .44 + evidenceReady * .22),
+          };
+          lane.action = salonAction(lane);
+          return lane;
+        });
+      }
+
+      function salonAction(lane) {
+        if ((Number(lane.evidenceGaps) || 0) > 0 && Number(lane.avgDraft) >= 70) return "collect";
+        if (Number(lane.move) >= 4) return "lift";
+        if (Number(lane.move) <= -4) return "trim";
+        return "hold";
+      }
+
+      function salonActionLabel(action) {
+        return {
+          collect: "salonActionCollect",
+          lift: "salonActionLift",
+          trim: "salonActionTrim",
+          hold: "salonActionHold",
+        }[action] || "salonActionHold";
+      }
+
+      function salonActionPill(action) {
+        if (action === "collect") return "gold";
+        if (action === "lift") return "rose";
+        if (action === "trim") return "warn";
+        return "off";
       }
 
       function renderStyleCompass(rows = brandStyleLedgerRows()) {
@@ -8748,6 +8963,7 @@ INDEX_HTML = r"""<!doctype html>
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
         renderStyleCompass(rows);
+        renderBrandWeightSalon(rows);
         renderNorthStarRadar(rows);
         renderBrandCrownQueue(rows);
         renderDraftRiskRadar();
