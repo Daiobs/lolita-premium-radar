@@ -1146,6 +1146,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="brandWeights">品牌权重</h2>
           <div class="brand-actions">
             <span id="weightDirtyStatus" class="muted" data-i18n="weightsClean">已保存</span>
+            <button id="exportWeightsCsvBtn" type="button" class="secondary" data-i18n="exportWeightsCsv">导出权重 CSV</button>
             <button id="resetWeightsBtn" type="button" class="secondary" data-i18n="resetWeights" data-disabled="true" disabled>重置</button>
             <button id="saveWeightsBtn" type="button" class="secondary" data-i18n="saveWeights" data-disabled="true" disabled>保存权重</button>
           </div>
@@ -1434,6 +1435,9 @@ INDEX_HTML = r"""<!doctype html>
           brandWeights: "品牌权重",
           saveWeights: "保存权重",
           resetWeights: "重置",
+          exportWeightsCsv: "导出权重 CSV",
+          exportedWeightsCsv: "品牌权重已导出",
+          noWeightsCsv: "暂无可导出的品牌权重",
           weightsClean: "已保存",
           weightsDirty: "项未保存",
           draftPreview: "草稿预览",
@@ -1779,6 +1783,9 @@ INDEX_HTML = r"""<!doctype html>
           brandWeights: "Brand Weights",
           saveWeights: "Save Weights",
           resetWeights: "Reset",
+          exportWeightsCsv: "export weights CSV",
+          exportedWeightsCsv: "brand weights exported",
+          noWeightsCsv: "no brand weights to export",
           weightsClean: "saved",
           weightsDirty: "unsaved",
           draftPreview: "draft preview",
@@ -2977,6 +2984,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedPremiumCsv"));
       }
 
+      function exportBrandWeightsCsv() {
+        const rows = buildBrandRadarMatrix();
+        if (!rows.length) {
+          toast(t("noWeightsCsv"));
+          return;
+        }
+        const csv = csvFromBrandWeights(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-brand-weights.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedWeightsCsv"));
+      }
+
       function premiumCsvFilename() {
         const brand = activePremiumBrandFilter === "all" ? "all-brands" : activePremiumBrandFilter.toLowerCase();
         const band = activePremiumFilter === "all" ? "all-bands" : activePremiumFilter;
@@ -3004,6 +3030,40 @@ INDEX_HTML = r"""<!doctype html>
         const lines = [
           fields.map(([header]) => csvCell(header)).join(","),
           ...(records || []).map((record) => fields.map(([, key]) => csvCell(record[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromBrandWeights(rows) {
+        const fields = [
+          ["alias", "alias"],
+          ["name", "name"],
+          ["saved_weight", "saved_weight"],
+          ["draft_weight", "brand_weight"],
+          ["score_delta", "score_delta"],
+          ["tier", "tier"],
+          ["style", "style"],
+          ["palette", "palette"],
+          ["motif", "motif"],
+          ["radar_cue", "radar_cue"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["max_premium_rate", "max_premium_rate"],
+          ["sample_count", "sample_count"],
+          ["priority_score", "priority_score"],
+          ["evidence_level", "evidence_level"],
+          ["market_keywords", "market_keywords"],
+        ];
+        const enriched = (rows || []).map((row) => ({
+          ...row,
+          saved_weight: brandByAlias(row.alias)?.weight ?? row.brand_weight,
+          palette: row.visual?.palette || "",
+          motif: row.visual?.motif || "",
+          radar_cue: row.visual?.radar_cue || "",
+          market_keywords: (row.market_keywords || []).join(" | "),
+        }));
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
         ];
         return lines.join("\n");
       }
@@ -3664,6 +3724,7 @@ INDEX_HTML = r"""<!doctype html>
         $(id).addEventListener("change", renderSamplePreview);
       });
       $("brandWeights").addEventListener("input", handleWeightInput);
+      $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);
       $("applyTuningBatchBtn").addEventListener("click", applyAllTuningDrafts);
