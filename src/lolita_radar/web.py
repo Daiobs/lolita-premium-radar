@@ -28,6 +28,7 @@ from .storage import connect, list_events, list_items, storage_counts
 
 
 DEFAULT_WEB_PORT = 8766
+ASSETS_DIR = Path(__file__).with_name("assets")
 
 
 def run_web(
@@ -80,6 +81,8 @@ def make_handler(
             try:
                 if parsed.path == "/":
                     self.send_html(INDEX_HTML)
+                elif parsed.path.startswith("/assets/"):
+                    self.send_asset(parsed.path.removeprefix("/assets/"))
                 elif parsed.path == "/api/health":
                     self.send_json({"ok": True})
                 elif parsed.path == "/api/state":
@@ -163,6 +166,20 @@ def make_handler(
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def send_asset(self, asset_name: str) -> None:
+            asset_path = (ASSETS_DIR / asset_name).resolve()
+            if asset_path.parent != ASSETS_DIR.resolve() or not asset_path.is_file():
+                self.send_error(HTTPStatus.NOT_FOUND, "Not found")
+                return
+            content_type = "image/png" if asset_path.suffix == ".png" else "application/octet-stream"
+            body = asset_path.read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Cache-Control", "public, max-age=86400")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -316,7 +333,7 @@ INDEX_HTML = r"""<!doctype html>
       .topbar {
         position: relative;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(260px, 1fr) minmax(240px, 340px) auto;
         gap: 18px;
         align-items: center;
         padding: 28px 24px 20px;
@@ -376,6 +393,54 @@ INDEX_HTML = r"""<!doctype html>
         box-shadow: var(--pearl-shadow);
       }
       .topbar p { margin: 6px 0 0; max-width: 820px; color: #f2e8e6; word-break: break-word; }
+      .hero-visual {
+        position: relative;
+        min-height: 190px;
+        display: grid;
+        align-content: end;
+        gap: 10px;
+        padding: 14px;
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: 8px;
+        background:
+          linear-gradient(180deg, rgba(36,23,31,.08), rgba(36,23,31,.42)),
+          url("/assets/lolita-radar-fabric.png") center / cover;
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.1), 0 18px 34px rgba(15,15,18,.22);
+        overflow: hidden;
+      }
+      .hero-visual::before {
+        content: "";
+        position: absolute;
+        inset: 10px;
+        border: 1px solid rgba(255,255,255,.34);
+        border-radius: 6px;
+        pointer-events: none;
+      }
+      .hero-visual strong {
+        position: relative;
+        max-width: 210px;
+        color: #fffdfb;
+        font: 650 22px/1.05 Georgia, "Times New Roman", serif;
+        text-shadow: 0 2px 10px rgba(35,15,22,.38);
+      }
+      .hero-pearls {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .hero-pearls span {
+        min-height: 25px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        border: 1px solid rgba(255,255,255,.36);
+        border-radius: 999px;
+        background: rgba(255,253,251,.82);
+        color: var(--wine);
+        font-size: 12px;
+        box-shadow: var(--pearl-shadow);
+      }
       .actions { display: flex; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
       .language-switch { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid rgba(255,255,255,.18); border-radius: 7px; background: rgba(255,255,255,.08); }
       .language-switch button { min-height: 32px; padding: 0 10px; border-radius: 5px; background: transparent; color: #c9d6dc; }
@@ -911,6 +976,7 @@ INDEX_HTML = r"""<!doctype html>
       .toast.show { opacity: 1; transform: translateY(0); }
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
+        .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
@@ -932,6 +998,14 @@ INDEX_HTML = r"""<!doctype html>
         <p id="headline" data-i18n="headline">监控日牌上新、预约、再贩与二级市场溢价线索。</p>
         <p id="paths">Loading...</p>
       </div>
+      <aside class="hero-visual" aria-label="Lolita radar mood">
+        <strong data-i18n="heroVisualTitle">蕾丝雷达 · 溢价巡航</strong>
+        <div class="hero-pearls">
+          <span data-i18n="heroVisualWeight">品牌权重</span>
+          <span data-i18n="heroVisualPremium">溢价热度</span>
+          <span data-i18n="heroVisualEvidence">样本证据</span>
+        </div>
+      </aside>
       <div class="actions">
         <div class="language-switch" role="group" aria-label="Language">
           <button type="button" data-language="zh">中文</button>
@@ -1216,6 +1290,10 @@ INDEX_HTML = r"""<!doctype html>
         zh: {
           eyebrow: "二级市场情报台",
           headline: "监控日牌上新、预约、再贩与二级市场溢价线索。",
+          heroVisualTitle: "蕾丝雷达 · 溢价巡航",
+          heroVisualWeight: "品牌权重",
+          heroVisualPremium: "溢价热度",
+          heroVisualEvidence: "样本证据",
           checkAll: "检查全部",
           refresh: "刷新",
           sourcesHeading: "监控源",
@@ -1541,6 +1619,10 @@ INDEX_HTML = r"""<!doctype html>
         en: {
           eyebrow: "Secondary Market Desk",
           headline: "Track Japanese brand releases, preorders, restocks, and resale-premium signals.",
+          heroVisualTitle: "Lace Radar · Premium Watch",
+          heroVisualWeight: "brand weight",
+          heroVisualPremium: "premium heat",
+          heroVisualEvidence: "sample evidence",
           checkAll: "Check All",
           refresh: "Refresh",
           sourcesHeading: "Watch Sources",

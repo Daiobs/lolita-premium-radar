@@ -17,4 +17,4 @@ lolita-premium-radar = "lolita_radar.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-lolita_radar = ["py.typed"]
+lolita_radar = ["py.typed", "assets/*.png"]

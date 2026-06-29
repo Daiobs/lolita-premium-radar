@@ -80,6 +80,10 @@ sources:
         self.assertIn("中文", INDEX_HTML)
         self.assertIn("Check All", INDEX_HTML)
         self.assertIn("brandWeights", INDEX_HTML)
+        self.assertIn("hero-visual", INDEX_HTML)
+        self.assertIn("/assets/lolita-radar-fabric.png", INDEX_HTML)
+        self.assertIn("heroVisualTitle", INDEX_HTML)
+        self.assertIn("heroVisualPremium", INDEX_HTML)
         self.assertIn("marketSignal", INDEX_HTML)
         self.assertIn("focusQueue", INDEX_HTML)
         self.assertIn("marketAlertLine", INDEX_HTML)
@@ -195,6 +199,37 @@ sources:
         self.assertIn("hasScoreDelta", INDEX_HTML)
         self.assertIn("opportunityPriorityScore", INDEX_HTML)
         self.assertIn("priorityScore", INDEX_HTML)
+
+    def test_static_visual_asset_is_served(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "sources.yaml"
+            db_path = root / "radar.sqlite"
+            config_path.write_text(
+                """
+sources:
+  metamorphose:
+    type: metamorphose
+    enabled: true
+    url: "https://metamorphose.gr.jp/en/news"
+""".strip(),
+                encoding="utf-8",
+            )
+
+            handler = make_handler(config_path=config_path, db_path=db_path)
+            server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = f"http://127.0.0.1:{server.server_port}/assets/lolita-radar-fabric.png"
+                with urllib.request.urlopen(url) as response:
+                    body = response.read(8)
+
+                self.assertEqual(response.headers.get_content_type(), "image/png")
+                self.assertEqual(body, b"\x89PNG\r\n\x1a\n")
+            finally:
+                server.shutdown()
+                server.server_close()
 
     def test_market_observation_post_appends_sample(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
