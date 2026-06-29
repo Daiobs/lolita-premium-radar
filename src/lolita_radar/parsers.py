@@ -101,7 +101,11 @@ def parse_metamorphose_news(html_text: str, base_url: str, source: str = "metamo
 def is_probable_news_link(link: LinkCandidate) -> bool:
     lowered = link.url.lower()
     title = link.title.lower()
-    if any(token in lowered for token in ("/news", "news_", "detail", "info")):
+    if any(token in lowered for token in ("/news?page", "?page=")):
+        return False
+    if any(token in title for token in ("current page", "go to page", "last page", "latest information")):
+        return False
+    if "/metamornews/" in lowered:
         return True
     return any(
         token in title
