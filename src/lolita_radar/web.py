@@ -4197,6 +4197,8 @@ INDEX_HTML = r"""<!doctype html>
           scorecardAligned: "已对齐",
           scorecardCollect: "待补证据",
           scorecardAvgConfidence: "平均置信度",
+          scorecardEvidenceReady: "证据就绪",
+          scorecardPremiumBacked: "溢价支撑",
           scorecardCurrent: "当前",
           scorecardTarget: "目标",
           scorecardVerdict: "结论",
@@ -5027,6 +5029,8 @@ INDEX_HTML = r"""<!doctype html>
           scorecardAligned: "aligned",
           scorecardCollect: "needs evidence",
           scorecardAvgConfidence: "avg confidence",
+          scorecardEvidenceReady: "evidence ready",
+          scorecardPremiumBacked: "premium backed",
           scorecardCurrent: "current",
           scorecardTarget: "target",
           scorecardVerdict: "verdict",
@@ -6044,6 +6048,8 @@ INDEX_HTML = r"""<!doctype html>
             <div class="scorecard-stats">
               <article class="scorecard-stat"><strong>${escapeHtml(stats.aligned)}</strong><span>${escapeHtml(t("scorecardAligned"))}</span></article>
               <article class="scorecard-stat"><strong>${escapeHtml(stats.collect)}</strong><span>${escapeHtml(t("scorecardCollect"))}</span></article>
+              <article class="scorecard-stat"><strong>${escapeHtml(stats.evidenceReady)}</strong><span>${escapeHtml(t("scorecardEvidenceReady"))}</span></article>
+              <article class="scorecard-stat"><strong>${escapeHtml(stats.premiumBacked)}</strong><span>${escapeHtml(t("scorecardPremiumBacked"))}</span></article>
             </div>
             <p>${escapeHtml(t("brandWeightScorecardHint"))}</p>
           </article>
@@ -6071,6 +6077,8 @@ INDEX_HTML = r"""<!doctype html>
           topTarget: cards[0]?.alias || "-",
           aligned: cards.filter((entry) => entry.scorecard_verdict === "aligned").length,
           collect: cards.filter((entry) => entry.scorecard_verdict === "collect").length,
+          evidenceReady: cards.filter((entry) => Number(entry.sample_count) >= sampleTarget(entry.brand_weight, entry.tier)).length,
+          premiumBacked: cards.filter((entry) => Number(entry.avg_premium_rate) >= 0.25).length,
           avgConfidence: total ? Math.round(cards.reduce((sum, entry) => sum + (Number(entry.confidence) || 0), 0) / total) : 0,
         };
       }
@@ -6153,6 +6161,10 @@ INDEX_HTML = r"""<!doctype html>
           <strong>${escapeHtml(row.value)}</strong>
           <small>${escapeHtml(row.detail)}</small>
         </article>`;
+      }
+
+      function scorecardLedgerCsvText(row) {
+        return row ? `${t(row.label)}: ${row.value} · ${row.detail}` : "";
       }
 
       function scorecardVerdict(entry) {
@@ -8464,22 +8476,33 @@ INDEX_HTML = r"""<!doctype html>
           ["tier", "tier"],
           ["style", "style"],
           ["evidence_level", "evidence_level"],
+          ["tier_basis", "tier_basis"],
+          ["premium_basis", "premium_basis"],
+          ["evidence_basis", "evidence_basis"],
+          ["terms_basis", "terms_basis"],
           ["market_keywords", "market_keywords"],
           ["watch_urls", "watch_urls"],
           ["radar_cue", "radar_cue"],
         ];
-        const enriched = (rows || []).map((row) => ({
-          ...row,
-          verdict: t(scorecardVerdictLabel(row.scorecard_verdict)),
-          part_base: row.parts?.base ?? "",
-          part_premium: row.parts?.premium ?? "",
-          part_evidence: row.parts?.evidence ?? "",
-          part_keywords: row.parts?.keywords ?? "",
-          part_watchability: row.parts?.watchability ?? "",
-          market_keywords: (row.market_keywords || []).join(" | "),
-          watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
-          radar_cue: row.visual?.radar_cue || "",
-        }));
+        const enriched = (rows || []).map((row) => {
+          const ledger = scorecardLedgerRows(row);
+          return {
+            ...row,
+            verdict: t(scorecardVerdictLabel(row.scorecard_verdict)),
+            part_base: row.parts?.base ?? "",
+            part_premium: row.parts?.premium ?? "",
+            part_evidence: row.parts?.evidence ?? "",
+            part_keywords: row.parts?.keywords ?? "",
+            part_watchability: row.parts?.watchability ?? "",
+            tier_basis: scorecardLedgerCsvText(ledger[0]),
+            premium_basis: scorecardLedgerCsvText(ledger[1]),
+            evidence_basis: scorecardLedgerCsvText(ledger[2]),
+            terms_basis: scorecardLedgerCsvText(ledger[3]),
+            market_keywords: (row.market_keywords || []).join(" | "),
+            watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
+            radar_cue: row.visual?.radar_cue || "",
+          };
+        });
         const lines = [
           fields.map(([header]) => csvCell(header)).join(","),
           ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),

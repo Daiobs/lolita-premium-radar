@@ -137,8 +137,9 @@ ribbons, market-keyword pearls, and per-brand visual identity metadata for
 palette, motif, and radar cue, while keeping the weight sliders and saved draft
 state visible for fast tuning. The scorecard view adds compact weight evidence
 tickets for each brand, translating tier, premium, sample coverage, and style
-terms into auditable reasons behind the target weight. A brand-weight scenario
-comparison panel previews
+terms into auditable reasons behind the target weight; the same ticket text is
+included in `lolita-weight-scorecards.csv` alongside evidence-ready and
+premium-backed summary counts. A brand-weight scenario comparison panel previews
 release-first, premium-first, and evidence-first target weights side by side,
 including average target, up/down counts, top moves, and one-click draft apply
 buttons; the expanded scenario table can be exported as
