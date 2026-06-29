@@ -252,6 +252,11 @@ INDEX_HTML = r"""<!doctype html>
         --bg: #f4eee9;
         --bg-soft: #fff8f5;
         --panel: #fffdfb;
+        --ivory: #fffaf2;
+        --powder: #f7e4e8;
+        --mint: #eaf6f1;
+        --satin: #f6d8df;
+        --velvet: #421323;
         --text: #24171f;
         --muted: #766871;
         --line: #e4d3cf;
@@ -264,17 +269,20 @@ INDEX_HTML = r"""<!doctype html>
         --gold: #a9782c;
         --warn: #a44322;
         --shadow: 0 18px 44px rgba(63, 39, 47, .13);
+        --pearl-shadow: 0 1px 0 rgba(255,255,255,.88), 0 7px 18px rgba(97,27,49,.1);
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background:
+          radial-gradient(circle at 50% 0, rgba(255,255,255,.72) 0 7px, transparent 7px) 0 0 / 22px 14px repeat-x,
+          radial-gradient(circle at 50% 14px, rgba(180,87,111,.11) 0 1px, transparent 2px) 0 0 / 22px 14px repeat-x,
           radial-gradient(circle at 16px 16px, rgba(180,87,111,.09) 0 2px, transparent 2px),
           linear-gradient(90deg, rgba(97,27,49,.045) 1px, transparent 1px),
           linear-gradient(rgba(15,103,96,.035) 1px, transparent 1px),
           repeating-linear-gradient(90deg, rgba(255,255,255,.34) 0 18px, rgba(255,255,255,0) 18px 36px),
           var(--bg);
-        background-size: 32px 32px, 28px 28px, 28px 28px, 72px 72px, auto;
+        background-size: 22px 14px, 22px 14px, 32px 32px, 28px 28px, 28px 28px, 72px 72px, auto;
         color: var(--text);
         font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
@@ -291,6 +299,11 @@ INDEX_HTML = r"""<!doctype html>
         cursor: pointer;
         font: inherit;
       }
+      button:hover { filter: brightness(1.04); }
+      button:focus-visible, input:focus-visible, select:focus-visible {
+        outline: 2px solid rgba(169,120,44,.55);
+        outline-offset: 2px;
+      }
       button.secondary { background: linear-gradient(180deg, #3f5a63, #2f424a); }
       button[disabled] { background: #ad9fa5; }
       button:disabled { opacity: .65; cursor: wait; }
@@ -300,12 +313,13 @@ INDEX_HTML = r"""<!doctype html>
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 18px;
         align-items: center;
-        padding: 22px 24px 18px;
+        padding: 28px 24px 20px;
         color: #fff;
         background:
+          radial-gradient(circle at 92% 28%, rgba(246,216,223,.22) 0 2px, transparent 2px),
           radial-gradient(circle at 18% 16%, rgba(255,255,255,.14) 0 1px, transparent 2px),
           repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 12px, rgba(255,255,255,0) 12px 24px),
-          linear-gradient(135deg, rgba(136,59,80,.92), rgba(32,21,29,.96) 54%, rgba(15,111,106,.86)),
+          linear-gradient(135deg, rgba(136,59,80,.92), rgba(32,21,29,.96) 50%, rgba(15,111,106,.86)),
           #241c21;
         border-bottom: 5px double rgba(255,255,255,.24);
         overflow: hidden;
@@ -330,8 +344,31 @@ INDEX_HTML = r"""<!doctype html>
         background: radial-gradient(circle at 10px 0, rgba(255,255,255,.6) 0 9px, transparent 9px) 0 0 / 20px 9px repeat-x;
         opacity: .7;
       }
-      .eyebrow { margin: 0 0 3px; color: #f1dad7; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
-      .topbar h1 { margin: 0; font: 600 30px/1.05 Georgia, "Times New Roman", serif; }
+      .eyebrow { margin: 0 0 5px; color: #f1dad7; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+      .topbar h1 {
+        position: relative;
+        display: inline-block;
+        margin: 0;
+        padding-right: 42px;
+        font: 600 31px/1.05 Georgia, "Times New Roman", serif;
+        text-shadow: 0 2px 0 rgba(0,0,0,.14);
+      }
+      .topbar h1::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: 0;
+        width: 28px;
+        height: 15px;
+        transform: translateY(-45%);
+        background:
+          linear-gradient(45deg, transparent 0 34%, rgba(255,255,255,.76) 34% 66%, transparent 66%),
+          linear-gradient(-45deg, transparent 0 34%, rgba(255,255,255,.76) 34% 66%, transparent 66%),
+          var(--satin);
+        border: 1px solid rgba(255,255,255,.55);
+        border-radius: 2px;
+        box-shadow: var(--pearl-shadow);
+      }
       .topbar p { margin: 6px 0 0; max-width: 820px; color: #f2e8e6; word-break: break-word; }
       .actions { display: flex; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
       .language-switch { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid rgba(255,255,255,.18); border-radius: 7px; background: rgba(255,255,255,.08); }
@@ -340,6 +377,7 @@ INDEX_HTML = r"""<!doctype html>
       .metrics { display: grid; grid-template-columns: repeat(5, minmax(132px, 1fr)); gap: 12px; padding: 22px 20px 12px; }
       .metric, .panel, .atelier {
         background:
+          radial-gradient(circle at 16px 16px, rgba(255,255,255,.88) 0 2px, transparent 2px) 0 0 / 22px 22px,
           linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,253,251,.96)),
           var(--panel);
         border: 1px solid var(--line);
@@ -356,6 +394,13 @@ INDEX_HTML = r"""<!doctype html>
         border-top: 4px solid var(--rose);
         overflow: hidden;
       }
+      .metric::before {
+        content: "";
+        position: absolute;
+        inset: 6px 8px auto;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(169,120,44,.36), transparent);
+      }
       .metric::after {
         content: "";
         position: absolute;
@@ -367,16 +412,43 @@ INDEX_HTML = r"""<!doctype html>
       }
       .metric strong { font: 650 27px/1 Georgia, "Times New Roman", serif; color: var(--wine); }
       .metric span, .muted { color: var(--muted); }
-      .atelier { margin: 0 20px 14px; padding: 14px; display: grid; grid-template-columns: minmax(220px, .7fr) 1fr; gap: 14px; }
+      .atelier { position: relative; margin: 0 20px 14px; padding: 14px; display: grid; grid-template-columns: minmax(220px, .7fr) 1fr; gap: 14px; }
       .atelier h2, .panel h2 { margin: 0; font: 650 17px/1.2 Georgia, "Times New Roman", serif; }
+      .atelier h2, .toolbar h2, .panel > h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .atelier h2::before, .toolbar h2::before, .panel > h2::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: radial-gradient(circle at 35% 30%, #fff, #f4d2d9 56%, #b4576f 100%);
+        box-shadow: var(--pearl-shadow);
+      }
       .watch-grid { display: grid; grid-template-columns: repeat(4, minmax(125px, 1fr)); gap: 9px; }
       .brand-chip {
+        position: relative;
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 9px 10px;
+        padding: 13px 10px 10px;
         background:
           linear-gradient(90deg, rgba(180,87,111,.1), transparent 42%),
           var(--bg-soft);
+        overflow: hidden;
+      }
+      .brand-chip::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 6px;
+        background:
+          radial-gradient(circle at 8px 0, rgba(255,255,255,.85) 0 6px, transparent 6px) 0 0 / 16px 6px repeat-x,
+          linear-gradient(90deg, var(--rose), var(--gold), var(--teal));
       }
       .brand-chip.dirty { border-color: rgba(169,120,44,.68); box-shadow: inset 0 0 0 1px rgba(169,120,44,.2); }
       .brand-chip strong { display: block; color: var(--wine); }
@@ -389,7 +461,7 @@ INDEX_HTML = r"""<!doctype html>
       .brand-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
       .brand-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
       .focus-list { display: grid; gap: 8px; }
-      .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); }
+      .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); box-shadow: inset 3px 0 0 rgba(180,87,111,.22); }
       .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .focus-card strong { color: var(--wine); }
       .weight-snapshot-board { margin: 0 20px 14px; }
@@ -399,7 +471,7 @@ INDEX_HTML = r"""<!doctype html>
         border-radius: 8px;
         background: #fffaf8;
       }
-      .weight-hero { display: grid; gap: 9px; align-content: start; padding: 12px; background: linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)); }
+      .weight-hero { display: grid; gap: 9px; align-content: start; padding: 12px; background: linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)); box-shadow: inset 0 0 0 4px rgba(255,255,255,.48); }
       .weight-hero strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
       .weight-hero p, .weight-metric span, .weight-lane span, .weight-gap-card p { margin: 0; color: var(--muted); }
       .weight-metrics { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 8px; }
@@ -415,6 +487,7 @@ INDEX_HTML = r"""<!doctype html>
       .keyword-board { margin: 0 20px 14px; }
       .keyword-radar { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; padding: 12px; }
       .keyword-card {
+        position: relative;
         display: grid;
         gap: 8px;
         border: 1px solid var(--line);
@@ -424,6 +497,16 @@ INDEX_HTML = r"""<!doctype html>
           linear-gradient(135deg, rgba(248,251,250,.92), rgba(255,247,232,.72)),
           #fffaf8;
       }
+      .keyword-card::after, .pattern-card::after, .opportunity-card::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 7px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.32) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
       .keyword-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
       .keyword-card strong { color: var(--wine); }
       .keyword-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -431,11 +514,12 @@ INDEX_HTML = r"""<!doctype html>
       .pattern-board { margin: 0 20px 14px; }
       .pattern-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 12px; }
       .pattern-card {
+        position: relative;
         display: grid;
         gap: 8px;
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 12px;
+        padding: 12px 12px 16px;
         background:
           linear-gradient(135deg, rgba(180,87,111,.1), rgba(255,247,232,.82)),
           #fffaf8;
@@ -453,7 +537,7 @@ INDEX_HTML = r"""<!doctype html>
         border-radius: 8px;
         background: #fffaf8;
       }
-      .action-brief { display: grid; gap: 9px; align-content: start; padding: 12px; background: linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)); }
+      .action-brief { display: grid; gap: 9px; align-content: start; padding: 12px; background: linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)); box-shadow: inset 0 0 0 4px rgba(255,255,255,.48); }
       .action-brief strong { color: var(--wine); font: 650 32px/1 Georgia, "Times New Roman", serif; }
       .action-list { display: grid; gap: 8px; }
       .action-list article { display: grid; gap: 8px; padding: 12px; }
@@ -461,11 +545,34 @@ INDEX_HTML = r"""<!doctype html>
       .action-list strong { color: var(--wine); }
       .search-links { display: flex; flex-wrap: wrap; gap: 6px; }
       .search-links a, .search-links button { min-height: 28px; padding: 0 8px; border: 1px solid rgba(15,103,96,.18); border-radius: 999px; background: #f8fbfa; color: var(--teal); box-shadow: none; font: inherit; text-decoration: none; display: inline-flex; align-items: center; }
+      .quality-board { margin: 0 20px 14px; }
+      .quality-grid { display: grid; grid-template-columns: minmax(220px, .65fr) minmax(280px, 1.35fr); gap: 12px; padding: 12px; }
+      .quality-hero, .quality-check {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .quality-hero { display: grid; gap: 9px; align-content: start; padding: 12px; background: linear-gradient(135deg, rgba(248,251,250,.92), rgba(255,247,232,.72)); box-shadow: inset 0 0 0 4px rgba(255,255,255,.48); }
+      .quality-hero strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .quality-checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+      .quality-check { display: grid; gap: 5px; padding: 10px; }
+      .quality-check strong { color: var(--wine); font: 650 22px/1 Georgia, "Times New Roman", serif; }
       .signal-strip { display: grid; gap: 8px; align-content: start; }
       .signal-bar { height: 11px; overflow: hidden; border-radius: 999px; background: var(--lace); box-shadow: inset 0 0 0 1px rgba(97,27,49,.06); }
       .signal-bar span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--teal), var(--rose), var(--gold)); }
       .workspace { display: grid; grid-template-columns: 340px 1fr; gap: 14px; padding: 0 20px 20px; }
-      .panel { min-width: 0; overflow: hidden; }
+      .panel { position: relative; min-width: 0; overflow: hidden; }
+      .panel::after, .atelier::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 5px;
+        background: radial-gradient(circle at 8px 5px, rgba(180,87,111,.28) 0 4px, transparent 4px) 0 0 / 16px 5px repeat-x;
+        opacity: .72;
+        pointer-events: none;
+      }
       .panel h2 { padding: 14px 15px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, #fff7f7, #f8fbfa); }
       .toolbar, .panel > h2 {
         background:
@@ -473,7 +580,7 @@ INDEX_HTML = r"""<!doctype html>
           linear-gradient(90deg, #fff7f7, #f8fbfa);
       }
       .source-list, .event-list, .item-list, .status-list { display: grid; gap: 9px; padding: 12px; }
-      .source-card, .row, .status-card { border: 1px solid var(--line); border-radius: 8px; padding: 11px; background: #fffaf8; }
+      .source-card, .row, .status-card { border: 1px solid var(--line); border-radius: 8px; padding: 11px; background: #fffaf8; box-shadow: inset 0 1px 0 rgba(255,255,255,.74); }
       .source-card header, .row header { display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 6px; }
       .source-card strong, .row strong { overflow-wrap: anywhere; }
       .pill { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border-radius: 999px; background: #edf7f5; color: var(--teal); font-size: 12px; white-space: nowrap; }
@@ -569,11 +676,12 @@ INDEX_HTML = r"""<!doctype html>
       .segmented button.active { background: var(--wine); color: #fff; }
       .opportunity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; padding: 12px; }
       .opportunity-card {
+        position: relative;
         display: grid;
         gap: 8px;
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 12px;
+        padding: 12px 12px 16px;
         background:
           linear-gradient(135deg, rgba(180,87,111,.1), rgba(15,103,96,.08)),
           #fffaf8;
@@ -585,12 +693,23 @@ INDEX_HTML = r"""<!doctype html>
       .score-track { height: 7px; overflow: hidden; border-radius: 999px; background: var(--lace); }
       .score-track span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--rose), var(--gold)); }
       .market-card {
+        position: relative;
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 11px;
+        padding: 11px 11px 11px 14px;
         background:
           linear-gradient(90deg, rgba(169,120,44,.11), transparent 30%),
           #fffaf8;
+      }
+      .market-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 4px;
+        border-radius: 0 999px 999px 0;
+        background: linear-gradient(180deg, var(--rose), var(--gold));
       }
       .market-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .premium-rate { font: 650 22px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
@@ -626,7 +745,7 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .action-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .action-grid, .quality-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
@@ -702,6 +821,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="marketActionDesk" class="action-grid"></div>
+    </section>
+    <section class="panel quality-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="evidenceHealth">证据健康</h2>
+          <span class="muted" data-i18n="evidenceHealthHint">检查样本是否有来源、链接、日期和备注</span>
+        </div>
+      </div>
+      <div id="evidenceHealth" class="quality-grid"></div>
     </section>
     <section class="panel pattern-board">
       <div class="toolbar">
@@ -959,6 +1087,14 @@ INDEX_HTML = r"""<!doctype html>
           actionTaobao: "淘宝",
           actionMercari: "Mercari",
           actionYahoo: "雅虎拍卖",
+          evidenceHealth: "证据健康",
+          evidenceHealthHint: "检查样本是否有来源、链接、日期和备注",
+          qualityScore: "质量分",
+          qualityLinked: "有链接",
+          qualitySourced: "有来源",
+          qualityDated: "有日期",
+          qualityNoted: "有备注",
+          qualityWeak: "待补强",
           weightTuning: "权重校准建议",
           weightTuningHint: "把溢价、样本和当前权重翻译成下一步动作",
           noWeightTuning: "暂无校准建议",
@@ -1172,6 +1308,14 @@ INDEX_HTML = r"""<!doctype html>
           actionTaobao: "Taobao",
           actionMercari: "Mercari",
           actionYahoo: "Yahoo JP",
+          evidenceHealth: "Evidence Health",
+          evidenceHealthHint: "Check whether samples have source, link, date, and notes",
+          qualityScore: "quality score",
+          qualityLinked: "linked",
+          qualitySourced: "sourced",
+          qualityDated: "dated",
+          qualityNoted: "noted",
+          qualityWeak: "needs work",
           weightTuning: "Weight Tuning",
           weightTuningHint: "Turn premium, sample count, and current weight into next actions",
           noWeightTuning: "No tuning suggestions yet",
@@ -1327,6 +1471,7 @@ INDEX_HTML = r"""<!doctype html>
         renderMarketSignal(state.events || [], state.items || []);
         renderMarketPremium(state.market || {});
         renderMarketActionDesk(state.market?.patterns || []);
+        renderEvidenceHealth(state.market?.summary?.quality || {});
         renderPatternPremiumRadar(state.market?.patterns || []);
         $("sources").innerHTML = state.sources.length ? state.sources.map(renderSource).join("") : `<div class="row">${escapeHtml(t("noSources"))}</div>`;
         $("eventCount").textContent = shownText(state.events.length);
@@ -1764,9 +1909,31 @@ INDEX_HTML = r"""<!doctype html>
             <span class="premium-rate">${formatPercent(record.premium_rate)}</span>
           </header>
           <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(record.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(record.brand_weight)}</p>
+          <p class="muted">${escapeHtml(t("qualityScore"))} ${escapeHtml(record.quality_score || 0)}</p>
           <p class="muted">${escapeHtml(t("retailPrice"))} ${formatMoney(record.retail_price, record.currency)} · ${escapeHtml(t("resalePrice"))} ${formatMoney(record.resale_price, record.currency)}</p>
           <p class="muted">${escapeHtml([record.condition, record.source, record.observed_at].filter(Boolean).join(" · "))}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
+      }
+
+      function renderEvidenceHealth(quality) {
+        const sampleCount = Number(quality.sample_count) || 0;
+        const score = Number(quality.avg_quality_score) || 0;
+        $("evidenceHealth").innerHTML = `
+          <article class="quality-hero">
+            <strong>${escapeHtml(score)}</strong>
+            <p class="muted">${escapeHtml(t("qualityScore"))} · ${escapeHtml(sampleCount)} ${escapeHtml(t("samples"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(score)}%"></span></div>
+          </article>
+          <div class="quality-checks">
+            ${[
+              [t("qualityLinked"), quality.linked_count || 0],
+              [t("qualitySourced"), quality.sourced_count || 0],
+              [t("qualityDated"), quality.dated_count || 0],
+              [t("qualityNoted"), quality.noted_count || 0],
+              [t("qualityWeak"), quality.weak_count || 0],
+            ].map(([label, value]) => `<article class="quality-check"><strong>${escapeHtml(value)}</strong><span class="muted">${escapeHtml(label)}</span></article>`).join("")}
+          </div>
+        `;
       }
 
       function renderMarketActionDesk(patterns) {

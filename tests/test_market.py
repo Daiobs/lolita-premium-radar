@@ -62,6 +62,9 @@ class MarketTests(unittest.TestCase):
         self.assertGreater(summary["brands"][0]["priority_score"], summary["brands"][1]["priority_score"])
         self.assertEqual(summary["records"][0]["premium_rate"], 0.7)
         self.assertIn("priority_score", summary["records"][0])
+        self.assertIn("quality_score", summary["records"][0])
+        self.assertEqual(summary["quality"]["sample_count"], 3)
+        self.assertEqual(summary["quality"]["weak_count"], 3)
 
     def test_append_market_observation_writes_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -149,6 +152,7 @@ class MarketTests(unittest.TestCase):
         self.assertGreater(shell["priority_score"], 0)
         self.assertEqual(shell["evidence"][0]["source"], "xianyu")
         self.assertEqual(shell["evidence"][0]["url"], "https://example.com/shell")
+        self.assertEqual(shell["evidence"][0]["quality_score"], 77)
 
 
 if __name__ == "__main__":

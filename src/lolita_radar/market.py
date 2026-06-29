@@ -98,10 +98,13 @@ def summarize_market_observations(
                 **observation,
                 "brand_weight": brand_weight,
                 "priority_score": premium_priority_score(float(observation["premium_rate"]), brand_weight, 1),
+                "quality_score": sample_quality_score(observation),
+                "quality_flags": sample_quality_flags(observation),
             }
         )
     return {
         "sample_count": len(observations),
+        "quality": summarize_sample_quality(observations),
         "brands": sorted(
             brands,
             key=lambda row: (int(row["priority_score"]), float(row["avg_premium_rate"]), int(row["sample_count"])),
@@ -232,9 +235,60 @@ def pattern_evidence(rows: list[dict[str, Any]], limit: int = 3) -> list[dict[st
             "url": text(row.get("url")),
             "observed_at": text(row.get("observed_at")),
             "notes": text(row.get("notes")),
+            "quality_score": sample_quality_score(row),
+            "quality_flags": sample_quality_flags(row),
         }
         for row in sorted_rows[:limit]
     ]
+
+
+def summarize_sample_quality(observations: list[dict[str, Any]]) -> dict[str, Any]:
+    total = len(observations)
+    scores = [sample_quality_score(row) for row in observations]
+    linked_count = sum(1 for row in observations if text(row.get("url")))
+    sourced_count = sum(1 for row in observations if text(row.get("source")))
+    dated_count = sum(1 for row in observations if text(row.get("observed_at")))
+    noted_count = sum(1 for row in observations if text(row.get("notes")))
+    weak_count = sum(1 for score in scores if score < 60)
+    return {
+        "sample_count": total,
+        "avg_quality_score": round(sum(scores) / total) if total else 0,
+        "linked_count": linked_count,
+        "sourced_count": sourced_count,
+        "dated_count": dated_count,
+        "noted_count": noted_count,
+        "weak_count": weak_count,
+    }
+
+
+def sample_quality_score(observation: dict[str, Any]) -> int:
+    score = 30
+    if text(observation.get("source")):
+        score += 15
+    if text(observation.get("url")):
+        score += 25
+    if text(observation.get("observed_at")):
+        score += 15
+    if text(observation.get("condition")):
+        score += 8
+    if text(observation.get("notes")):
+        score += 7
+    return max(0, min(100, score))
+
+
+def sample_quality_flags(observation: dict[str, Any]) -> list[str]:
+    flags = []
+    if not text(observation.get("source")):
+        flags.append("missing_source")
+    if not text(observation.get("url")):
+        flags.append("missing_url")
+    if not text(observation.get("observed_at")):
+        flags.append("missing_date")
+    if not text(observation.get("condition")):
+        flags.append("missing_condition")
+    if not text(observation.get("notes")):
+        flags.append("missing_notes")
+    return flags
 
 
 def opportunity_band(score: int, avg_premium_rate: float, sample_count: int, brand_weight: int) -> str:
