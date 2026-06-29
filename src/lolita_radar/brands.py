@@ -4,6 +4,15 @@ import json
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote_plus
+
+
+WATCH_URL_TEMPLATES = [
+    ("闲鱼", "https://www.goofish.com/search?q={query}"),
+    ("淘宝", "https://s.taobao.com/search?q={query}"),
+    ("Mercari", "https://jp.mercari.com/search?keyword={query}"),
+    ("雅虎拍卖", "https://auctions.yahoo.co.jp/search/search?p={query}"),
+]
 
 
 DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
@@ -217,6 +226,8 @@ def normalize_brand_weights(rows: list[Any]) -> list[dict[str, Any]]:
             "keywords": sorted({text(keyword).lower() for keyword in keywords if text(keyword)}),
             "market_keywords": ordered_unique_texts(market_keywords),
             "visual": normalize_brand_visual(raw.get("visual")),
+            "watch_urls": normalize_watch_urls(raw.get("watch_urls"))
+            or default_watch_urls(name),
         }
         brand["keywords"] = sorted({*brand["keywords"], name.lower(), alias.lower()})
         brands.append(brand)
@@ -309,6 +320,31 @@ def normalize_brand_visual(raw: Any) -> dict[str, str]:
         if re.fullmatch(r"#[0-9a-fA-F]{6}", value):
             visual[key] = value
     return visual
+
+
+def normalize_watch_urls(raw: Any) -> list[dict[str, str]]:
+    if not isinstance(raw, list):
+        return []
+    watch_urls: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        label = text(row.get("label"))
+        url = text(row.get("url"))
+        if not label or not re.fullmatch(r"https?://\S+", url):
+            continue
+        key = (label.casefold(), url)
+        if key in seen:
+            continue
+        seen.add(key)
+        watch_urls.append({"label": label, "url": url})
+    return watch_urls
+
+
+def default_watch_urls(name: str) -> list[dict[str, str]]:
+    query = quote_plus(f"{name} lolita")
+    return [{"label": label, "url": template.format(query=query)} for label, template in WATCH_URL_TEMPLATES]
 
 
 def clamp_int(value: Any, default: int) -> int:

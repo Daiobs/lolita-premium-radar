@@ -20,6 +20,11 @@ class BrandTests(unittest.TestCase):
                             "weight": 100,
                             "keywords": ["angelic pretty"],
                             "market_keywords": ["贝壳", "Holy Lantern"],
+                            "watch_urls": [
+                                {"label": "闲鱼", "url": "https://www.goofish.com/search?q=Angelic+Pretty+lolita"},
+                                {"label": "bad", "url": "javascript:alert(1)"},
+                                {"label": "闲鱼", "url": "https://www.goofish.com/search?q=Angelic+Pretty+lolita"},
+                            ],
                             "visual": {
                                 "accent": "#b4576f",
                                 "paper": "#fff3f6",
@@ -37,8 +42,13 @@ class BrandTests(unittest.TestCase):
             self.assertEqual([brand["alias"] for brand in brands], ["AP", "Meta"])
             self.assertIn("ap", brands[0]["keywords"])
             self.assertEqual(brands[0]["market_keywords"], ["贝壳", "Holy Lantern"])
+            self.assertEqual(
+                brands[0]["watch_urls"],
+                [{"label": "闲鱼", "url": "https://www.goofish.com/search?q=Angelic+Pretty+lolita"}],
+            )
             self.assertEqual(brands[0]["visual"]["accent"], "#b4576f")
             self.assertEqual(brands[0]["visual"]["motif"], "ribbon")
+            self.assertEqual(brands[1]["watch_urls"][0]["label"], "闲鱼")
 
     def test_save_brand_weights_updates_existing_aliases(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -52,6 +62,7 @@ class BrandTests(unittest.TestCase):
                             "weight": 80,
                             "tier": "watch",
                             "keywords": ["metamorphose"],
+                            "watch_urls": [{"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=Meta+lolita"}],
                             "visual": {"accent": "#0f6760", "paper": "#f1fbf8", "motif": "swan"},
                         },
                         {"name": "Angelic Pretty", "alias": "AP", "weight": 100, "tier": "core", "keywords": ["angelic pretty"]},
@@ -66,6 +77,7 @@ class BrandTests(unittest.TestCase):
             self.assertEqual(meta["weight"], 94)
             self.assertEqual(meta["tier"], "watch")
             self.assertIn("metamorphose", meta["keywords"])
+            self.assertEqual(meta["watch_urls"][0]["label"], "Mercari")
             self.assertEqual(meta["visual"]["accent"], "#0f6760")
             self.assertEqual(meta["visual"]["motif"], "swan")
             saved = load_brand_weights(path)
@@ -76,6 +88,7 @@ class BrandTests(unittest.TestCase):
         ap = next(brand for brand in brands if brand["alias"] == "AP")
 
         self.assertIn("贝壳", ap["market_keywords"])
+        self.assertIn("goofish.com", ap["watch_urls"][0]["url"])
         self.assertEqual(ap["visual"]["motif"], "ribbon / shell print")
         self.assertEqual(ap["visual"]["accent"], "#b4576f")
 

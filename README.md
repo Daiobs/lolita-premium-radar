@@ -150,8 +150,10 @@ weight, draft weight, and delta for every unsaved brand before you persist
 changes. The current saved/draft brand-weight table can
 also be exported as CSV with identity metadata, premium evidence, sample counts,
 and market keywords for spreadsheet review. Each brand entry can also carry `visual`
-metadata (`palette`, `accent`, `paper`, `motif`, and `radar_cue`) so AP, BABY,
-AATP, and other labels keep distinct Lolita identities across the dashboard.
+metadata (`palette`, `accent`, `paper`, `motif`, and `radar_cue`) plus
+`watch_urls` search links so AP, BABY, AATP, and other labels keep distinct
+Lolita identities across the dashboard and expose quick secondary-market watch
+entry points from the brand identity matrix.
 Each brand card also explains the current weight band, monitoring intent, and
 keyword coverage so the score is easier to audit before changing it. The API
 also exposes `brand_weight_profile`, a

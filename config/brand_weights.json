@@ -7,6 +7,12 @@
     "style": "sweet print",
     "keywords": ["angelic pretty", "ap", "アンジェリックプリティ"],
     "market_keywords": ["贝壳", "白贝壳", "Holy Lantern", "Sugary Carnival", "Melty Cream Donut", "Wonder Cookie"],
+    "watch_urls": [
+      {"label": "闲鱼", "url": "https://www.goofish.com/search?q=Angelic+Pretty+lolita"},
+      {"label": "淘宝", "url": "https://s.taobao.com/search?q=Angelic+Pretty+lolita"},
+      {"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=Angelic+Pretty+lolita"},
+      {"label": "雅虎拍卖", "url": "https://auctions.yahoo.co.jp/search/search?p=Angelic+Pretty+lolita"}
+    ],
     "visual": {
       "palette": "strawberry pink",
       "accent": "#b4576f",
@@ -23,6 +29,12 @@
     "style": "classic sweet",
     "keywords": ["baby the stars shine bright", "btssb", "baby"],
     "market_keywords": ["うさくみゃ", "Usakumya", "Kumakumya", "Baby Doll", "Elizabeth", "Little Red Riding Hood"],
+    "watch_urls": [
+      {"label": "闲鱼", "url": "https://www.goofish.com/search?q=BABY%2C+THE+STARS+SHINE+BRIGHT+lolita"},
+      {"label": "淘宝", "url": "https://s.taobao.com/search?q=BABY%2C+THE+STARS+SHINE+BRIGHT+lolita"},
+      {"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=BABY%2C+THE+STARS+SHINE+BRIGHT+lolita"},
+      {"label": "雅虎拍卖", "url": "https://auctions.yahoo.co.jp/search/search?p=BABY%2C+THE+STARS+SHINE+BRIGHT+lolita"}
+    ],
     "visual": {
       "palette": "ivory rose",
       "accent": "#a9782c",
@@ -39,6 +51,12 @@
     "style": "gothic prince",
     "keywords": ["alice and the pirates", "aatp", "pirates"],
     "market_keywords": ["海盗", "Vampire Requiem", "Chess Game of Destiny", "Midsummer Night's Dream"],
+    "watch_urls": [
+      {"label": "闲鱼", "url": "https://www.goofish.com/search?q=ALICE+and+the+PIRATES+lolita"},
+      {"label": "淘宝", "url": "https://s.taobao.com/search?q=ALICE+and+the+PIRATES+lolita"},
+      {"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=ALICE+and+the+PIRATES+lolita"},
+      {"label": "雅虎拍卖", "url": "https://auctions.yahoo.co.jp/search/search?p=ALICE+and+the+PIRATES+lolita"}
+    ],
     "visual": {
       "palette": "pirate wine",
       "accent": "#611b31",
@@ -55,6 +73,12 @@
     "style": "release/restock",
     "keywords": ["metamorphose", "meta", "metamor"],
     "market_keywords": ["Swan Lake", "Pintuck", "Gobelin", "Lucky Pack"],
+    "watch_urls": [
+      {"label": "闲鱼", "url": "https://www.goofish.com/search?q=Metamorphose+temps+de+fille+lolita"},
+      {"label": "淘宝", "url": "https://s.taobao.com/search?q=Metamorphose+temps+de+fille+lolita"},
+      {"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=Metamorphose+temps+de+fille+lolita"},
+      {"label": "雅虎拍卖", "url": "https://auctions.yahoo.co.jp/search/search?p=Metamorphose+temps+de+fille+lolita"}
+    ],
     "visual": {
       "palette": "mint release",
       "accent": "#0f6760",
@@ -71,6 +95,12 @@
     "style": "gothic",
     "keywords": ["moi-meme-moitie", "moitie", "mmm"],
     "market_keywords": ["Iron Gate", "Stained Glass", "Silent Moon", "十字架"],
+    "watch_urls": [
+      {"label": "闲鱼", "url": "https://www.goofish.com/search?q=Moi-meme-Moitie+lolita"},
+      {"label": "淘宝", "url": "https://s.taobao.com/search?q=Moi-meme-Moitie+lolita"},
+      {"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=Moi-meme-Moitie+lolita"},
+      {"label": "雅虎拍卖", "url": "https://auctions.yahoo.co.jp/search/search?p=Moi-meme-Moitie+lolita"}
+    ],
     "visual": {
       "palette": "cathedral wine",
       "accent": "#50304d",
@@ -87,6 +117,12 @@
     "style": "classic",
     "keywords": ["innocent world", "iw"],
     "market_keywords": ["Rose Basket", "Lotus", "Classical", "圆领"],
+    "watch_urls": [
+      {"label": "闲鱼", "url": "https://www.goofish.com/search?q=Innocent+World+lolita"},
+      {"label": "淘宝", "url": "https://s.taobao.com/search?q=Innocent+World+lolita"},
+      {"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=Innocent+World+lolita"},
+      {"label": "雅虎拍卖", "url": "https://auctions.yahoo.co.jp/search/search?p=Innocent+World+lolita"}
+    ],
     "visual": {
       "palette": "classical gold",
       "accent": "#8d6a28",
@@ -103,6 +139,12 @@
     "style": "classic",
     "keywords": ["victorian maiden", "vm"],
     "market_keywords": ["Regimental", "Rose", "Frill", "classic"],
+    "watch_urls": [
+      {"label": "闲鱼", "url": "https://www.goofish.com/search?q=Victorian+Maiden+lolita"},
+      {"label": "淘宝", "url": "https://s.taobao.com/search?q=Victorian+Maiden+lolita"},
+      {"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=Victorian+Maiden+lolita"},
+      {"label": "雅虎拍卖", "url": "https://auctions.yahoo.co.jp/search/search?p=Victorian+Maiden+lolita"}
+    ],
     "visual": {
       "palette": "victorian mauve",
       "accent": "#8c5468",
@@ -119,6 +161,12 @@
     "style": "classic",
     "keywords": ["mary magdalene", "mm"],
     "market_keywords": ["Elodie", "Rose Basket", "Fleur", "classical"],
+    "watch_urls": [
+      {"label": "闲鱼", "url": "https://www.goofish.com/search?q=Mary+Magdalene+lolita"},
+      {"label": "淘宝", "url": "https://s.taobao.com/search?q=Mary+Magdalene+lolita"},
+      {"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=Mary+Magdalene+lolita"},
+      {"label": "雅虎拍卖", "url": "https://auctions.yahoo.co.jp/search/search?p=Mary+Magdalene+lolita"}
+    ],
     "visual": {
       "palette": "antique rose",
       "accent": "#9b5961",
@@ -135,6 +183,12 @@
     "style": "art print",
     "keywords": ["juliette et justine", "jetj"],
     "market_keywords": ["La Danse", "Le Cadre", "art print", "肖像"],
+    "watch_urls": [
+      {"label": "闲鱼", "url": "https://www.goofish.com/search?q=Juliette+et+Justine+lolita"},
+      {"label": "淘宝", "url": "https://s.taobao.com/search?q=Juliette+et+Justine+lolita"},
+      {"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=Juliette+et+Justine+lolita"},
+      {"label": "雅虎拍卖", "url": "https://auctions.yahoo.co.jp/search/search?p=Juliette+et+Justine+lolita"}
+    ],
     "visual": {
       "palette": "museum teal",
       "accent": "#426a70",

@@ -143,6 +143,7 @@ class MarketTests(unittest.TestCase):
                     "style": "sweet print",
                     "market_keywords": ["贝壳", "Holy Lantern"],
                     "visual": {"accent": "#b4576f", "motif": "ribbon / shell print"},
+                    "watch_urls": [{"label": "闲鱼", "url": "https://www.goofish.com/search?q=Angelic+Pretty+lolita"}],
                 },
                 {"alias": "Meta", "name": "Metamorphose", "weight": 80, "tier": "watch"},
             ],
@@ -159,6 +160,7 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(ap["evidence_score"], 100)
         self.assertEqual(ap["market_keywords"], ["贝壳", "Holy Lantern"])
         self.assertEqual(ap["visual"]["motif"], "ribbon / shell print")
+        self.assertEqual(ap["watch_urls"][0]["label"], "闲鱼")
         self.assertIn("score_breakdown", ap)
         self.assertEqual(meta["evidence_level"], "missing")
 

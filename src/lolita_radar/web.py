@@ -276,6 +276,7 @@ INDEX_HTML = r"""<!doctype html>
         --bg-soft: #fff8f5;
         --panel: #fffdfb;
         --ivory: #fffaf2;
+        --porcelain: #fffefb;
         --powder: #f7e4e8;
         --mint: #eaf6f1;
         --satin: #f6d8df;
@@ -293,6 +294,7 @@ INDEX_HTML = r"""<!doctype html>
         --warn: #a44322;
         --shadow: 0 18px 44px rgba(63, 39, 47, .13);
         --pearl-shadow: 0 1px 0 rgba(255,255,255,.88), 0 7px 18px rgba(97,27,49,.1);
+        --ribbon-shadow: 0 11px 22px rgba(97,27,49,.16);
       }
       * { box-sizing: border-box; }
       body {
@@ -332,6 +334,7 @@ INDEX_HTML = r"""<!doctype html>
       button:disabled { opacity: .65; cursor: wait; }
       .topbar {
         position: relative;
+        isolation: isolate;
         display: grid;
         grid-template-columns: minmax(260px, 1fr) minmax(240px, 340px) auto;
         gap: 18px;
@@ -346,6 +349,10 @@ INDEX_HTML = r"""<!doctype html>
           #241c21;
         border-bottom: 5px double rgba(255,255,255,.24);
         overflow: hidden;
+      }
+      .topbar > div, .hero-visual, .actions {
+        position: relative;
+        z-index: 1;
       }
       .topbar::before {
         content: "";
@@ -367,13 +374,13 @@ INDEX_HTML = r"""<!doctype html>
         background: radial-gradient(circle at 10px 0, rgba(255,255,255,.6) 0 9px, transparent 9px) 0 0 / 20px 9px repeat-x;
         opacity: .7;
       }
-      .eyebrow { margin: 0 0 5px; color: #f1dad7; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+      .eyebrow { margin: 0 0 5px; color: #f1dad7; font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
       .topbar h1 {
         position: relative;
         display: inline-block;
-        margin: 0;
+        margin: 0 0 2px;
         padding-right: 42px;
-        font: 600 31px/1.05 Georgia, "Times New Roman", serif;
+        font: 600 34px/1.02 Georgia, "Times New Roman", serif;
         text-shadow: 0 2px 0 rgba(0,0,0,.14);
       }
       .topbar h1::after {
@@ -403,9 +410,10 @@ INDEX_HTML = r"""<!doctype html>
         border: 1px solid rgba(255,255,255,.22);
         border-radius: 8px;
         background:
-          linear-gradient(180deg, rgba(36,23,31,.08), rgba(36,23,31,.42)),
+          radial-gradient(circle at 50% 12%, rgba(255,255,255,.34), transparent 28%),
+          linear-gradient(180deg, rgba(36,23,31,.04), rgba(36,23,31,.46)),
           url("/assets/lolita-radar-fabric.png") center / cover;
-        box-shadow: inset 0 0 0 4px rgba(255,255,255,.1), 0 18px 34px rgba(15,15,18,.22);
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.1), var(--ribbon-shadow);
         overflow: hidden;
       }
       .hero-visual::before {
@@ -414,6 +422,18 @@ INDEX_HTML = r"""<!doctype html>
         inset: 10px;
         border: 1px solid rgba(255,255,255,.34);
         border-radius: 6px;
+        pointer-events: none;
+      }
+      .hero-visual::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 18px;
+        background:
+          radial-gradient(circle at 10px 0, rgba(255,253,251,.72) 0 9px, transparent 9px) 0 0 / 20px 18px repeat-x,
+          linear-gradient(180deg, rgba(255,253,251,.28), transparent);
         pointer-events: none;
       }
       .hero-visual strong {
@@ -474,7 +494,8 @@ INDEX_HTML = r"""<!doctype html>
       .radar-nav button:hover { background: #fff; }
       .metric, .panel, .atelier {
         background:
-          radial-gradient(circle at 16px 16px, rgba(255,255,255,.88) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 16px 16px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          repeating-linear-gradient(90deg, rgba(180,87,111,.035) 0 1px, transparent 1px 18px),
           linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,253,251,.96)),
           var(--panel);
         border: 1px solid var(--line);
@@ -489,6 +510,7 @@ INDEX_HTML = r"""<!doctype html>
         gap: 5px;
         padding: 13px 15px;
         border-top: 4px solid var(--rose);
+        border-left: 1px solid rgba(169,120,44,.24);
         overflow: hidden;
       }
       .metric::before {
@@ -534,6 +556,7 @@ INDEX_HTML = r"""<!doctype html>
         border-radius: 8px;
         padding: 14px 10px 12px;
         background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
           radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, transparent), transparent 34%),
           linear-gradient(90deg, color-mix(in srgb, var(--brand-accent, var(--rose)) 12%, transparent), transparent 42%),
           var(--bg-soft);
@@ -565,6 +588,7 @@ INDEX_HTML = r"""<!doctype html>
       .brand-chip.theme-mint { --brand-accent: #0f6760; --brand-paper: #f1fbf8; }
       .brand-chip-header { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 9px; align-items: center; }
       .brand-cameo {
+        position: relative;
         display: grid;
         place-items: center;
         align-content: center;
@@ -576,10 +600,25 @@ INDEX_HTML = r"""<!doctype html>
           var(--brand-paper, #fff3f6);
         box-shadow: var(--pearl-shadow);
       }
+      .brand-cameo::before {
+        content: "";
+        position: absolute;
+        top: -5px;
+        width: 28px;
+        height: 13px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 34%, #fff);
+        border-radius: 3px;
+        background:
+          linear-gradient(45deg, transparent 0 35%, rgba(255,255,255,.82) 35% 65%, transparent 65%),
+          linear-gradient(-45deg, transparent 0 35%, rgba(255,255,255,.82) 35% 65%, transparent 65%),
+          color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, #fff);
+        box-shadow: var(--pearl-shadow);
+      }
       .brand-cameo strong { font: 650 17px/1 Georgia, "Times New Roman", serif; }
       .brand-cameo span { color: var(--brand-accent, var(--rose)); font: 650 11px/1 Georgia, "Times New Roman", serif; }
       .brand-title { min-width: 0; }
       .brand-title strong, .brand-title span { overflow-wrap: anywhere; }
+      .brand-title strong { font-family: Georgia, "Times New Roman", serif; }
       .brand-ribbon { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
       .brand-ribbon span {
         display: inline-flex;
@@ -795,6 +834,7 @@ INDEX_HTML = r"""<!doctype html>
         background: #fffaf8;
       }
       .identity-brief {
+        position: relative;
         display: grid;
         gap: 9px;
         align-content: start;
@@ -803,6 +843,17 @@ INDEX_HTML = r"""<!doctype html>
           radial-gradient(circle at 100% 0, rgba(180,87,111,.12), transparent 36%),
           linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9));
         box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+        overflow: hidden;
+      }
+      .identity-brief::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 8px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.36) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
       }
       .identity-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
       .identity-brief p, .identity-card p { margin: 0; color: var(--muted); }
@@ -813,12 +864,13 @@ INDEX_HTML = r"""<!doctype html>
       .identity-card {
         position: relative;
         display: grid;
-        grid-template-columns: 58px minmax(0, 1fr) auto;
+        grid-template-columns: 58px minmax(0, 1fr) minmax(104px, auto);
         gap: 10px;
         align-items: center;
-        padding: 11px 12px;
+        padding: 12px 12px 14px;
         overflow: hidden;
         background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.88) 0 2px, transparent 2px) 0 0 / 22px 22px,
           radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 14%, transparent), transparent 38%),
           linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 72%, #fff), rgba(248,251,250,.92));
       }
@@ -829,7 +881,24 @@ INDEX_HTML = r"""<!doctype html>
         width: 5px;
         background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
       }
+      .identity-card::after {
+        content: "";
+        position: absolute;
+        right: 12px;
+        top: 8px;
+        width: 30px;
+        height: 13px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, #fff);
+        border-radius: 3px;
+        background:
+          linear-gradient(45deg, transparent 0 35%, rgba(255,255,255,.78) 35% 65%, transparent 65%),
+          linear-gradient(-45deg, transparent 0 35%, rgba(255,255,255,.78) 35% 65%, transparent 65%),
+          color-mix(in srgb, var(--brand-accent, var(--rose)) 22%, #fff);
+        opacity: .76;
+        pointer-events: none;
+      }
       .identity-swatch {
+        position: relative;
         display: grid;
         place-items: center;
         width: 48px;
@@ -843,11 +912,35 @@ INDEX_HTML = r"""<!doctype html>
         font: 650 15px/1 Georgia, "Times New Roman", serif;
         box-shadow: var(--pearl-shadow);
       }
+      .identity-swatch::after {
+        content: "";
+        position: absolute;
+        inset: 5px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 34%, transparent);
+        border-radius: 999px;
+        pointer-events: none;
+      }
       .identity-main { display: grid; gap: 5px; min-width: 0; }
-      .identity-main strong { color: var(--wine); }
+      .identity-main strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
       .identity-main p { overflow-wrap: anywhere; }
       .identity-tags { display: flex; flex-wrap: wrap; gap: 5px; }
       .identity-tags span { display: inline-flex; align-items: center; min-height: 23px; padding: 0 7px; border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line)); border-radius: 999px; background: rgba(255,253,251,.72); color: var(--muted); font-size: 12px; }
+      .identity-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+      .identity-links a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 8px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 22%, var(--line));
+        border-radius: 6px;
+        background:
+          linear-gradient(90deg, color-mix(in srgb, var(--brand-accent, var(--rose)) 10%, #fff), #fffdfb);
+        color: color-mix(in srgb, var(--brand-accent, var(--rose)) 72%, var(--wine));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+        font-size: 12px;
+        text-decoration: none;
+      }
+      .identity-links a:hover { background: #fff; text-decoration: none; }
       .identity-score { display: grid; gap: 4px; min-width: 92px; text-align: right; }
       .identity-score strong { color: var(--wine); font: 650 22px/1 Georgia, "Times New Roman", serif; }
       .keyword-board { margin: 0 20px 14px; }
@@ -929,6 +1022,18 @@ INDEX_HTML = r"""<!doctype html>
       .signal-bar span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--teal), var(--rose), var(--gold)); }
       .workspace { display: grid; grid-template-columns: 340px 1fr; gap: 14px; padding: 0 20px 20px; }
       .panel { position: relative; min-width: 0; overflow: hidden; }
+      .panel::before, .atelier::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 8px;
+        background:
+          radial-gradient(circle at 8px 0, rgba(180,87,111,.16) 0 7px, transparent 7px) 0 0 / 16px 8px repeat-x,
+          linear-gradient(90deg, rgba(180,87,111,.18), rgba(169,120,44,.16), rgba(15,103,96,.13));
+        pointer-events: none;
+      }
       .panel::after, .atelier::after {
         content: "";
         position: absolute;
@@ -3117,6 +3222,7 @@ INDEX_HTML = r"""<!doctype html>
           ["palette", "palette"],
           ["motif", "motif"],
           ["radar_cue", "radar_cue"],
+          ["watch_urls", "watch_urls"],
           ["avg_premium_rate", "avg_premium_rate"],
           ["max_premium_rate", "max_premium_rate"],
           ["sample_count", "sample_count"],
@@ -3130,6 +3236,7 @@ INDEX_HTML = r"""<!doctype html>
           palette: row.visual?.palette || "",
           motif: row.visual?.motif || "",
           radar_cue: row.visual?.radar_cue || "",
+          watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
           market_keywords: (row.market_keywords || []).join(" | "),
         }));
         const lines = [
@@ -3544,6 +3651,7 @@ INDEX_HTML = r"""<!doctype html>
             <div class="identity-tags">
               ${keywords.length ? keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("profileNoKeywords"))}</span>`}
             </div>
+            ${brandWatchLinksHtml(entry)}
           </div>
           <div class="identity-score">
             <strong>${escapeHtml(entry.brand_weight)}</strong>
@@ -3551,6 +3659,17 @@ INDEX_HTML = r"""<!doctype html>
             <span class="muted">${escapeHtml(t("identityEvidence"))} ${escapeHtml(entry.sample_count)}</span>
           </div>
         </article>`;
+      }
+
+      function brandWatchLinksHtml(entry) {
+        const links = (entry.watch_urls || [])
+          .map((link) => ({ label: String(link.label || "").trim(), url: safeUrl(link.url) }))
+          .filter((link) => link.label && link.url)
+          .slice(0, 4);
+        if (!links.length) return "";
+        return `<div class="identity-links">
+          ${links.map((link) => `<a href="${escapeHtml(link.url)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
+        </div>`;
       }
 
       function buildOpportunityRows() {
@@ -3572,6 +3691,7 @@ INDEX_HTML = r"""<!doctype html>
             tier: brand.tier,
             style: brand.style,
             visual: brand.visual || {},
+            watch_urls: brand.watch_urls || [],
             brand_weight: weight,
             weight_band: weightBandKey(weight).replace("weightBand", "").toLowerCase(),
             weight_role: weightRoleKey(weight),
@@ -3694,6 +3814,11 @@ INDEX_HTML = r"""<!doctype html>
 
       function escapeHtml(value) {
         return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+      }
+
+      function safeUrl(value) {
+        const text = String(value || "").trim();
+        return /^https?:\/\//.test(text) ? text : "";
       }
 
       function cssEscape(value) {
