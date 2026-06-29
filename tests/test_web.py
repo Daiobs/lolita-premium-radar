@@ -50,6 +50,8 @@ sources:
             self.assertEqual(state["counts"]["items"], 1)
             self.assertEqual(state["counts"]["events"], 1)
             self.assertEqual(state["sources"][0]["name"], "metamorphose")
+            self.assertEqual(state["brand_weights"][0]["alias"], "AP")
+            self.assertEqual(state["brand_weights"][0]["weight"], 100)
             self.assertEqual(state["items"][0]["title"], "New Arrival: Rose JSK")
             self.assertEqual(state["events"][0]["event_type"], "new_item")
 
@@ -58,6 +60,8 @@ sources:
         self.assertIn('data-language="en"', INDEX_HTML)
         self.assertIn("中文", INDEX_HTML)
         self.assertIn("Check All", INDEX_HTML)
+        self.assertIn("brandWeights", INDEX_HTML)
+        self.assertIn("marketSignal", INDEX_HTML)
 
 
 if __name__ == "__main__":

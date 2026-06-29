@@ -92,7 +92,9 @@ python -m lolita_radar.cli web
 
 Then open [http://127.0.0.1:8766](http://127.0.0.1:8766). The dashboard shows
 configured sources, stored events, tracked items, and buttons for manual checks.
-The UI defaults to Chinese and includes a `中文 / EN` language switch.
+The UI defaults to Chinese and includes a `中文 / EN` language switch. It also
+includes a Lolita secondary-market view with brand weights, status mix, and a
+simple premium-signal score for prioritizing attention.
 
 Use a custom database path:
 
