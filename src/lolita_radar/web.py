@@ -1281,6 +1281,7 @@ INDEX_HTML = r"""<!doctype html>
         pointer-events: none;
       }
       .seed-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .seed-card header > div:last-child { display: grid; gap: 5px; justify-items: end; }
       .seed-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
       .seed-score { font: 650 30px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
       .seed-meta, .seed-keywords, .seed-links { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -2277,6 +2278,10 @@ INDEX_HTML = r"""<!doctype html>
           premiumSeedCoreGaps: "核心缺口",
           premiumSeedTopSeed: "第一优先",
           premiumSeedAvgScore: "平均种子分",
+          premiumSeedStageSeed: "先建样本",
+          premiumSeedStagePair: "补第二条",
+          premiumSeedStageExpand: "扩样本",
+          premiumSeedStageWatch: "继续观察",
           marketKeywords: "二级市场词",
           noMarketKeywords: "暂无热门款式词",
           keywordSampleReady: "已填入款式词，可补价格样本",
@@ -2740,6 +2745,10 @@ INDEX_HTML = r"""<!doctype html>
           premiumSeedCoreGaps: "core gaps",
           premiumSeedTopSeed: "top seed",
           premiumSeedAvgScore: "avg seed score",
+          premiumSeedStageSeed: "seed sample",
+          premiumSeedStagePair: "add second",
+          premiumSeedStageExpand: "expand samples",
+          premiumSeedStageWatch: "keep watching",
           marketKeywords: "market terms",
           noMarketKeywords: "No hot pattern keywords yet",
           keywordSampleReady: "keyword filled for price sample",
@@ -3208,7 +3217,10 @@ INDEX_HTML = r"""<!doctype html>
               <strong>${escapeHtml(entry.alias)}</strong>
               <p class="muted">${escapeHtml(entry.name)} · ${escapeHtml(styleLabel(entry.style))}</p>
             </div>
-            <div class="seed-score">${escapeHtml(entry.seed_score)}</div>
+            <div>
+              <div class="seed-score">${escapeHtml(entry.seed_score)}</div>
+              <span class="pill ${premiumSeedStagePill(entry.seed_stage)}">${escapeHtml(t(premiumSeedStageLabel(entry.seed_stage)))}</span>
+            </div>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.seed_score)}%"></span></div>
           <p class="muted">${escapeHtml(t(premiumSeedIntentKey(entry)))} · ${escapeHtml(entry.visual?.radar_cue || "")}</p>
@@ -3264,6 +3276,7 @@ INDEX_HTML = r"""<!doctype html>
           return {
             ...entry,
             seed_score: seedScore,
+            seed_stage: premiumSeedStage(sampleCount),
             seed_terms: (entry.market_keywords || []).slice(0, 4),
           };
         }).filter((entry) => (entry.seed_terms || []).length || Number(entry.brand_weight) >= 70)
@@ -3282,6 +3295,29 @@ INDEX_HTML = r"""<!doctype html>
         if (premium >= 0.25) return "premiumSeedIntentPremium";
         if (samples < 2) return "premiumSeedIntentSeed";
         return "premiumSeedIntentWatch";
+      }
+
+      function premiumSeedStage(sampleCount) {
+        const count = Number(sampleCount) || 0;
+        if (count <= 0) return "seed";
+        if (count < 2) return "pair";
+        if (count < 5) return "expand";
+        return "watch";
+      }
+
+      function premiumSeedStageLabel(stage) {
+        return {
+          seed: "premiumSeedStageSeed",
+          pair: "premiumSeedStagePair",
+          expand: "premiumSeedStageExpand",
+          watch: "premiumSeedStageWatch",
+        }[stage] || "premiumSeedStageSeed";
+      }
+
+      function premiumSeedStagePill(stage) {
+        if (stage === "seed") return "rose";
+        if (stage === "pair" || stage === "expand") return "gold";
+        return "";
       }
 
       function renderMarketForm(weights) {
@@ -4494,6 +4530,7 @@ INDEX_HTML = r"""<!doctype html>
           ["brand_name", "name"],
           ["seed_term", "seed_term"],
           ["seed_score", "seed_score"],
+          ["sample_stage", "sample_stage"],
           ["brand_weight", "brand_weight"],
           ["tier", "tier"],
           ["style", "style"],
@@ -4513,6 +4550,7 @@ INDEX_HTML = r"""<!doctype html>
             tasks.push({
               ...row,
               seed_term: term,
+              sample_stage: t(premiumSeedStageLabel(row.seed_stage)),
               intent: t(premiumSeedIntentKey(row)),
               radar_cue: row.visual?.radar_cue || "",
               goofish_url: seedWatchUrl(links, "闲鱼", "Goofish"),

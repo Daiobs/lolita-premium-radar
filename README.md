@@ -163,7 +163,9 @@ before enough resale observations exist, so terms such as AP `贝壳`, BABY
 `Usakumya`, or AATP `Vampire Requiem` can be pushed straight into the price
 sample form or exported as one seed-task row per brand/term in
 `lolita-premium-seeds.csv`; the same panel summarizes total seed tasks, core
-brand evidence gaps, top seed, and average seed score before export. A draft audit list shows the
+brand evidence gaps, top seed, and average seed score before export, and marks
+each seed as seed-sample, add-second, expand-samples, or keep-watching based on
+current sample count. A draft audit list shows the
 exact saved weight, draft weight, and
 delta for every unsaved brand, plus average shift, raise/lower counts, and the
 largest move before you persist changes. The same audit flags save-before-review
