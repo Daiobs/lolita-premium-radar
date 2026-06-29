@@ -107,8 +107,9 @@ watch queue matches tracked release, preorder, restock, and shop-news items
 against each brand's alias, official keywords, and market pattern terms, then
 scores each signal with brand weight, resale premium, status, and sample gaps so
 new AP/BABY/AATP-style drops can move straight into source review, resale search,
-or price-sample entry. Brand weight cards use Lolita-style visual cues such as
-themed brand cameos, tier
+or price-sample entry; the same rows now flow into the resale run sheet and can
+be exported as `lolita-release-watch.csv`. Brand weight cards use Lolita-style
+visual cues such as themed brand cameos, tier
 ribbons, market-keyword pearls, and per-brand visual identity metadata for
 palette, motif, and radar cue, while keeping the weight sliders and saved draft
 state visible for fast tuning. A brand-weight scenario comparison panel previews

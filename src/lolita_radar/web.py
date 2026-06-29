@@ -2805,6 +2805,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="releaseWatchQueue">新品发售关注队列</h2>
           <span class="muted" data-i18n="releaseWatchHint">把上新/预约/再贩条目接到品牌权重和二手溢价判断</span>
         </div>
+        <button id="exportReleaseWatchCsvBtn" type="button" class="secondary" data-i18n="exportReleaseWatchCsv">导出发售 CSV</button>
       </div>
       <div id="releaseWatchQueue" class="release-grid"></div>
     </section>
@@ -3283,6 +3284,7 @@ INDEX_HTML = r"""<!doctype html>
           runSheetSearches: "查价搜索",
           runSheetSamples: "补样本",
           runSheetDaily: "今日行动",
+          runSheetRelease: "发售关注",
           runSheetMarket: "查价任务",
           runSheetPrice: "价格锚点",
           runSheetGo: "执行",
@@ -3324,6 +3326,9 @@ INDEX_HTML = r"""<!doctype html>
           releaseWatchSource: "来源",
           releaseWatchOpen: "打开原页",
           releaseWatchSample: "补价格样本",
+          exportReleaseWatchCsv: "导出发售 CSV",
+          exportedReleaseWatchCsv: "发售关注队列已导出",
+          noReleaseWatchCsv: "暂无可导出的发售关注",
           releaseActionSample: "先补价格锚点",
           releaseActionTrackPremium: "跟踪二手溢价",
           releaseActionWatchDrop: "盯发售窗口",
@@ -3995,6 +4000,7 @@ INDEX_HTML = r"""<!doctype html>
           runSheetSearches: "search tasks",
           runSheetSamples: "samples",
           runSheetDaily: "daily action",
+          runSheetRelease: "release watch",
           runSheetMarket: "market search",
           runSheetPrice: "price anchor",
           runSheetGo: "open",
@@ -4036,6 +4042,9 @@ INDEX_HTML = r"""<!doctype html>
           releaseWatchSource: "source",
           releaseWatchOpen: "open source",
           releaseWatchSample: "add price sample",
+          exportReleaseWatchCsv: "export release CSV",
+          exportedReleaseWatchCsv: "release watch queue exported",
+          noReleaseWatchCsv: "no release watch rows to export",
           releaseActionSample: "collect price anchor",
           releaseActionTrackPremium: "track resale premium",
           releaseActionWatchDrop: "watch release window",
@@ -6819,6 +6828,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedRunSheetCsv"));
       }
 
+      function exportReleaseWatchCsv() {
+        const rows = releaseWatchRows(buildBrandRadarMatrix());
+        if (!rows.length) {
+          toast(t("noReleaseWatchCsv"));
+          return;
+        }
+        const csv = csvFromReleaseWatchRows(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-release-watch.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedReleaseWatchCsv"));
+      }
+
       function exportPortfolioCsv() {
         const rows = buildBrandRadarMatrix();
         if (!rows.length) {
@@ -7045,6 +7073,47 @@ INDEX_HTML = r"""<!doctype html>
           const links = row.search_links || [];
           return {
             ...row,
+            goofish_url: searchLinkByLabel(links, t("actionGoofish"), "Goofish", "闲鱼"),
+            taobao_url: searchLinkByLabel(links, t("actionTaobao"), "Taobao", "淘宝"),
+            mercari_url: searchLinkByLabel(links, t("actionMercari"), "Mercari"),
+            yahoo_url: searchLinkByLabel(links, t("actionYahoo"), "Yahoo", "雅虎"),
+          };
+        });
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromReleaseWatchRows(rows) {
+        const fields = [
+          ["brand_alias", "alias"],
+          ["brand_name", "name"],
+          ["release_title", "title"],
+          ["release_status", "status_label"],
+          ["release_score", "release_score"],
+          ["action", "action_label_text"],
+          ["matched_terms", "matched_terms_text"],
+          ["primary_keyword", "primary_keyword"],
+          ["brand_weight", "brand_weight"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["sample_count", "sample_count"],
+          ["source", "source"],
+          ["published_at", "published_at"],
+          ["source_url", "url"],
+          ["goofish_url", "goofish_url"],
+          ["taobao_url", "taobao_url"],
+          ["mercari_url", "mercari_url"],
+          ["yahoo_url", "yahoo_url"],
+        ];
+        const enriched = (rows || []).map((row) => {
+          const links = marketSearchLinks({ ...row, keyword: row.primary_keyword || row.alias });
+          return {
+            ...row,
+            status_label: valueLabel("status", row.status),
+            action_label_text: t(row.action_label),
+            matched_terms_text: (row.matched_terms || []).join(" | "),
             goofish_url: searchLinkByLabel(links, t("actionGoofish"), "Goofish", "闲鱼"),
             taobao_url: searchLinkByLabel(links, t("actionTaobao"), "Taobao", "淘宝"),
             mercari_url: searchLinkByLabel(links, t("actionMercari"), "Mercari"),
@@ -7473,6 +7542,23 @@ INDEX_HTML = r"""<!doctype html>
             jump_target: entry.daily_target,
             search_links: keyword ? marketSearchLinks({ ...entry, keyword }) : [],
             tone: entry.daily_tone || "",
+          });
+        });
+        releaseWatchRows(rows).slice(0, 4).forEach((entry) => {
+          tasks.push({
+            ...entry,
+            kind: "release",
+            kind_rank: 4.5,
+            kind_label: t("runSheetRelease"),
+            label: t(entry.action_label),
+            detail: `${valueLabel("status", entry.status)} · ${entry.title}`,
+            priority_score: Number(entry.release_score) || 0,
+            keyword: entry.primary_keyword || entry.alias,
+            sample_alias: entry.alias,
+            sample_keyword: entry.primary_keyword || entry.alias,
+            jump_target: "releaseWatchQueue",
+            search_links: marketSearchLinks({ ...entry, keyword: entry.primary_keyword || entry.alias }),
+            tone: releaseWatchPill(entry.action_label),
           });
         });
         marketActions(currentState?.market?.patterns || []).slice(0, 4).forEach((pattern) => {
@@ -9159,6 +9245,7 @@ INDEX_HTML = r"""<!doctype html>
       $("exportGuardrailsCsvBtn").addEventListener("click", exportBrandWeightGuardrailsCsv);
       $("exportScenariosCsvBtn").addEventListener("click", exportWeightScenariosCsv);
       $("exportRunSheetCsvBtn").addEventListener("click", exportRunSheetCsv);
+      $("exportReleaseWatchCsvBtn").addEventListener("click", exportReleaseWatchCsv);
       $("exportPortfolioCsvBtn").addEventListener("click", exportPortfolioCsv);
       $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);
       $("exportCoreWatchCsvBtn").addEventListener("click", exportCoreWatchCsv);
