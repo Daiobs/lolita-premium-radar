@@ -21,6 +21,19 @@ def load_market_observations(path: Path | None = None) -> list[dict[str, Any]]:
     return [entry for entry in (normalize_market_observation(item) for item in raw) if entry]
 
 
+def append_market_observation(path: Path | None, raw: dict[str, Any]) -> dict[str, Any]:
+    if path is None:
+        path = default_market_observations_path()
+    observation = normalize_market_observation(raw)
+    if observation is None:
+        raise ValueError("brand_alias, item_name, retail_price, and resale_price are required")
+    observations = load_market_observations(path)
+    observations.append(observation)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(observations, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return observation
+
+
 def normalize_market_observation(raw: Any) -> dict[str, Any] | None:
     if not isinstance(raw, dict):
         return None

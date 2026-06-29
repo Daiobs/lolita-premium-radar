@@ -11,7 +11,12 @@ from urllib.parse import urlparse
 from .adapters import SourceConfig
 from .brands import build_focus_queue, default_brand_weights_path, load_brand_weights
 from .config import load_sources
-from .market import default_market_observations_path, load_market_observations, summarize_market_observations
+from .market import (
+    append_market_observation,
+    default_market_observations_path,
+    load_market_observations,
+    summarize_market_observations,
+)
 from .models import RadarEvent
 from .runner import check_sources
 from .storage import connect, list_events, list_items, storage_counts
@@ -82,24 +87,36 @@ def make_handler(
         def do_POST(self) -> None:
             parsed = urlparse(self.path)
             try:
-                if parsed.path != "/api/check":
+                if parsed.path == "/api/check":
+                    self.handle_check()
+                elif parsed.path == "/api/market/observations":
+                    self.handle_market_observation()
+                else:
                     self.send_error(HTTPStatus.NOT_FOUND, "Not found")
-                    return
-                payload = self.read_json(default={})
-                source_name = text_value(payload.get("source")) or None
-                notify = bool(payload.get("notify", False))
-                events = check_sources(config_path=config_path, db_path=db_path, source_name=source_name, notify=notify)
-                state = get_dashboard_state(config_path, db_path, brands_path, market_path)
-                state.update(
-                    {
-                        "checked_source": source_name or "all",
-                        "new_events": [event_to_dict(event) for event in events],
-                        "new_event_count": len(events),
-                    }
-                )
-                self.send_json(state)
             except Exception as exc:
                 self.send_exception(exc)
+
+        def handle_check(self) -> None:
+            payload = self.read_json(default={})
+            source_name = text_value(payload.get("source")) or None
+            notify = bool(payload.get("notify", False))
+            events = check_sources(config_path=config_path, db_path=db_path, source_name=source_name, notify=notify)
+            state = get_dashboard_state(config_path, db_path, brands_path, market_path)
+            state.update(
+                {
+                    "checked_source": source_name or "all",
+                    "new_events": [event_to_dict(event) for event in events],
+                    "new_event_count": len(events),
+                }
+            )
+            self.send_json(state)
+
+        def handle_market_observation(self) -> None:
+            payload = self.read_json(default={})
+            observation = append_market_observation(market_path, payload)
+            state = get_dashboard_state(config_path, db_path, brands_path, market_path)
+            state.update({"added_market_observation": observation})
+            self.send_json(state, status=HTTPStatus.CREATED)
 
         def read_json(self, default: Any | None = None) -> Any:
             length = int(self.headers.get("Content-Length", "0"))
@@ -318,12 +335,18 @@ INDEX_HTML = r"""<!doctype html>
       .market-card { border: 1px solid var(--line); border-radius: 8px; padding: 11px; background: #fffaf8; }
       .market-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .premium-rate { font: 650 22px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
+      .market-form { display: grid; grid-template-columns: repeat(6, minmax(110px, 1fr)); gap: 9px; padding: 12px; border-bottom: 1px solid var(--line); background: #fff7f7; }
+      .market-form label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+      .market-form input, .market-form select { min-height: 36px; width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 0 9px; background: #fffdfb; color: var(--text); font: inherit; }
+      .market-form .wide { grid-column: span 2; }
+      .market-form button { align-self: end; }
       .toast { position: fixed; right: 16px; bottom: 16px; max-width: min(440px, calc(100vw - 32px)); padding: 10px 12px; border-radius: 8px; background: #16242d; color: #fff; box-shadow: var(--shadow); opacity: 0; transform: translateY(8px); transition: .16s; pointer-events: none; }
       .toast.show { opacity: 1; transform: translateY(0); }
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
-        .metrics, .watch-grid, .event-list, .item-list { grid-template-columns: 1fr; }
+        .metrics, .watch-grid, .event-list, .item-list, .market-form { grid-template-columns: 1fr; }
+        .market-form .wide { grid-column: span 1; }
       }
     </style>
   </head>
@@ -364,6 +387,41 @@ INDEX_HTML = r"""<!doctype html>
         <h2 data-i18n="marketPremium">二手溢价观察</h2>
         <span id="marketCount" class="muted"></span>
       </div>
+      <form id="marketForm" class="market-form">
+        <label>
+          <span data-i18n="brandAlias">品牌</span>
+          <select id="marketBrand" name="brand_alias" required></select>
+        </label>
+        <label class="wide">
+          <span data-i18n="itemName">款名</span>
+          <input id="marketItem" name="item_name" type="text" required placeholder="JSK / OP">
+        </label>
+        <label>
+          <span data-i18n="retailPrice">原价</span>
+          <input id="marketRetail" name="retail_price" type="number" min="0" step="0.01" required>
+        </label>
+        <label>
+          <span data-i18n="resalePrice">二手价</span>
+          <input id="marketResale" name="resale_price" type="number" min="0" step="0.01" required>
+        </label>
+        <label>
+          <span data-i18n="currency">币种</span>
+          <input id="marketCurrency" name="currency" type="text" value="CNY">
+        </label>
+        <label>
+          <span data-i18n="condition">成色</span>
+          <input id="marketCondition" name="condition" type="text">
+        </label>
+        <label>
+          <span data-i18n="sourceName">来源</span>
+          <input id="marketSource" name="source" type="text" placeholder="xianyu">
+        </label>
+        <label>
+          <span data-i18n="observedAt">日期</span>
+          <input id="marketObservedAt" name="observed_at" type="date">
+        </label>
+        <button id="addMarketBtn" type="submit" data-i18n="addSample">加入样本</button>
+      </form>
       <div class="market-grid">
         <div>
           <h2 data-i18n="premiumByBrand">品牌溢价排行</h2>
@@ -435,6 +493,14 @@ INDEX_HTML = r"""<!doctype html>
           maxPremium: "最高",
           retailPrice: "原价",
           resalePrice: "二手价",
+          brandAlias: "品牌",
+          itemName: "款名",
+          currency: "币种",
+          condition: "成色",
+          sourceName: "来源",
+          observedAt: "日期",
+          addSample: "加入样本",
+          sampleAdded: "价格样本已加入",
           noSources: "暂无配置数据源。",
           noEvents: "暂无事件。运行检查后会先建立基线。",
           noItems: "暂无跟踪条目。",
@@ -506,6 +572,14 @@ INDEX_HTML = r"""<!doctype html>
           maxPremium: "max",
           retailPrice: "retail",
           resalePrice: "resale",
+          brandAlias: "brand",
+          itemName: "item",
+          currency: "currency",
+          condition: "condition",
+          sourceName: "source",
+          observedAt: "date",
+          addSample: "Add Sample",
+          sampleAdded: "price sample added",
           noSources: "No sources configured.",
           noEvents: "No events yet. Run a check to build the baseline.",
           noItems: "No tracked items yet.",
@@ -570,6 +644,7 @@ INDEX_HTML = r"""<!doctype html>
           [t("metricLatestEvent"), valueLabel("eventType", state.events?.[0]?.event_type) || "-"],
           [t("metricLatestSource"), state.events?.[0]?.source || "-"],
         ].map(([label, value]) => `<article class="metric"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></article>`).join("");
+        renderMarketForm(state.brand_weights || []);
         renderBrandWeights(state.brand_weights || []);
         renderFocusQueue(state.focus_queue || []);
         renderMarketSignal(state.events || [], state.items || []);
@@ -588,6 +663,15 @@ INDEX_HTML = r"""<!doctype html>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.weight) || 0}%"></span></div>
           <p class="muted">${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)} · ${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(styleLabel(brand.style))}</p>
         </article>`).join("");
+      }
+
+      function renderMarketForm(weights) {
+        const select = $("marketBrand");
+        const current = select.value;
+        select.innerHTML = weights.map((brand) => `<option value="${escapeHtml(brand.alias)}">${escapeHtml(brand.alias)} · ${escapeHtml(brand.name)}</option>`).join("");
+        if (current && Array.from(select.options).some((option) => option.value === current)) {
+          select.value = current;
+        }
       }
 
       function renderFocusQueue(queue) {
@@ -691,6 +775,26 @@ INDEX_HTML = r"""<!doctype html>
         }
       }
 
+      async function addMarketObservation(event) {
+        event.preventDefault();
+        setBusy(true);
+        try {
+          const form = event.currentTarget;
+          const payload = Object.fromEntries(new FormData(form).entries());
+          const nextState = await api("/api/market/observations", { method: "POST", body: JSON.stringify(payload) });
+          currentState = nextState;
+          render(nextState);
+          $("marketItem").value = "";
+          $("marketRetail").value = "";
+          $("marketResale").value = "";
+          toast(t("sampleAdded"));
+        } catch (error) {
+          toast(error.message);
+        } finally {
+          setBusy(false);
+        }
+      }
+
       function setBusy(busy) {
         document.querySelectorAll("button").forEach((button) => {
           button.disabled = busy || button.dataset.disabled === "true";
@@ -772,6 +876,7 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       $("checkAllBtn").addEventListener("click", () => runCheck(null));
+      $("marketForm").addEventListener("submit", addMarketObservation);
       $("refreshBtn").addEventListener("click", () => loadState().then(() => toast(t("refreshed"))).catch((error) => toast(error.message)));
       $("sources").addEventListener("click", (event) => {
         const button = event.target.closest("button[data-source]");

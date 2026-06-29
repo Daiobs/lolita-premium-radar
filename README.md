@@ -110,7 +110,8 @@ python -m lolita_radar.cli web --brands config/brand_weights.json
 Market observations live in
 [config/market_observations.json](./config/market_observations.json). Add local
 price samples with the same currency for `retail_price` and `resale_price`; the
-dashboard calculates premium rates and brand-level averages.
+dashboard calculates premium rates and brand-level averages. You can edit this
+file directly or add samples from the web dashboard's resale-premium form.
 
 ```json
 [

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from lolita_radar.market import load_market_observations, summarize_market_observations
+from lolita_radar.market import append_market_observation, load_market_observations, summarize_market_observations
 
 
 class MarketTests(unittest.TestCase):
@@ -45,6 +45,26 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(summary["brands"][0]["brand_alias"], "AP")
         self.assertEqual(summary["brands"][0]["avg_premium_rate"], 0.5)
         self.assertEqual(summary["records"][0]["premium_rate"], 0.7)
+
+    def test_append_market_observation_writes_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "market.json"
+            path.write_text("[]\n", encoding="utf-8")
+
+            observation = append_market_observation(
+                path,
+                {
+                    "brand_alias": "baby",
+                    "item_name": "Kumya JSK",
+                    "retail_price": "1800",
+                    "resale_price": "2520",
+                    "currency": "CNY",
+                },
+            )
+            saved = load_market_observations(path)
+
+            self.assertEqual(observation["brand_alias"], "BABY")
+            self.assertEqual(saved[0]["premium_rate"], 0.4)
 
 
 if __name__ == "__main__":
