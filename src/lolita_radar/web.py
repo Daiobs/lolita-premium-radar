@@ -1310,6 +1310,25 @@ INDEX_HTML = r"""<!doctype html>
       .core-watch-reasons span.rose { color: var(--rose-dark); border-color: rgba(180,87,111,.28); background: rgba(255,243,246,.82); }
       .core-watch-reasons span.gold { color: #7b581e; border-color: rgba(169,120,44,.32); background: rgba(255,248,236,.86); }
       .core-watch-reasons span.warn { color: #8d3a32; border-color: rgba(141,58,50,.28); background: rgba(255,245,242,.86); }
+      .core-watch-price {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+      }
+      .core-watch-price span {
+        display: grid;
+        gap: 3px;
+        min-height: 54px;
+        padding: 8px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, var(--line));
+        border-radius: 8px;
+        background: rgba(255,253,251,.76);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .core-watch-price strong { color: var(--wine); font: 650 15px/1 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+      .core-watch-price.missing { grid-template-columns: 1fr; }
+      .core-watch-price.missing span { min-height: 42px; align-content: center; border-style: dashed; }
       .core-watch-terms button, .core-watch-links a, .core-watch-links button {
         min-height: 26px;
         display: inline-flex;
@@ -1751,6 +1770,7 @@ INDEX_HTML = r"""<!doctype html>
         .weight-radar-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; min-height: 0; padding: 98px 10px 10px; }
         .weight-radar-center { top: 10px; transform: translateX(-50%); min-height: 70px; }
         .weight-radar-node { position: static; width: auto; min-height: 48px; transform: none; }
+        .core-watch-price { grid-template-columns: 1fr; }
         .seed-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .weight-draft-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .weight-draft-warning { grid-template-columns: 1fr; }
@@ -2423,6 +2443,11 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchReasonDiscount: "折价复核",
           coreWatchReasonKeywordRich: "款式词充足",
           coreWatchReasonWatch: "观察档追踪",
+          coreWatchPriceAnchor: "价格锚点",
+          coreWatchRetailAnchor: "原价均值",
+          coreWatchResaleAnchor: "二手均值",
+          coreWatchSpreadAnchor: "均价差",
+          coreWatchPriceMissing: "待补价格锚点",
           exportCoreWatchCsv: "导出盯盘 CSV",
           exportedCoreWatchCsv: "核心盯盘清单已导出",
           noCoreWatchCsv: "暂无可导出的核心盯盘清单",
@@ -2917,6 +2942,11 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchReasonDiscount: "discount review",
           coreWatchReasonKeywordRich: "rich pattern terms",
           coreWatchReasonWatch: "watch-tier tracking",
+          coreWatchPriceAnchor: "price anchor",
+          coreWatchRetailAnchor: "avg retail",
+          coreWatchResaleAnchor: "avg resale",
+          coreWatchSpreadAnchor: "avg spread",
+          coreWatchPriceMissing: "price anchor needed",
           exportCoreWatchCsv: "export watch CSV",
           exportedCoreWatchCsv: "core watch checklist exported",
           noCoreWatchCsv: "no core watch checklist to export",
@@ -4830,6 +4860,10 @@ INDEX_HTML = r"""<!doctype html>
           ["sample_count", "sample_count"],
           ["target_samples", "target_samples"],
           ["avg_premium_rate", "avg_premium_rate"],
+          ["avg_retail_price", "avg_retail_price"],
+          ["avg_resale_price", "avg_resale_price"],
+          ["avg_spread", "avg_spread"],
+          ["currency", "currency"],
           ["watch_terms", "watch_terms"],
           ["radar_cue", "radar_cue"],
           ["goofish_url", "goofish_url"],
@@ -5442,6 +5476,7 @@ INDEX_HTML = r"""<!doctype html>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.watch_score)}%"></span></div>
           <p>${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</p>
+          ${coreWatchPriceAnchorHtml(entry)}
           <div class="core-watch-reasons">
             ${reasons.map((reason) => `<span class="${escapeHtml(reason.tone)}">${escapeHtml(t(reason.label))}</span>`).join("")}
           </div>
@@ -5453,6 +5488,20 @@ INDEX_HTML = r"""<!doctype html>
             <button type="button" class="secondary" data-core-watch-brand="${escapeHtml(entry.alias)}" data-core-watch-term="${escapeHtml(primaryTerm)}">${escapeHtml(t("coreWatchSample"))}</button>
           </div>
         </article>`;
+      }
+
+      function coreWatchPriceAnchorHtml(entry) {
+        const hasPrice = Number(entry.sample_count) > 0 && (Number(entry.avg_retail_price) > 0 || Number(entry.avg_resale_price) > 0);
+        if (!hasPrice) {
+          return `<div class="core-watch-price missing" aria-label="${escapeHtml(t("coreWatchPriceAnchor"))}">
+            <span><strong>${escapeHtml(t("coreWatchPriceMissing"))}</strong>${escapeHtml(t("coreWatchSample"))}</span>
+          </div>`;
+        }
+        return `<div class="core-watch-price" aria-label="${escapeHtml(t("coreWatchPriceAnchor"))}">
+          <span>${escapeHtml(t("coreWatchRetailAnchor"))}<strong>${escapeHtml(formatMoney(entry.avg_retail_price, entry.currency))}</strong></span>
+          <span>${escapeHtml(t("coreWatchResaleAnchor"))}<strong>${escapeHtml(formatMoney(entry.avg_resale_price, entry.currency))}</strong></span>
+          <span>${escapeHtml(t("coreWatchSpreadAnchor"))}<strong>${escapeHtml(formatMoney(entry.avg_spread, entry.currency))}</strong></span>
+        </div>`;
       }
 
       function coreWatchReasons(entry) {
@@ -5592,6 +5641,7 @@ INDEX_HTML = r"""<!doctype html>
             avg_retail_price: Number(market.avg_retail_price) || 0,
             avg_resale_price: Number(market.avg_resale_price) || 0,
             avg_spread: Number(market.avg_spread) || 0,
+            currency: market.currency || "CNY",
             evidence_level: evidenceLevel(sampleCount),
             evidence_score: evidenceScore(sampleCount),
             priority_score: priorityScore,
