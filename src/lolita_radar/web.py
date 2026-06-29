@@ -552,6 +552,84 @@ INDEX_HTML = r"""<!doctype html>
         font-size: 12px;
         box-shadow: var(--pearl-shadow);
       }
+      .wardrobe-tape {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-top: 2px;
+      }
+      .wardrobe-ticket {
+        position: relative;
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 7px;
+        min-height: 58px;
+        padding: 7px;
+        border: 1px solid rgba(255,255,255,.34);
+        border-radius: 7px;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 22%, transparent), transparent 45%),
+          linear-gradient(135deg, rgba(255,253,251,.9), rgba(255,248,246,.72));
+        color: var(--wine);
+        box-shadow: var(--pearl-shadow);
+        overflow: hidden;
+      }
+      .wardrobe-ticket::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 4px;
+        background:
+          radial-gradient(circle at 6px 0, rgba(255,255,255,.9) 0 4px, transparent 4px) 0 0 / 12px 4px repeat-x,
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .dress-token {
+        position: relative;
+        align-self: center;
+        width: 30px;
+        height: 36px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 42%, #fff);
+        border-radius: 999px 999px 7px 7px;
+        background:
+          radial-gradient(circle at 50% 9px, rgba(255,255,255,.9) 0 3px, transparent 3px),
+          linear-gradient(90deg, transparent 0 28%, rgba(255,255,255,.42) 28% 33%, transparent 33% 67%, rgba(255,255,255,.42) 67% 72%, transparent 72%),
+          linear-gradient(180deg, color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, #fff), var(--brand-accent, var(--rose)));
+        box-shadow: inset 0 -6px 0 rgba(255,255,255,.24);
+      }
+      .dress-token::before {
+        content: "";
+        position: absolute;
+        left: 5px;
+        right: 5px;
+        top: 12px;
+        height: 6px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--gold) 72%, #fff);
+      }
+      .dress-token::after {
+        content: "";
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        bottom: 2px;
+        height: 5px;
+        background: radial-gradient(circle at 4px 0, rgba(255,255,255,.72) 0 4px, transparent 4px) 0 0 / 8px 5px repeat-x;
+      }
+      .wardrobe-ticket strong {
+        display: block;
+        color: var(--wine);
+        font: 650 14px/1.05 Georgia, "Times New Roman", serif;
+        overflow-wrap: anywhere;
+      }
+      .wardrobe-ticket span {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.35;
+      }
       .style-compass {
         display: grid;
         grid-template-columns: repeat(5, minmax(82px, 1fr));
@@ -3191,6 +3269,7 @@ INDEX_HTML = r"""<!doctype html>
           <span data-i18n="heroVisualPremium">溢价热度</span>
           <span data-i18n="heroVisualEvidence">样本证据</span>
         </div>
+        <div id="wardrobeTape" class="wardrobe-tape" aria-label="Lolita wardrobe signal tape"></div>
       </aside>
       <div class="actions">
         <div class="preference-stack">
@@ -3743,6 +3822,10 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualWeight: "品牌权重",
           heroVisualPremium: "溢价热度",
           heroVisualEvidence: "样本证据",
+          wardrobeWeight: "权重",
+          wardrobePremium: "溢价",
+          wardrobeSamples: "样本",
+          wardrobeNoRows: "暂无品牌票据",
           navNorthStar: "北极星",
           navCrown: "皇冠",
           navStylePremium: "行情",
@@ -4564,6 +4647,10 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualWeight: "brand weight",
           heroVisualPremium: "premium heat",
           heroVisualEvidence: "sample evidence",
+          wardrobeWeight: "weight",
+          wardrobePremium: "premium",
+          wardrobeSamples: "samples",
+          wardrobeNoRows: "no brand tickets",
           navNorthStar: "North Star",
           navCrown: "Crown",
           navStylePremium: "Tape",
@@ -5755,6 +5842,37 @@ INDEX_HTML = r"""<!doctype html>
             </div>
           </article>`;
         }).join("");
+      }
+
+      function renderWardrobeTape(rows = buildBrandRadarMatrix()) {
+        const target = $("wardrobeTape");
+        if (!target) return;
+        const tickets = wardrobeTapeRows(rows);
+        target.innerHTML = tickets.length
+          ? tickets.map(wardrobeTicketHtml).join("")
+          : `<article class="wardrobe-ticket"><div class="dress-token" aria-hidden="true"></div><div><strong>-</strong><span>${escapeHtml(t("wardrobeNoRows"))}</span></div></article>`;
+      }
+
+      function wardrobeTapeRows(rows, limit = 3) {
+        return [...(rows || [])]
+          .sort((a, b) => (
+            (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+            || (Number(b.avg_premium_rate) || 0) - (Number(a.avg_premium_rate) || 0)
+            || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+          ))
+          .slice(0, limit);
+      }
+
+      function wardrobeTicketHtml(entry) {
+        const targetSamples = Number(entry.target_samples) || sampleTarget(entry.brand_weight, entry.tier);
+        return `<article class="wardrobe-ticket" data-wardrobe-ticket="${escapeHtml(entry.alias)}" style="${escapeHtml(brandVisualStyle(entry))}">
+          <div class="dress-token" aria-hidden="true"></div>
+          <div>
+            <strong>${escapeHtml(entry.alias || "-")}</strong>
+            <span>${escapeHtml(t("wardrobeWeight"))} ${escapeHtml(entry.brand_weight || 0)} · ${escapeHtml(t("wardrobePremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</span>
+            <span>${escapeHtml(t("wardrobeSamples"))} ${escapeHtml(entry.sample_count || 0)}/${escapeHtml(targetSamples)}</span>
+          </div>
+        </article>`;
       }
 
       function renderBrandLookbook(rows) {
@@ -9453,6 +9571,7 @@ INDEX_HTML = r"""<!doctype html>
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
         renderStyleCompass(rows);
+        renderWardrobeTape(rows);
         renderBrandWeightSalon(rows);
         renderNorthStarRadar(rows);
         renderBrandCrownQueue(rows);

@@ -97,6 +97,8 @@ includes a Lolita secondary-market view with brand weights, status mix, and a
 simple premium-signal score for prioritizing attention. The first screen pairs
 the operational controls with a local lace-and-radar visual asset so the app
 feels closer to a Lolita market desk without depending on remote media. A
+wardrobe ticket tape in the hero turns the highest-weight labels into small
+dress-card signals with weight, resale premium, and sample coverage. A
 North Star radar band combines brand portfolio health, weighted evidence
 coverage, release heat, run-sheet pressure, and premium-backed brands into one
 top-level maturity score, with four lane cards that explain whether today's work
