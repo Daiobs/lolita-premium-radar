@@ -2052,6 +2052,37 @@ INDEX_HTML = r"""<!doctype html>
       .strategy-card .profile-row { grid-template-columns: 62px 1fr 32px; }
       .formula-board { margin: 0 20px 14px; }
       .formula-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; padding: 12px; }
+      .formula-summary {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(220px, .58fr) minmax(320px, 1.42fr);
+        gap: 10px;
+        border: 1px solid color-mix(in srgb, var(--gold) 22%, var(--line));
+        border-radius: 8px;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(169,120,44,.16), transparent 32%),
+          radial-gradient(circle at 0 100%, rgba(var(--theme-rose-rgb), .1), transparent 36%),
+          linear-gradient(135deg, rgba(255,248,236,.88), rgba(248,251,250,.94));
+        box-shadow: var(--paper-shadow);
+      }
+      .formula-summary h3 { margin: 0; color: var(--wine); font: 650 18px/1.15 Georgia, "Times New Roman", serif; }
+      .formula-summary p { margin: 0; color: var(--muted); }
+      .formula-summary-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+      .formula-summary-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 50px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.76);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .formula-summary-stats strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .formula-contrib-list { display: grid; gap: 7px; }
+      .formula-contrib-row { display: grid; grid-template-columns: 86px 1fr 44px; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
       .formula-card {
         position: relative;
         display: grid;
@@ -2848,7 +2879,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -3856,6 +3887,12 @@ INDEX_HTML = r"""<!doctype html>
           formulaWatchability: "入口",
           formulaTarget: "建议目标",
           formulaConfidence: "置信度",
+          formulaSummary: "配方贡献总览",
+          formulaSummaryHint: "把当前品牌池的目标权重拆成基线、溢价、证据、款式词和监控入口",
+          formulaAvgTarget: "均值目标",
+          formulaAvgConfidence: "均值置信",
+          formulaCollectCount: "待补证据",
+          formulaLeadMove: "最大偏移",
           formulaApplyDraft: "套用目标",
           formulaAligned: "已匹配",
           formulaRaise: "建议上调",
@@ -4615,6 +4652,12 @@ INDEX_HTML = r"""<!doctype html>
           formulaWatchability: "watch links",
           formulaTarget: "target",
           formulaConfidence: "confidence",
+          formulaSummary: "Formula Contribution Overview",
+          formulaSummaryHint: "Split the current brand pool target weights into base, premium, evidence, terms, and watch-link inputs",
+          formulaAvgTarget: "avg target",
+          formulaAvgConfidence: "avg confidence",
+          formulaCollectCount: "needs evidence",
+          formulaLeadMove: "largest drift",
           formulaApplyDraft: "apply target",
           formulaAligned: "aligned",
           formulaRaise: "raise",
@@ -6498,7 +6541,9 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderBrandWeightFormula(rows) {
         const formulas = buildBrandWeightFormula(rows);
-        $("brandWeightFormula").innerHTML = formulas.length ? formulas.map((entry) => `<article class="formula-card" style="${escapeHtml(brandVisualStyle(entry))}">
+        $("brandWeightFormula").innerHTML = formulas.length ? `
+          ${formulaSummaryHtml(formulas)}
+          ${formulas.map((entry) => `<article class="formula-card" style="${escapeHtml(brandVisualStyle(entry))}">
           <header>
             <div>
               <strong>${escapeHtml(entry.alias)}</strong>
@@ -6525,7 +6570,62 @@ INDEX_HTML = r"""<!doctype html>
           </div>
           <p class="muted">${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
           ${entry.delta ? `<button type="button" class="secondary" data-formula-apply="${escapeHtml(entry.alias)}" data-formula-target="${escapeHtml(entry.target_weight)}">${escapeHtml(t("formulaApplyDraft"))}</button>` : ""}
-        </article>`).join("") : `<div class="row">${escapeHtml(t("formulaNoRows"))}</div>`;
+        </article>`).join("")}
+        ` : `<div class="row">${escapeHtml(t("formulaNoRows"))}</div>`;
+      }
+
+      function formulaSummaryHtml(formulas) {
+        const stats = formulaContributionStats(formulas);
+        return `<article class="formula-summary">
+          <div>
+            <h3>${escapeHtml(t("formulaSummary"))}</h3>
+            <p>${escapeHtml(t("formulaSummaryHint"))}</p>
+            <div class="formula-summary-stats">
+              <span><strong>${escapeHtml(stats.avg_target)}</strong>${escapeHtml(t("formulaAvgTarget"))}</span>
+              <span><strong>${escapeHtml(stats.avg_confidence)}%</strong>${escapeHtml(t("formulaAvgConfidence"))}</span>
+              <span><strong>${escapeHtml(stats.collect_count)}</strong>${escapeHtml(t("formulaCollectCount"))}</span>
+            </div>
+          </div>
+          <div class="formula-contrib-list">
+            ${stats.parts.map((part) => `<div class="formula-contrib-row">
+              <strong>${escapeHtml(t(part.label))}</strong>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(part.score)}%"></span></div>
+              <span>${escapeHtml(part.value)}</span>
+            </div>`).join("")}
+            <p>${escapeHtml(t("formulaLeadMove"))} ${escapeHtml(stats.lead_move)}</p>
+          </div>
+        </article>`;
+      }
+
+      function formulaContributionStats(formulas) {
+        const rows = formulas || [];
+        const count = rows.length || 1;
+        const avg = (key) => Math.round(rows.reduce((sum, row) => sum + (Number(row.parts?.[key]) || 0), 0) / count);
+        const avgTarget = rows.length ? Math.round(rows.reduce((sum, row) => sum + (Number(row.target_weight) || 0), 0) / rows.length) : 0;
+        const avgConfidence = rows.length ? Math.round(rows.reduce((sum, row) => sum + (Number(row.confidence) || 0), 0) / rows.length) : 0;
+        const collectCount = rows.filter((row) => Number(row.sample_count) < 2).length;
+        const lead = [...rows].sort((a, b) => Math.abs(Number(b.delta) || 0) - Math.abs(Number(a.delta) || 0))[0];
+        const parts = [
+          { key: "base", label: "formulaBase", max: 90 },
+          { key: "premium", label: "formulaPremium", max: 16 },
+          { key: "evidence", label: "formulaEvidence", max: 8 },
+          { key: "keywords", label: "formulaKeywords", max: 4 },
+          { key: "watchability", label: "formulaWatchability", max: 4 },
+        ].map((part) => {
+          const value = avg(part.key);
+          return {
+            ...part,
+            value,
+            score: clampScore(Math.max(0, value) / part.max * 100),
+          };
+        });
+        return {
+          avg_target: avgTarget,
+          avg_confidence: avgConfidence,
+          collect_count: collectCount,
+          lead_move: lead ? `${lead.alias} ${formatDelta(lead.delta)}` : "-",
+          parts,
+        };
       }
 
       function buildBrandWeightFormula(rows, limit = 9) {

@@ -260,9 +260,11 @@ saved/draft brand-weight table can also be exported as CSV with identity
 metadata, premium evidence, sample counts, market keywords, and an auditable
 formula target for spreadsheet review. The
 formula panel breaks each target into baseline tier weight, resale premium,
-sample evidence, keyword depth, and watch-link readiness; applying a formula
-target, from either the formula cards or the trajectory path, only creates an
-unsaved draft until you choose to save the brand weights.
+sample evidence, keyword depth, and watch-link readiness; it also includes a
+formula contribution overview that averages those parts across the current brand
+pool, shows average target/confidence, and calls out the largest suggested weight
+drift. Applying a formula target, from either the formula cards or the trajectory
+path, only creates an unsaved draft until you choose to save the brand weights.
 Each brand entry can also carry `visual`
 metadata (`palette`, `accent`, `paper`, `motif`, and `radar_cue`) plus
 `watch_urls` search links so AP, BABY, AATP, and other labels keep distinct
