@@ -137,7 +137,9 @@ keywords to show item-level premium, sample count, and weighted priority. The
 core brand watch desk then brings high-weight brands, signature pattern terms,
 sample progress, one-click sample prefill, and Goofish/Taobao/Mercari/Yahoo JP
 search links into one daily watch surface for AP shell-line style tasks and
-other core-label checks. The
+other core-label checks; each card also explains why it is on watch with chips
+for core weight, thin evidence, positive/strong premium, discount review, and
+keyword depth. The
 market action desk turns the highest-priority pattern rows into search links for
 Goofish, Taobao, Mercari JP, and Yahoo Japan Auctions plus one-click sample
 prefill. An evidence-health panel scores sample quality from source, link, date,

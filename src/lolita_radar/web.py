@@ -1295,7 +1295,21 @@ INDEX_HTML = r"""<!doctype html>
       .core-watch-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
       .core-watch-card strong { color: var(--wine); }
       .core-watch-score { font: 650 26px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
-      .core-watch-terms, .core-watch-links { display: flex; flex-wrap: wrap; gap: 6px; }
+      .core-watch-reasons, .core-watch-terms, .core-watch-links { display: flex; flex-wrap: wrap; gap: 6px; }
+      .core-watch-reasons span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 7px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.78);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .core-watch-reasons span.rose { color: var(--rose-dark); border-color: rgba(180,87,111,.28); background: rgba(255,243,246,.82); }
+      .core-watch-reasons span.gold { color: #7b581e; border-color: rgba(169,120,44,.32); background: rgba(255,248,236,.86); }
+      .core-watch-reasons span.warn { color: #8d3a32; border-color: rgba(141,58,50,.28); background: rgba(255,245,242,.86); }
       .core-watch-terms button, .core-watch-links a, .core-watch-links button {
         min-height: 26px;
         display: inline-flex;
@@ -2399,6 +2413,13 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchSearch: "搜索入口",
           coreWatchSample: "补样本",
           coreWatchCue: "关注提示",
+          coreWatchReasonCore: "核心高权重",
+          coreWatchReasonThin: "先补二手样本",
+          coreWatchReasonStrongPremium: "强溢价证据",
+          coreWatchReasonPositivePremium: "正溢价线索",
+          coreWatchReasonDiscount: "折价复核",
+          coreWatchReasonKeywordRich: "款式词充足",
+          coreWatchReasonWatch: "观察档追踪",
           noCoreWatch: "暂无核心盯盘品牌",
           premiumSeedRadar: "溢价关注种子",
           premiumSeedHint: "没有足够二手价样本前，先把高权重品牌和代表款式词排进采样队列",
@@ -2883,6 +2904,13 @@ INDEX_HTML = r"""<!doctype html>
           coreWatchSearch: "search",
           coreWatchSample: "add sample",
           coreWatchCue: "watch cue",
+          coreWatchReasonCore: "core high weight",
+          coreWatchReasonThin: "collect resale samples",
+          coreWatchReasonStrongPremium: "strong premium evidence",
+          coreWatchReasonPositivePremium: "positive premium signal",
+          coreWatchReasonDiscount: "discount review",
+          coreWatchReasonKeywordRich: "rich pattern terms",
+          coreWatchReasonWatch: "watch-tier tracking",
           noCoreWatch: "No core watch brands yet",
           premiumSeedRadar: "Premium Watch Seeds",
           premiumSeedHint: "Before samples are thick enough, queue high-weight brands and signature terms for price collection",
@@ -5329,6 +5357,7 @@ INDEX_HTML = r"""<!doctype html>
       function coreMarketWatchCardHtml(entry) {
         const terms = entry.watch_terms || [];
         const primaryTerm = terms[0] || entry.alias;
+        const reasons = coreWatchReasons(entry);
         return `<article class="core-watch-card" style="${escapeHtml(brandVisualStyle(entry))}">
           <header>
             <div>
@@ -5339,6 +5368,9 @@ INDEX_HTML = r"""<!doctype html>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.watch_score)}%"></span></div>
           <p>${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</p>
+          <div class="core-watch-reasons">
+            ${reasons.map((reason) => `<span class="${escapeHtml(reason.tone)}">${escapeHtml(t(reason.label))}</span>`).join("")}
+          </div>
           <div class="core-watch-terms" aria-label="${escapeHtml(t("coreWatchTerms"))}">
             ${terms.length ? terms.map((term) => `<button type="button" data-core-watch-brand="${escapeHtml(entry.alias)}" data-core-watch-term="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("") : `<span class="muted">${escapeHtml(t("noMarketKeywords"))}</span>`}
           </div>
@@ -5347,6 +5379,22 @@ INDEX_HTML = r"""<!doctype html>
             <button type="button" class="secondary" data-core-watch-brand="${escapeHtml(entry.alias)}" data-core-watch-term="${escapeHtml(primaryTerm)}">${escapeHtml(t("coreWatchSample"))}</button>
           </div>
         </article>`;
+      }
+
+      function coreWatchReasons(entry) {
+        const weight = Number(entry.brand_weight) || 0;
+        const samples = Number(entry.sample_count) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        const keywordCount = (entry.watch_terms || entry.market_keywords || []).length;
+        const reasons = [];
+        if (weight >= 90) reasons.push({ label: "coreWatchReasonCore", tone: "rose" });
+        else if (weight >= 75) reasons.push({ label: "coreWatchReasonWatch", tone: "gold" });
+        if (samples < 2) reasons.push({ label: "coreWatchReasonThin", tone: "gold" });
+        if (premium >= 0.5) reasons.push({ label: "coreWatchReasonStrongPremium", tone: "rose" });
+        else if (premium >= 0.25) reasons.push({ label: "coreWatchReasonPositivePremium", tone: "rose" });
+        else if (premium < 0) reasons.push({ label: "coreWatchReasonDiscount", tone: "warn" });
+        if (keywordCount >= 4) reasons.push({ label: "coreWatchReasonKeywordRich", tone: "" });
+        return reasons.slice(0, 4);
       }
 
       function coreMarketWatchRows(rows) {
