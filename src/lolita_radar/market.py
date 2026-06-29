@@ -157,6 +157,67 @@ def build_opportunity_radar(
     )[:limit]
 
 
+def build_pattern_radar(
+    brand_weights: list[dict[str, Any]],
+    observations: list[dict[str, Any]],
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    patterns: list[dict[str, Any]] = []
+    for brand in brand_weights:
+        alias = text(brand.get("alias"))
+        if not alias:
+            continue
+        weight = clamp_int(brand.get("weight"), default=50)
+        for keyword in brand.get("market_keywords") or []:
+            term = text(keyword)
+            if not term:
+                continue
+            rows = [
+                row for row in observations
+                if text(row.get("brand_alias")).upper() == alias.upper()
+                and keyword_in_observation(term, row)
+            ]
+            premium_rates = [float(row["premium_rate"]) for row in rows]
+            avg_premium_rate = sum(premium_rates) / len(premium_rates) if premium_rates else 0.0
+            score = premium_priority_score(avg_premium_rate, weight, len(rows))
+            patterns.append(
+                {
+                    "name": text(brand.get("name")) or alias,
+                    "alias": alias,
+                    "keyword": term,
+                    "brand_weight": weight,
+                    "sample_count": len(rows),
+                    "avg_premium_rate": round(avg_premium_rate, 4),
+                    "max_premium_rate": round(max(premium_rates), 4) if premium_rates else 0,
+                    "priority_score": score,
+                    "band": opportunity_band(score, avg_premium_rate, len(rows), weight),
+                    "reason_codes": opportunity_reasons(avg_premium_rate, len(rows), weight),
+                }
+            )
+    return sorted(
+        patterns,
+        key=lambda row: (
+            int(row["sample_count"] > 0),
+            int(row["priority_score"]),
+            float(row["avg_premium_rate"]),
+            int(row["brand_weight"]),
+        ),
+        reverse=True,
+    )[:limit]
+
+
+def keyword_in_observation(keyword: str, observation: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        [
+            text(observation.get("item_name")),
+            text(observation.get("notes")),
+            text(observation.get("source")),
+            text(observation.get("url")),
+        ]
+    ).casefold()
+    return keyword.casefold() in haystack
+
+
 def opportunity_band(score: int, avg_premium_rate: float, sample_count: int, brand_weight: int) -> str:
     if sample_count < 2 and brand_weight >= 85:
         return "collect_samples"

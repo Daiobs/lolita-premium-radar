@@ -14,6 +14,7 @@ from .config import load_sources
 from .market import (
     append_market_observation,
     build_opportunity_radar,
+    build_pattern_radar,
     default_market_observations_path,
     load_market_observations,
     summarize_market_observations,
@@ -203,6 +204,7 @@ def get_dashboard_state(
         "market": {
             "observations": market_observations,
             "summary": market_summary,
+            "patterns": build_pattern_radar(brand_weights, market_observations),
         },
         "sources": [source_to_dict(source) for source in sources.values()],
         "items": items,
@@ -426,6 +428,21 @@ INDEX_HTML = r"""<!doctype html>
       .keyword-card strong { color: var(--wine); }
       .keyword-chips { display: flex; flex-wrap: wrap; gap: 6px; }
       .keyword-chips button { min-height: 28px; padding: 0 8px; border-color: rgba(15,103,96,.18); background: #f8fbfa; box-shadow: none; color: var(--teal); }
+      .pattern-board { margin: 0 20px 14px; }
+      .pattern-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 12px; }
+      .pattern-card {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background:
+          linear-gradient(135deg, rgba(180,87,111,.1), rgba(255,247,232,.82)),
+          #fffaf8;
+      }
+      .pattern-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .pattern-card strong { color: var(--wine); }
+      .pattern-card button { justify-self: start; min-height: 30px; padding-inline: 10px; }
       .signal-strip { display: grid; gap: 8px; align-content: start; }
       .signal-bar { height: 11px; overflow: hidden; border-radius: 999px; background: var(--lace); box-shadow: inset 0 0 0 1px rgba(97,27,49,.06); }
       .signal-bar span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--teal), var(--rose), var(--gold)); }
@@ -659,6 +676,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
       <div id="brandKeywordRadar" class="keyword-radar"></div>
     </section>
+    <section class="panel pattern-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="patternPremiumRadar">款式溢价雷达</h2>
+          <span class="muted" data-i18n="patternPremiumHint">把热门款式词和已录二手价样本连起来</span>
+        </div>
+      </div>
+      <div id="patternPremiumRadar" class="pattern-grid"></div>
+    </section>
     <section class="panel matrix-board">
       <div class="toolbar matrix-toolbar">
         <div>
@@ -883,6 +909,10 @@ INDEX_HTML = r"""<!doctype html>
           marketKeywords: "二级市场词",
           noMarketKeywords: "暂无热门款式词",
           keywordSampleReady: "已填入款式词，可补价格样本",
+          patternPremiumRadar: "款式溢价雷达",
+          patternPremiumHint: "把热门款式词和已录二手价样本连起来",
+          noPatternPremium: "暂无款式词雷达数据",
+          patternSample: "补这个款",
           weightTuning: "权重校准建议",
           weightTuningHint: "把溢价、样本和当前权重翻译成下一步动作",
           noWeightTuning: "暂无校准建议",
@@ -1077,6 +1107,10 @@ INDEX_HTML = r"""<!doctype html>
           marketKeywords: "market terms",
           noMarketKeywords: "No hot pattern keywords yet",
           keywordSampleReady: "keyword filled for price sample",
+          patternPremiumRadar: "Pattern Premium Radar",
+          patternPremiumHint: "Connect hot pattern terms to recorded resale-price samples",
+          noPatternPremium: "No pattern premium radar data yet",
+          patternSample: "sample this pattern",
           weightTuning: "Weight Tuning",
           weightTuningHint: "Turn premium, sample count, and current weight into next actions",
           noWeightTuning: "No tuning suggestions yet",
@@ -1227,6 +1261,7 @@ INDEX_HTML = r"""<!doctype html>
         renderOpportunityRadar(state.opportunity_radar || []);
         renderMarketSignal(state.events || [], state.items || []);
         renderMarketPremium(state.market || {});
+        renderPatternPremiumRadar(state.market?.patterns || []);
         $("sources").innerHTML = state.sources.length ? state.sources.map(renderSource).join("") : `<div class="row">${escapeHtml(t("noSources"))}</div>`;
         $("eventCount").textContent = shownText(state.events.length);
         $("events").innerHTML = state.events.length ? state.events.map(renderEvent).join("") : `<div class="row">${escapeHtml(t("noEvents"))}</div>`;
@@ -1668,6 +1703,23 @@ INDEX_HTML = r"""<!doctype html>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
       }
 
+      function renderPatternPremiumRadar(patterns) {
+        $("patternPremiumRadar").innerHTML = patterns.length ? patterns.map((pattern) => `<article class="pattern-card">
+          <header>
+            <div>
+              <strong>${escapeHtml(pattern.alias)} · ${escapeHtml(pattern.keyword)}</strong>
+              <p class="muted">${escapeHtml(pattern.name)}</p>
+            </div>
+            <span class="pill ${opportunityPill(pattern.band)}">${escapeHtml(valueLabel("opportunityBand", pattern.band))}</span>
+          </header>
+          <span class="premium-rate">${escapeHtml(formatPercent(pattern.avg_premium_rate))}</span>
+          <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(pattern.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(pattern.brand_weight)}</p>
+          <p class="muted">${escapeHtml(t("samples"))} ${escapeHtml(pattern.sample_count)} · ${escapeHtml(t("maxPremium"))} ${escapeHtml(formatPercent(pattern.max_premium_rate))}</p>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(pattern.priority_score) || 0}%"></span></div>
+          <button type="button" class="secondary" data-pattern-brand="${escapeHtml(pattern.alias)}" data-pattern-keyword="${escapeHtml(pattern.keyword)}">${escapeHtml(t("patternSample"))}</button>
+        </article>`).join("") : `<div class="row">${escapeHtml(t("noPatternPremium"))}</div>`;
+      }
+
       function renderSource(source) {
         const keywords = source.keywords.length ? source.keywords.join(", ") : t("noKeywords");
         return `<article class="source-card">
@@ -2069,6 +2121,10 @@ INDEX_HTML = r"""<!doctype html>
       $("brandKeywordRadar").addEventListener("click", (event) => {
         const keywordButton = event.target.closest("[data-keyword-brand]");
         if (keywordButton) prepareKeywordSample(keywordButton.dataset.keywordBrand, keywordButton.dataset.keywordTerm);
+      });
+      $("patternPremiumRadar").addEventListener("click", (event) => {
+        const patternButton = event.target.closest("[data-pattern-brand]");
+        if (patternButton) prepareKeywordSample(patternButton.dataset.patternBrand, patternButton.dataset.patternKeyword);
       });
       $("matrixFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-matrix-filter]");

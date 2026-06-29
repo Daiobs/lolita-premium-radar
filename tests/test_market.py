@@ -6,6 +6,7 @@ from pathlib import Path
 from lolita_radar.market import (
     append_market_observation,
     build_opportunity_radar,
+    build_pattern_radar,
     load_market_observations,
     premium_priority_score,
     premium_score_breakdown,
@@ -113,6 +114,29 @@ class MarketTests(unittest.TestCase):
         self.assertIn("score_breakdown", opportunities[0])
         self.assertIn("strong_premium", opportunities[0]["reason_codes"])
         self.assertEqual(opportunities[1]["band"], "watch")
+
+    def test_build_pattern_radar_matches_market_keywords(self) -> None:
+        patterns = build_pattern_radar(
+            brand_weights=[
+                {
+                    "alias": "AP",
+                    "name": "Angelic Pretty",
+                    "weight": 100,
+                    "market_keywords": ["贝壳", "Holy Lantern"],
+                }
+            ],
+            observations=[
+                {"brand_alias": "AP", "item_name": "白贝壳 JSK", "premium_rate": 0.6},
+                {"brand_alias": "AP", "item_name": "Holy Lantern OP", "premium_rate": 0.2},
+                {"brand_alias": "BABY", "item_name": "贝壳 JSK", "premium_rate": 0.9},
+            ],
+        )
+
+        shell = next(pattern for pattern in patterns if pattern["keyword"] == "贝壳")
+        self.assertEqual(shell["alias"], "AP")
+        self.assertEqual(shell["sample_count"], 1)
+        self.assertEqual(shell["avg_premium_rate"], 0.6)
+        self.assertGreater(shell["priority_score"], 0)
 
 
 if __name__ == "__main__":
