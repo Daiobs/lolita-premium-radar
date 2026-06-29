@@ -1172,6 +1172,7 @@ INDEX_HTML = r"""<!doctype html>
                 <span data-i18n="premiumBrandFilter">品牌</span>
                 <select id="premiumBrandFilter"></select>
               </label>
+              <button id="exportPremiumCsvBtn" type="button" class="secondary" data-i18n="exportPremiumCsv" data-disabled="true" disabled>导出 CSV</button>
               <div id="premiumRecordFilters" class="segmented" role="group" aria-label="Premium sample filter">
                 <button type="button" data-premium-filter="all" data-i18n="premiumFilterAll">全部</button>
                 <button type="button" data-premium-filter="collector" data-i18n="premiumBandCollector">藏品级</button>
@@ -1282,6 +1283,9 @@ INDEX_HTML = r"""<!doctype html>
           premiumRecords: "高溢价样本",
           premiumBrandFilter: "品牌",
           premiumBrandAll: "全部品牌",
+          exportPremiumCsv: "导出 CSV",
+          exportedPremiumCsv: "已导出当前筛选样本",
+          noPremiumCsv: "暂无可导出的样本",
           premiumFilterAll: "全部",
           premiumBandCollector: "藏品级",
           premiumBandHot: "强溢价",
@@ -1604,6 +1608,9 @@ INDEX_HTML = r"""<!doctype html>
           premiumRecords: "High-Premium Samples",
           premiumBrandFilter: "brand",
           premiumBrandAll: "all brands",
+          exportPremiumCsv: "export CSV",
+          exportedPremiumCsv: "filtered samples exported",
+          noPremiumCsv: "no samples to export",
           premiumFilterAll: "All",
           premiumBandCollector: "Collector",
           premiumBandHot: "Hot",
@@ -2617,6 +2624,7 @@ INDEX_HTML = r"""<!doctype html>
         syncPremiumBrandFilter(brands);
         const visibleRecords = filterPremiumRecords(records);
         syncPremiumRecordFilters(records);
+        syncPremiumExportButton(visibleRecords);
         $("marketCount").textContent = `${summary.sample_count || 0} ${t("samples")}`;
         $("premiumBrands").innerHTML = brands.length ? brands.map((brand) => `<article class="market-card">
           <header>
@@ -2640,6 +2648,13 @@ INDEX_HTML = r"""<!doctype html>
           <p class="muted">${escapeHtml(t("retailPrice"))} ${formatMoney(record.retail_price, record.currency)} · ${escapeHtml(t("resalePrice"))} ${formatMoney(record.resale_price, record.currency)}</p>
           <p class="muted">${escapeHtml([record.condition, record.source, record.observed_at].filter(Boolean).join(" · "))}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
+      }
+
+      function syncPremiumExportButton(records) {
+        const button = $("exportPremiumCsvBtn");
+        const hasRecords = (records || []).length > 0;
+        button.dataset.disabled = hasRecords ? "false" : "true";
+        button.disabled = !hasRecords;
       }
 
       function filterPremiumRecords(records) {
@@ -2675,6 +2690,61 @@ INDEX_HTML = r"""<!doctype html>
           const count = filter === "all" ? Object.values(counts).reduce((sum, value) => sum + (Number(value) || 0), 0) : Number(counts[filter]) || 0;
           button.textContent = `${label} ${count}`;
         });
+      }
+
+      function exportPremiumCsv() {
+        const records = filterPremiumRecords(currentState?.market?.summary?.records || []);
+        if (!records.length) {
+          toast(t("noPremiumCsv"));
+          return;
+        }
+        const csv = csvFromPremiumRecords(records);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = premiumCsvFilename();
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedPremiumCsv"));
+      }
+
+      function premiumCsvFilename() {
+        const brand = activePremiumBrandFilter === "all" ? "all-brands" : activePremiumBrandFilter.toLowerCase();
+        const band = activePremiumFilter === "all" ? "all-bands" : activePremiumFilter;
+        return `lolita-premium-${brand}-${band}.csv`;
+      }
+
+      function csvFromPremiumRecords(records) {
+        const fields = [
+          ["brand_alias", "brand_alias"],
+          ["item_name", "item_name"],
+          ["premium_rate", "premium_rate"],
+          ["premium_band", "premium_band"],
+          ["priority_score", "priority_score"],
+          ["brand_weight", "brand_weight"],
+          ["quality_score", "quality_score"],
+          ["retail_price", "retail_price"],
+          ["resale_price", "resale_price"],
+          ["currency", "currency"],
+          ["condition", "condition"],
+          ["source", "source"],
+          ["observed_at", "observed_at"],
+          ["url", "url"],
+          ["notes", "notes"],
+        ];
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...(records || []).map((record) => fields.map(([, key]) => csvCell(record[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvCell(value) {
+        const text = String(value ?? "");
+        return `"${text.replaceAll('"', '""')}"`;
       }
 
       function renderEvidenceHealth(quality) {
@@ -3315,6 +3385,7 @@ INDEX_HTML = r"""<!doctype html>
         activePremiumBrandFilter = event.target.value === "all" ? "all" : normalizeAlias(event.target.value);
         renderMarketPremium(currentState?.market || {});
       });
+      $("exportPremiumCsvBtn").addEventListener("click", exportPremiumCsv);
       $("refreshBtn").addEventListener("click", () => loadState().then(() => toast(t("refreshed"))).catch((error) => toast(error.message)));
       $("sources").addEventListener("click", (event) => {
         const button = event.target.closest("button[data-source]");
