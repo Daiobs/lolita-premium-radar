@@ -596,6 +596,73 @@ INDEX_HTML = r"""<!doctype html>
         color: var(--wine);
       }
       .radar-nav button:hover { background: #fff; }
+      .daily-board { margin: 0 20px 14px; }
+      .daily-grid { display: grid; grid-template-columns: minmax(220px, .58fr) minmax(360px, 1.42fr); gap: 12px; padding: 12px; }
+      .daily-brief, .daily-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .daily-brief {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(180,87,111,.12), transparent 36%),
+          linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+        overflow: hidden;
+      }
+      .daily-brief::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 8px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.36) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .daily-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .daily-brief p, .daily-card p { margin: 0; color: var(--muted); }
+      .daily-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .daily-stat {
+        display: grid;
+        gap: 3px;
+        min-height: 52px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+      }
+      .daily-stat strong { color: var(--wine); font: 650 20px/1 Georgia, "Times New Roman", serif; }
+      .daily-stat span { color: var(--muted); font-size: 11px; }
+      .daily-list { display: grid; gap: 9px; }
+      .daily-card {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        padding: 12px 12px 14px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 12%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 64%, #fff), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .daily-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .daily-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .daily-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .daily-card-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+      .daily-card-actions button { min-height: 30px; padding-inline: 10px; }
       .metric, .panel, .atelier {
         background:
           radial-gradient(circle at 16px 16px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
@@ -1950,7 +2017,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .lookbook-grid, .scorecard-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .lookbook-grid, .scorecard-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2006,7 +2073,17 @@ INDEX_HTML = r"""<!doctype html>
       </div>
     </header>
     <section class="metrics" id="metrics"></section>
+    <section class="panel daily-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="dailyRadarBrief">今日雷达简报</h2>
+          <span class="muted" data-i18n="dailyRadarBriefHint">把核心盯盘、权重校准和采样缺口收成今天的行动队列</span>
+        </div>
+      </div>
+      <div id="dailyRadarBrief" class="daily-grid"></div>
+    </section>
     <nav class="radar-nav" aria-label="Radar navigation">
+      <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
       <button type="button" data-radar-jump="brandLookbook" data-i18n="navLookbook">造型册</button>
       <button type="button" data-radar-jump="brandWeightScorecard" data-i18n="navScorecard">评分卡</button>
@@ -2391,6 +2468,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualWeight: "品牌权重",
           heroVisualPremium: "溢价热度",
           heroVisualEvidence: "样本证据",
+          navDaily: "简报",
           navWeights: "权重",
           navLookbook: "造型册",
           navScorecard: "评分卡",
@@ -2412,6 +2490,19 @@ INDEX_HTML = r"""<!doctype html>
           sourcesHeading: "监控源",
           recentEvents: "上新动态",
           trackedItemsHeading: "雷达条目",
+          dailyRadarBrief: "今日雷达简报",
+          dailyRadarBriefHint: "把核心盯盘、权重校准和采样缺口收成今天的行动队列",
+          dailyLead: "主线",
+          dailyActions: "行动",
+          dailySampleGaps: "样本缺口",
+          dailyAvgPriority: "均值优先",
+          dailyJump: "查看",
+          dailySample: "补样本",
+          dailyKeyword: "补款式",
+          dailyNoActions: "暂无今日行动",
+          dailyKindCore: "核心盯盘",
+          dailyKindScorecard: "权重评分",
+          dailyKindSampling: "采样计划",
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
           saveWeights: "保存权重",
@@ -2932,6 +3023,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualWeight: "brand weight",
           heroVisualPremium: "premium heat",
           heroVisualEvidence: "sample evidence",
+          navDaily: "Brief",
           navWeights: "Weights",
           navLookbook: "Lookbook",
           navScorecard: "Scorecard",
@@ -2953,6 +3045,19 @@ INDEX_HTML = r"""<!doctype html>
           sourcesHeading: "Watch Sources",
           recentEvents: "Release Feed",
           trackedItemsHeading: "Radar Items",
+          dailyRadarBrief: "Daily Radar Brief",
+          dailyRadarBriefHint: "Turn core watch, weight tuning, and sample gaps into today's action queue",
+          dailyLead: "lead",
+          dailyActions: "actions",
+          dailySampleGaps: "sample gaps",
+          dailyAvgPriority: "avg priority",
+          dailyJump: "view",
+          dailySample: "add sample",
+          dailyKeyword: "add pattern",
+          dailyNoActions: "No daily actions yet",
+          dailyKindCore: "core watch",
+          dailyKindScorecard: "weight score",
+          dailyKindSampling: "sampling plan",
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
           saveWeights: "Save Weights",
@@ -3553,6 +3658,112 @@ INDEX_HTML = r"""<!doctype html>
           </div>
         </article>`).join("");
         updateWeightDirtyState();
+      }
+
+      function renderDailyRadarBrief(rows) {
+        const target = $("dailyRadarBrief");
+        if (!target) return;
+        const actions = dailyRadarActions(rows);
+        const stats = dailyRadarStats(actions, rows);
+        target.innerHTML = actions.length ? `
+          <article class="daily-brief">
+            <strong>${escapeHtml(stats.lead)}</strong>
+            <p>${escapeHtml(t("dailyLead"))} · ${escapeHtml(t("dailyAvgPriority"))} ${escapeHtml(stats.avgPriority)}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.avgPriority)}%"></span></div>
+            <div class="daily-stats">
+              <article class="daily-stat"><strong>${escapeHtml(actions.length)}</strong><span>${escapeHtml(t("dailyActions"))}</span></article>
+              <article class="daily-stat"><strong>${escapeHtml(stats.sampleGaps)}</strong><span>${escapeHtml(t("dailySampleGaps"))}</span></article>
+            </div>
+            <p>${escapeHtml(t("dailyRadarBriefHint"))}</p>
+          </article>
+          <div class="daily-list">
+            ${actions.map(dailyRadarActionHtml).join("")}
+          </div>
+        ` : `<div class="row">${escapeHtml(t("dailyNoActions"))}</div>`;
+      }
+
+      function dailyRadarActions(rows) {
+        const actions = [];
+        coreMarketWatchRows(rows).slice(0, 3).forEach((entry) => {
+          const nextAction = coreWatchNextAction(entry);
+          const term = (entry.watch_terms || [])[0] || "";
+          actions.push({
+            ...entry,
+            daily_kind: "dailyKindCore",
+            daily_label: nextAction.label,
+            daily_detail: `${t("samples")} ${entry.sample_count}/${entry.target_samples} · ${t("avgPremium")} ${formatPercent(entry.avg_premium_rate)}`,
+            daily_score: Number(entry.watch_score) || Number(entry.priority_score) || Number(entry.brand_weight) || 0,
+            daily_target: "coreMarketWatch",
+            daily_sample: entry.alias,
+            daily_keyword: term,
+            daily_tone: nextAction.tone,
+            daily_rank: nextAction.label === "coreWatchActionAnchor" ? 5 : 4,
+          });
+        });
+        brandWeightScorecardRows(rows, Number.POSITIVE_INFINITY).slice(0, 4).forEach((entry) => {
+          actions.push({
+            ...entry,
+            daily_kind: "dailyKindScorecard",
+            daily_label: scorecardVerdictLabel(entry.scorecard_verdict),
+            daily_detail: `${t("scorecardCurrent")} ${entry.brand_weight} · ${t("scorecardTarget")} ${entry.target_weight} · ${t("formulaConfidence")} ${entry.confidence}%`,
+            daily_score: Math.max(Number(entry.confidence) || 0, Number(entry.brand_weight) || 0),
+            daily_target: "brandWeightScorecard",
+            daily_sample: Number(entry.sample_count) < 2 ? entry.alias : "",
+            daily_tone: scorecardVerdictPill(entry.scorecard_verdict),
+            daily_rank: scorecardRank(entry.scorecard_verdict),
+          });
+        });
+        buildSamplePlanRows(rows).slice(0, 4).forEach((entry) => {
+          const keyword = (entry.market_keywords || [])[0] || "";
+          actions.push({
+            ...entry,
+            daily_kind: "dailyKindSampling",
+            daily_label: samplePlanActionLabel(entry.next_action),
+            daily_detail: `${t("samplePlanMissing")} ${entry.missing_samples} · ${t("samplePlanProgress")} ${entry.sample_count}/${entry.target_samples}`,
+            daily_score: Number(entry.priority_score) || 0,
+            daily_target: "samplePlan",
+            daily_sample: entry.alias,
+            daily_keyword: keyword,
+            daily_tone: samplePlanPill(entry.urgency),
+            daily_rank: samplePlanRank(entry.urgency),
+          });
+        });
+        return actions
+          .sort((a, b) => (
+            (Number(b.daily_rank) || 0) - (Number(a.daily_rank) || 0)
+            || (Number(b.daily_score) || 0) - (Number(a.daily_score) || 0)
+            || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+          ))
+          .slice(0, 4);
+      }
+
+      function dailyRadarStats(actions, rows) {
+        const sampleGaps = (rows || []).filter((entry) => Number(entry.sample_count) < sampleTarget(entry.brand_weight, entry.tier)).length;
+        const avgPriority = actions.length ? Math.round(actions.reduce((sum, entry) => sum + (Number(entry.daily_score) || 0), 0) / actions.length) : 0;
+        return {
+          lead: actions[0]?.alias || "-",
+          sampleGaps,
+          avgPriority,
+        };
+      }
+
+      function dailyRadarActionHtml(entry) {
+        return `<article class="daily-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)} · ${escapeHtml(entry.name)}</strong>
+              <p>${escapeHtml(t(entry.daily_kind))} · ${escapeHtml(t(entry.daily_label))}</p>
+            </div>
+            <span class="pill ${escapeHtml(entry.daily_tone || "off")}">${escapeHtml(Math.round(Number(entry.daily_score) || 0))}</span>
+          </header>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(Math.round(Number(entry.daily_score) || 0))}%"></span></div>
+          <p>${escapeHtml(entry.daily_detail || "")}</p>
+          <div class="daily-card-actions">
+            <button type="button" class="secondary" data-daily-jump="${escapeHtml(entry.daily_target)}">${escapeHtml(t("dailyJump"))}</button>
+            ${entry.daily_sample ? `<button type="button" class="secondary" data-daily-sample="${escapeHtml(entry.daily_sample)}">${escapeHtml(t("dailySample"))}</button>` : ""}
+            ${entry.daily_keyword ? `<button type="button" data-daily-keyword-brand="${escapeHtml(entry.alias)}" data-daily-keyword="${escapeHtml(entry.daily_keyword)}">${escapeHtml(t("dailyKeyword"))}</button>` : ""}
+          </div>
+        </article>`;
       }
 
       function renderBrandStyleLedger(rows = brandStyleLedgerRows()) {
@@ -6026,6 +6237,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
+        renderDailyRadarBrief(rows);
         renderBrandLookbook(rows);
         renderBrandWeightScorecard(rows);
         renderWeightSnapshot(rows);
@@ -6590,6 +6802,20 @@ INDEX_HTML = r"""<!doctype html>
       $("weightSnapshot").addEventListener("click", (event) => {
         const sampleButton = event.target.closest("[data-weight-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.weightSample);
+      });
+      $("dailyRadarBrief").addEventListener("click", (event) => {
+        const jumpButton = event.target.closest("[data-daily-jump]");
+        if (jumpButton) {
+          jumpToRadarSection(jumpButton.dataset.dailyJump);
+          return;
+        }
+        const keywordButton = event.target.closest("[data-daily-keyword-brand]");
+        if (keywordButton) {
+          prepareKeywordSample(keywordButton.dataset.dailyKeywordBrand, keywordButton.dataset.dailyKeyword);
+          return;
+        }
+        const sampleButton = event.target.closest("[data-daily-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.dailySample);
       });
       $("brandLookbook").addEventListener("click", (event) => {
         const keywordButton = event.target.closest("[data-lookbook-keyword-brand]");

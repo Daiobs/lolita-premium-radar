@@ -97,6 +97,10 @@ includes a Lolita secondary-market view with brand weights, status mix, and a
 simple premium-signal score for prioritizing attention. The first screen pairs
 the operational controls with a local lace-and-radar visual asset so the app
 feels closer to a Lolita market desk without depending on remote media. Brand
+weights, scorecards, core watch gaps, and sample plans are also summarized into
+a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
+priority checks into a short action queue with jump, sample, and pattern-prefill
+buttons. Brand
 weight cards use Lolita-style visual cues such as themed brand cameos, tier
 ribbons, market-keyword pearls, and per-brand visual identity metadata for
 palette, motif, and radar cue, while keeping the weight sliders and saved draft
