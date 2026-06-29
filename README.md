@@ -122,6 +122,10 @@ weight, tier distribution, market-evidence coverage, and the highest-priority
 sample gaps so brand weights are easier to audit before saving; it also renders
 a brand-weight radar map where AP, BABY, AATP, and other high-priority labels are
 plotted by current weight with sample progress beside each label. A brand-weight
+lookbook adds a Lolita-style rack of the highest-fit labels, combining palette,
+motif, fit score, premium rate, sample count, and one-click sample/pattern
+actions so the dashboard reads more like a focused resale atelier while still
+explaining why each brand is weighted. A brand-weight
 strategy panel converts the current saved or draft weights into calibration
 moves such as collecting evidence, raising premium-supported brands, or cooling
 discounted brands. A weight-trajectory panel then turns the same evidence into

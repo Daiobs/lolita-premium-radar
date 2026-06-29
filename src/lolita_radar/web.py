@@ -897,6 +897,121 @@ INDEX_HTML = r"""<!doctype html>
       }
       .weight-draft-row strong { color: var(--wine); }
       .weight-draft-delta { color: var(--gold); font-weight: 650; text-align: right; }
+      .lookbook-board { margin: 0 20px 14px; }
+      .lookbook-grid { display: grid; grid-template-columns: minmax(230px, .58fr) minmax(360px, 1.42fr); gap: 12px; padding: 12px; }
+      .lookbook-brief, .lookbook-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .lookbook-brief {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(180,87,111,.12), transparent 36%),
+          linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+        overflow: hidden;
+      }
+      .lookbook-brief::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 8px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.36) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .lookbook-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .lookbook-brief p, .lookbook-card p { margin: 0; color: var(--muted); }
+      .lookbook-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .lookbook-stat {
+        display: grid;
+        gap: 3px;
+        min-height: 52px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+      }
+      .lookbook-stat strong { color: var(--wine); font: 650 20px/1 Georgia, "Times New Roman", serif; }
+      .lookbook-stat span { color: var(--muted); font-size: 11px; }
+      .lookbook-rail { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+      .lookbook-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        min-height: 220px;
+        padding: 13px 12px 15px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 16%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 68%, #fff), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .lookbook-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 7px;
+        background:
+          radial-gradient(circle at 8px 0, rgba(255,255,255,.88) 0 6px, transparent 6px) 0 0 / 16px 7px repeat-x,
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold), var(--teal));
+      }
+      .lookbook-card::after {
+        content: "";
+        position: absolute;
+        right: 12px;
+        top: 12px;
+        width: 34px;
+        height: 15px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, #fff);
+        border-radius: 3px;
+        background:
+          linear-gradient(45deg, transparent 0 35%, rgba(255,255,255,.78) 35% 65%, transparent 65%),
+          linear-gradient(-45deg, transparent 0 35%, rgba(255,255,255,.78) 35% 65%, transparent 65%),
+          color-mix(in srgb, var(--brand-accent, var(--rose)) 22%, #fff);
+        opacity: .72;
+        pointer-events: none;
+      }
+      .lookbook-card header { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; align-items: center; padding-top: 4px; }
+      .lookbook-cameo {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 35%, var(--line));
+        border-radius: 999px;
+        background:
+          radial-gradient(circle at 35% 25%, rgba(255,255,255,.88), transparent 38%),
+          var(--brand-paper, #fff3f6);
+        color: var(--brand-accent, var(--rose));
+        font: 650 15px/1 Georgia, "Times New Roman", serif;
+        box-shadow: var(--pearl-shadow);
+      }
+      .lookbook-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .lookbook-card header p { overflow-wrap: anywhere; }
+      .lookbook-fit { display: grid; grid-template-columns: 54px 1fr 42px; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+      .lookbook-tags, .lookbook-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      .lookbook-tags span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 23px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .lookbook-actions button { min-height: 30px; padding-inline: 10px; }
       .focus-list { display: grid; gap: 8px; }
       .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); box-shadow: inset 3px 0 0 rgba(180,87,111,.22); }
       .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
@@ -1776,7 +1891,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .lookbook-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -1834,6 +1949,7 @@ INDEX_HTML = r"""<!doctype html>
     <section class="metrics" id="metrics"></section>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
+      <button type="button" data-radar-jump="brandLookbook" data-i18n="navLookbook">造型册</button>
       <button type="button" data-radar-jump="coreMarketWatch" data-i18n="navCoreWatch">盯盘</button>
       <button type="button" data-radar-jump="brandIdentityMatrix" data-i18n="navIdentity">身份</button>
       <button type="button" data-radar-jump="weightTrajectory" data-i18n="navTrajectory">轨迹</button>
@@ -1872,6 +1988,15 @@ INDEX_HTML = r"""<!doctype html>
         <div id="brandWeights" class="watch-grid"></div>
         <div id="weightDraftAudit" class="weight-draft-audit empty"></div>
       </div>
+    </section>
+    <section class="panel lookbook-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandLookbook">品牌权重造型册</h2>
+          <span class="muted" data-i18n="brandLookbookHint">用 Lolita 风格线索解释权重、样本和下一步盯盘动作</span>
+        </div>
+      </div>
+      <div id="brandLookbook" class="lookbook-grid"></div>
     </section>
     <section class="panel alert-board">
       <div class="toolbar">
@@ -2197,6 +2322,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualPremium: "溢价热度",
           heroVisualEvidence: "样本证据",
           navWeights: "权重",
+          navLookbook: "造型册",
           navCoreWatch: "盯盘",
           navIdentity: "身份",
           navTrajectory: "轨迹",
@@ -2263,6 +2389,20 @@ INDEX_HTML = r"""<!doctype html>
           styleCoreShare: "核心",
           styleKeywords: "风格款式词",
           styleNoKeywords: "暂无款式词",
+          brandLookbook: "品牌权重造型册",
+          brandLookbookHint: "用 Lolita 风格线索解释权重、样本和下一步盯盘动作",
+          lookbookLead: "主推",
+          lookbookCore: "核心",
+          lookbookGaps: "缺样本",
+          lookbookAvgFit: "平均契合",
+          lookbookFit: "契合",
+          lookbookSample: "补样本",
+          lookbookKeyword: "补款式",
+          lookbookActionAnchor: "补价格锚点",
+          lookbookActionTrack: "追踪溢价",
+          lookbookActionReview: "复核折价",
+          lookbookActionWatch: "继续观察",
+          lookbookNoRows: "暂无品牌造型册",
           brandRadarMatrix: "品牌雷达矩阵",
           matrixHint: "把权重、溢价、样本和动作放在一起看",
           matrixBrand: "品牌",
@@ -2709,6 +2849,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualPremium: "premium heat",
           heroVisualEvidence: "sample evidence",
           navWeights: "Weights",
+          navLookbook: "Lookbook",
           navCoreWatch: "Watch",
           navIdentity: "Identity",
           navTrajectory: "Trajectory",
@@ -2775,6 +2916,20 @@ INDEX_HTML = r"""<!doctype html>
           styleCoreShare: "core",
           styleKeywords: "style terms",
           styleNoKeywords: "no terms yet",
+          brandLookbook: "Brand Weight Lookbook",
+          brandLookbookHint: "Explain weights, samples, and next watch moves through Lolita style cues",
+          lookbookLead: "lead",
+          lookbookCore: "core",
+          lookbookGaps: "sample gaps",
+          lookbookAvgFit: "avg fit",
+          lookbookFit: "fit",
+          lookbookSample: "add sample",
+          lookbookKeyword: "add pattern",
+          lookbookActionAnchor: "add price anchor",
+          lookbookActionTrack: "track premium",
+          lookbookActionReview: "review discount",
+          lookbookActionWatch: "keep watching",
+          lookbookNoRows: "No brand lookbook yet",
           brandRadarMatrix: "Brand Radar Matrix",
           matrixHint: "Weight, premium, samples, and action in one view",
           matrixBrand: "brand",
@@ -3324,6 +3479,104 @@ INDEX_HTML = r"""<!doctype html>
             ${lane.keywords.length ? lane.keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("styleNoKeywords"))}</span>`}
           </div>
         </article>`).join("");
+      }
+
+      function renderBrandLookbook(rows) {
+        const target = $("brandLookbook");
+        if (!target) return;
+        const entries = brandLookbookRows(rows);
+        const stats = brandLookbookStats(entries);
+        target.innerHTML = entries.length ? `
+          <article class="lookbook-brief">
+            <strong>${escapeHtml(stats.lead)}</strong>
+            <p>${escapeHtml(t("lookbookLead"))} · ${escapeHtml(t("lookbookAvgFit"))} ${escapeHtml(stats.avgFit)}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.avgFit)}%"></span></div>
+            <div class="lookbook-stats">
+              <article class="lookbook-stat"><strong>${escapeHtml(stats.core)}</strong><span>${escapeHtml(t("lookbookCore"))}</span></article>
+              <article class="lookbook-stat"><strong>${escapeHtml(stats.gaps)}</strong><span>${escapeHtml(t("lookbookGaps"))}</span></article>
+            </div>
+            <p>${escapeHtml(t("brandLookbookHint"))}</p>
+          </article>
+          <div class="lookbook-rail">
+            ${entries.map(brandLookbookCardHtml).join("")}
+          </div>
+        ` : `<div class="row">${escapeHtml(t("lookbookNoRows"))}</div>`;
+      }
+
+      function brandLookbookRows(rows) {
+        return [...(rows || [])]
+          .map((entry) => ({
+            ...entry,
+            lookbook_fit: lookbookFitScore(entry),
+            lookbook_action: lookbookAction(entry),
+          }))
+          .sort((a, b) => (
+            (Number(b.lookbook_fit) || 0) - (Number(a.lookbook_fit) || 0)
+            || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+            || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+          ))
+          .slice(0, 6);
+      }
+
+      function brandLookbookStats(entries) {
+        const total = entries.length || 0;
+        return {
+          lead: entries[0]?.alias || "-",
+          core: entries.filter((entry) => Number(entry.brand_weight) >= 90).length,
+          gaps: entries.filter((entry) => Number(entry.sample_count) < 2).length,
+          avgFit: total ? Math.round(entries.reduce((sum, entry) => sum + (Number(entry.lookbook_fit) || 0), 0) / total) : 0,
+        };
+      }
+
+      function brandLookbookCardHtml(entry) {
+        const motif = entry.visual?.motif || styleLabel(entry.style);
+        const palette = entry.visual?.palette || styleLabel(entry.style);
+        const cue = entry.visual?.radar_cue || "";
+        const keyword = (entry.market_keywords || [])[0] || "";
+        const action = entry.lookbook_action || lookbookAction(entry);
+        return `<article class="lookbook-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div class="lookbook-cameo" aria-hidden="true">${escapeHtml(entry.alias)}</div>
+            <div>
+              <strong>${escapeHtml(entry.name)}</strong>
+              <p>${escapeHtml(palette)} · ${escapeHtml(motif)}</p>
+            </div>
+          </header>
+          <div class="lookbook-fit">
+            <span>${escapeHtml(t("lookbookFit"))}</span>
+            <div class="score-track" aria-hidden="true"><span style="--score: ${escapeHtml(entry.lookbook_fit)}%"></span></div>
+            <strong>${escapeHtml(entry.lookbook_fit)}</strong>
+          </div>
+          <div class="lookbook-tags">
+            <span>${escapeHtml(tierLabel(entry.tier))}</span>
+            <span>${escapeHtml(t(action.label))}</span>
+            <span>${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</span>
+            <span>${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</span>
+          </div>
+          ${cue ? `<p>${escapeHtml(cue)}</p>` : ""}
+          <div class="lookbook-actions">
+            <button type="button" class="secondary" data-lookbook-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("lookbookSample"))}</button>
+            ${keyword ? `<button type="button" data-lookbook-keyword-brand="${escapeHtml(entry.alias)}" data-lookbook-keyword="${escapeHtml(keyword)}">${escapeHtml(t("lookbookKeyword"))}</button>` : ""}
+          </div>
+        </article>`;
+      }
+
+      function lookbookFitScore(entry) {
+        const weight = Number(entry.brand_weight) || 0;
+        const premium = Math.max(0, Number(entry.avg_premium_rate) || 0);
+        const evidence = Math.min(100, (Number(entry.sample_count) || 0) * 22);
+        const identity = entry.visual?.motif && entry.visual?.palette && (entry.market_keywords || []).length ? 10 : 0;
+        return clampScore(Math.round(weight * .54 + Math.min(24, premium * 48) + evidence * .12 + identity));
+      }
+
+      function lookbookAction(entry) {
+        const samples = Number(entry.sample_count) || 0;
+        const weight = Number(entry.brand_weight) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        if (samples < 2 && weight >= 85) return { label: "lookbookActionAnchor" };
+        if (samples >= 2 && premium >= 0.25) return { label: "lookbookActionTrack" };
+        if (samples >= 2 && premium < -0.05) return { label: "lookbookActionReview" };
+        return { label: "lookbookActionWatch" };
       }
 
       function brandStyleLedgerRows() {
@@ -5507,6 +5760,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
+        renderBrandLookbook(rows);
         renderWeightSnapshot(rows);
         renderBrandWeightStrategy(rows);
         renderWeightTrajectory(rows);
@@ -6068,6 +6322,15 @@ INDEX_HTML = r"""<!doctype html>
       $("weightSnapshot").addEventListener("click", (event) => {
         const sampleButton = event.target.closest("[data-weight-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.weightSample);
+      });
+      $("brandLookbook").addEventListener("click", (event) => {
+        const keywordButton = event.target.closest("[data-lookbook-keyword-brand]");
+        if (keywordButton) {
+          prepareKeywordSample(keywordButton.dataset.lookbookKeywordBrand, keywordButton.dataset.lookbookKeyword);
+          return;
+        }
+        const sampleButton = event.target.closest("[data-lookbook-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.lookbookSample);
       });
       $("brandKeywordRadar").addEventListener("click", (event) => {
         const keywordButton = event.target.closest("[data-keyword-brand]");
