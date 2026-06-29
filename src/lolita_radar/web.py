@@ -1278,6 +1278,64 @@ INDEX_HTML = r"""<!doctype html>
       .weight-gap-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 10px; }
       .weight-gap-card strong { color: var(--wine); }
       .weight-gap-card button { min-height: 30px; padding-inline: 10px; }
+      .scenario-board { margin: 0 20px 14px; }
+      .scenario-grid { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 12px; padding: 12px; }
+      .scenario-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 12px 15px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 36%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 64%, #fff), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .scenario-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 6px;
+        background:
+          radial-gradient(circle at 8px 0, rgba(255,255,255,.86) 0 5px, transparent 5px) 0 0 / 16px 6px repeat-x,
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .scenario-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; padding-top: 2px; }
+      .scenario-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .scenario-score { display: grid; grid-template-columns: 62px 1fr; gap: 9px; align-items: center; }
+      .scenario-score strong { font: 650 30px/1 Georgia, "Times New Roman", serif; }
+      .scenario-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+      .scenario-stat {
+        display: grid;
+        gap: 3px;
+        min-height: 48px;
+        padding: 7px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+      }
+      .scenario-stat strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .scenario-stat span, .scenario-card p { margin: 0; color: var(--muted); font-size: 12px; }
+      .scenario-moves { display: grid; gap: 6px; }
+      .scenario-move {
+        display: grid;
+        grid-template-columns: minmax(54px, .58fr) 44px 44px 48px;
+        gap: 7px;
+        align-items: center;
+        min-height: 31px;
+        padding: 6px 7px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .scenario-move strong { overflow-wrap: anywhere; }
+      .scenario-delta { color: var(--gold); font-weight: 700; text-align: right; }
+      .scenario-card button { justify-self: start; min-height: 30px; }
       .guardrail-board { margin: 0 20px 14px; }
       .guardrail-grid { display: grid; grid-template-columns: minmax(220px, .62fr) minmax(340px, 1.38fr); gap: 12px; padding: 12px; }
       .guardrail-brief, .guardrail-card, .guardrail-lane {
@@ -2101,7 +2159,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2170,6 +2228,7 @@ INDEX_HTML = r"""<!doctype html>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
+      <button type="button" data-radar-jump="weightScenarioCompare" data-i18n="navScenarios">情景</button>
       <button type="button" data-radar-jump="brandLookbook" data-i18n="navLookbook">造型册</button>
       <button type="button" data-radar-jump="brandWeightScorecard" data-i18n="navScorecard">评分卡</button>
       <button type="button" data-radar-jump="brandWeightGuardrails" data-i18n="navGuardrails">护栏</button>
@@ -2211,6 +2270,15 @@ INDEX_HTML = r"""<!doctype html>
         <div id="brandWeights" class="watch-grid"></div>
         <div id="weightDraftAudit" class="weight-draft-audit empty"></div>
       </div>
+    </section>
+    <section class="panel scenario-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="weightScenarioCompare">品牌权重情景对比</h2>
+          <span class="muted" data-i18n="weightScenarioCompareHint">保存前预览新品、溢价和补证据三种权重草稿</span>
+        </div>
+      </div>
+      <div id="weightScenarioCompare" class="scenario-grid"></div>
     </section>
     <section class="panel lookbook-board">
       <div class="toolbar">
@@ -2566,6 +2634,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "样本证据",
           navDaily: "简报",
           navWeights: "权重",
+          navScenarios: "情景",
           navLookbook: "造型册",
           navScorecard: "评分卡",
           navGuardrails: "护栏",
@@ -2620,6 +2689,15 @@ INDEX_HTML = r"""<!doctype html>
           scenarioPremium: "溢价优先",
           scenarioEvidence: "补证据优先",
           scenarioApplied: "已生成权重情景草稿",
+          weightScenarioCompare: "品牌权重情景对比",
+          weightScenarioCompareHint: "保存前预览新品、溢价和补证据三种权重草稿",
+          scenarioAvgTarget: "均值目标",
+          scenarioChanged: "变动",
+          scenarioRaised: "上调",
+          scenarioLowered: "下调",
+          scenarioApplyDraft: "套用情景",
+          scenarioTopMoves: "重点变化",
+          scenarioNoMoves: "暂无变化",
           weightDraftAudit: "草稿审计",
           weightDraftClean: "暂无权重草稿变更",
           weightDraftChanged: "项变更",
@@ -3152,6 +3230,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "sample evidence",
           navDaily: "Brief",
           navWeights: "Weights",
+          navScenarios: "Scenarios",
           navLookbook: "Lookbook",
           navScorecard: "Scorecard",
           navGuardrails: "Guardrails",
@@ -3206,6 +3285,15 @@ INDEX_HTML = r"""<!doctype html>
           scenarioPremium: "Premium first",
           scenarioEvidence: "Evidence first",
           scenarioApplied: "weight scenario draft applied",
+          weightScenarioCompare: "Brand Weight Scenario Compare",
+          weightScenarioCompareHint: "Preview release, premium, and evidence-first drafts before saving",
+          scenarioAvgTarget: "avg target",
+          scenarioChanged: "changed",
+          scenarioRaised: "raised",
+          scenarioLowered: "lowered",
+          scenarioApplyDraft: "apply scenario",
+          scenarioTopMoves: "top moves",
+          scenarioNoMoves: "no changes",
           weightDraftAudit: "draft audit",
           weightDraftClean: "no unsaved weight changes",
           weightDraftChanged: "changed",
@@ -6657,6 +6745,7 @@ INDEX_HTML = r"""<!doctype html>
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
         renderDailyRadarBrief(rows);
+        renderWeightScenarioCompare(rows);
         renderBrandLookbook(rows);
         renderBrandWeightScorecard(rows);
         renderBrandWeightGuardrails(rows);
@@ -6672,6 +6761,78 @@ INDEX_HTML = r"""<!doctype html>
         renderSampleCoverage(rows);
         renderSamplePlan(rows);
         renderWeightTuning(rows);
+      }
+
+      function renderWeightScenarioCompare(rows) {
+        const scenarios = ["release", "premium", "evidence"].map((scenario) => weightScenarioSummary(rows, scenario));
+        $("weightScenarioCompare").innerHTML = scenarios.map((scenario) => `<article class="scenario-card">
+          <header>
+            <div>
+              <strong>${escapeHtml(t(scenario.label))}</strong>
+              <p>${escapeHtml(t("scenarioTopMoves"))}</p>
+            </div>
+            <span class="pill ${scenarioPill(scenario.key)}">${escapeHtml(scenario.changed)}</span>
+          </header>
+          <div class="scenario-score">
+            <strong>${escapeHtml(scenario.avgTarget)}</strong>
+            <div>
+              <p>${escapeHtml(t("scenarioAvgTarget"))} · ${escapeHtml(t("scenarioChanged"))} ${escapeHtml(scenario.changed)}</p>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(scenario.avgTarget)}%"></span></div>
+            </div>
+          </div>
+          <div class="scenario-stats">
+            <article class="scenario-stat"><strong>${escapeHtml(scenario.raised)}</strong><span>${escapeHtml(t("scenarioRaised"))}</span></article>
+            <article class="scenario-stat"><strong>${escapeHtml(scenario.lowered)}</strong><span>${escapeHtml(t("scenarioLowered"))}</span></article>
+            <article class="scenario-stat"><strong>${escapeHtml(scenario.maxDeltaText)}</strong><span>${escapeHtml(t("weightDraftMaxMove"))}</span></article>
+          </div>
+          <div class="scenario-moves">
+            ${scenario.moves.length ? scenario.moves.map((move) => `<div class="scenario-move" style="${escapeHtml(brandVisualStyle(move))}">
+              <strong>${escapeHtml(move.alias)}</strong>
+              <span>${escapeHtml(move.saved_weight)}</span>
+              <span>${escapeHtml(move.target_weight)}</span>
+              <span class="scenario-delta">${escapeHtml(formatDelta(move.delta))}</span>
+            </div>`).join("") : `<div class="row">${escapeHtml(t("scenarioNoMoves"))}</div>`}
+          </div>
+          <button type="button" class="secondary" data-scenario-preview-apply="${escapeHtml(scenario.key)}">${escapeHtml(t("scenarioApplyDraft"))}</button>
+        </article>`).join("");
+      }
+
+      function weightScenarioSummary(rows, scenario) {
+        const moves = (rows || []).map((entry) => {
+          const savedWeight = Number(brandByAlias(entry.alias)?.weight ?? entry.brand_weight) || 0;
+          const targetWeight = scenarioTargetWeight(entry, scenario);
+          return {
+            ...entry,
+            saved_weight: savedWeight,
+            target_weight: targetWeight,
+            delta: targetWeight - savedWeight,
+          };
+        });
+        const changedMoves = moves.filter((entry) => Number(entry.delta) !== 0);
+        const avgTarget = moves.length ? Math.round(moves.reduce((sum, entry) => sum + (Number(entry.target_weight) || 0), 0) / moves.length) : 0;
+        const maxMove = changedMoves
+          .sort((a, b) => Math.abs(Number(b.delta) || 0) - Math.abs(Number(a.delta) || 0))[0];
+        return {
+          key: scenario,
+          label: scenarioLabelKey(scenario),
+          avgTarget,
+          changed: changedMoves.length,
+          raised: changedMoves.filter((entry) => Number(entry.delta) > 0).length,
+          lowered: changedMoves.filter((entry) => Number(entry.delta) < 0).length,
+          maxDeltaText: maxMove ? `${maxMove.alias} ${formatDelta(maxMove.delta)}` : "-",
+          moves: changedMoves
+            .sort((a, b) => (
+              Math.abs(Number(b.delta) || 0) - Math.abs(Number(a.delta) || 0)
+              || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+            ))
+            .slice(0, 4),
+        };
+      }
+
+      function scenarioPill(scenario) {
+        if (scenario === "premium") return "rose";
+        if (scenario === "evidence") return "gold";
+        return "off";
       }
 
       function renderCoreMarketWatch(rows) {
@@ -7172,6 +7333,10 @@ INDEX_HTML = r"""<!doctype html>
       $("weightScenarios").addEventListener("click", (event) => {
         const button = event.target.closest("[data-weight-scenario]");
         if (button) applyWeightScenario(button.dataset.weightScenario);
+      });
+      $("weightScenarioCompare").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-scenario-preview-apply]");
+        if (button) applyWeightScenario(button.dataset.scenarioPreviewApply);
       });
       $("exportDailyCsvBtn").addEventListener("click", exportDailyRadarCsv);
       $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
