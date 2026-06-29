@@ -1227,6 +1227,69 @@ INDEX_HTML = r"""<!doctype html>
       .keyword-card strong { color: var(--wine); }
       .keyword-chips { display: flex; flex-wrap: wrap; gap: 6px; }
       .keyword-chips button { min-height: 28px; padding: 0 8px; border-color: rgba(15,103,96,.18); background: #f8fbfa; box-shadow: none; color: var(--teal); }
+      .seed-board { margin: 0 20px 14px; }
+      .seed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; padding: 12px; }
+      .seed-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        min-height: 188px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 12px 16px;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 36%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 68%, #fff), rgba(248,251,250,.92)),
+          #fffaf8;
+        overflow: hidden;
+      }
+      .seed-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .seed-card::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 7px;
+        height: 4px;
+        background: radial-gradient(circle, color-mix(in srgb, var(--brand-accent, var(--rose)) 30%, transparent) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .seed-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .seed-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .seed-score { font: 650 30px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
+      .seed-meta, .seed-keywords, .seed-links { display: flex; flex-wrap: wrap; gap: 6px; }
+      .seed-meta span, .seed-keywords button, .seed-links a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 8px;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .seed-meta span {
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line));
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+      }
+      .seed-keywords button {
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line));
+        background: rgba(255,253,251,.82);
+        box-shadow: none;
+        color: color-mix(in srgb, var(--brand-accent, var(--rose)) 74%, var(--wine));
+      }
+      .seed-links a {
+        border: 1px solid rgba(15,103,96,.18);
+        background: #f8fbfa;
+        color: var(--teal);
+        text-decoration: none;
+      }
+      .seed-links a:hover { background: #fff; text-decoration: none; }
       .pattern-board { margin: 0 20px 14px; }
       .pattern-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 12px; }
       .pattern-card {
@@ -1711,6 +1774,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
       <div id="brandKeywordRadar" class="keyword-radar"></div>
     </section>
+    <section class="panel seed-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="premiumSeedRadar">溢价关注种子</h2>
+          <span class="muted" data-i18n="premiumSeedHint">没有足够二手价样本前，先把高权重品牌和代表款式词排进采样队列</span>
+        </div>
+      </div>
+      <div id="premiumSeedRadar" class="seed-grid"></div>
+    </section>
     <section class="panel action-board">
       <div class="toolbar">
         <div>
@@ -2165,6 +2237,14 @@ INDEX_HTML = r"""<!doctype html>
           strategyNoMoves: "暂无校准动作",
           brandKeywordRadar: "热门款式词",
           brandKeywordHint: "把 AP 贝壳这类款式线索接到价格样本录入",
+          premiumSeedRadar: "溢价关注种子",
+          premiumSeedHint: "没有足够二手价样本前，先把高权重品牌和代表款式词排进采样队列",
+          premiumSeedTerms: "溢价种子词",
+          premiumSeedEmpty: "暂无溢价种子",
+          premiumSeedIntentCoreGap: "核心品牌缺少二手价证据，优先采样",
+          premiumSeedIntentPremium: "已有正溢价线索，继续追踪代表款",
+          premiumSeedIntentSeed: "先建立原价/二手价样本底座",
+          premiumSeedIntentWatch: "样本可继续扩展，观察价格走向",
           marketKeywords: "二级市场词",
           noMarketKeywords: "暂无热门款式词",
           keywordSampleReady: "已填入款式词，可补价格样本",
@@ -2613,6 +2693,14 @@ INDEX_HTML = r"""<!doctype html>
           strategyNoMoves: "No tuning moves yet",
           brandKeywordRadar: "Hot Pattern Keywords",
           brandKeywordHint: "Connect item-level signals such as AP shell to price-sample entry",
+          premiumSeedRadar: "Premium Watch Seeds",
+          premiumSeedHint: "Before samples are thick enough, queue high-weight brands and signature terms for price collection",
+          premiumSeedTerms: "premium seed terms",
+          premiumSeedEmpty: "No premium seeds yet",
+          premiumSeedIntentCoreGap: "core brand lacks resale evidence; collect samples first",
+          premiumSeedIntentPremium: "positive premium signal exists; keep tracking signature pieces",
+          premiumSeedIntentSeed: "build the retail/resale sample baseline first",
+          premiumSeedIntentWatch: "expand samples and watch price direction",
           marketKeywords: "market terms",
           noMarketKeywords: "No hot pattern keywords yet",
           keywordSampleReady: "keyword filled for price sample",
@@ -3070,6 +3158,67 @@ INDEX_HTML = r"""<!doctype html>
             </div>
           </article>`;
         }).join("");
+      }
+
+      function renderPremiumSeedRadar(rows) {
+        const seeds = premiumSeedRows(rows);
+        $("premiumSeedRadar").innerHTML = seeds.length ? seeds.map((entry) => `<article class="seed-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)}</strong>
+              <p class="muted">${escapeHtml(entry.name)} · ${escapeHtml(styleLabel(entry.style))}</p>
+            </div>
+            <div class="seed-score">${escapeHtml(entry.seed_score)}</div>
+          </header>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.seed_score)}%"></span></div>
+          <p class="muted">${escapeHtml(t(premiumSeedIntentKey(entry)))} · ${escapeHtml(entry.visual?.radar_cue || "")}</p>
+          <div class="seed-meta">
+            <span>${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</span>
+            <span>${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</span>
+            <span>${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</span>
+            ${previewingDraftWeights && hasScoreDelta(entry.score_delta) ? `<span>${escapeHtml(t("scoreDelta"))} ${escapeHtml(formatDelta(entry.score_delta))}</span>` : ""}
+          </div>
+          <div class="seed-keywords" aria-label="${escapeHtml(t("premiumSeedTerms"))}">
+            ${entry.seed_terms.length ? entry.seed_terms.map((term) => `<button type="button" data-premium-seed-brand="${escapeHtml(entry.alias)}" data-premium-seed-keyword="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("") : `<span class="muted">${escapeHtml(t("styleNoKeywords"))}</span>`}
+          </div>
+          <div class="seed-links">
+            ${(entry.watch_urls || []).slice(0, 3).map((link) => safeUrl(link.url) ? `<a href="${escapeHtml(safeUrl(link.url))}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>` : "").join("")}
+          </div>
+        </article>`).join("") : `<div class="row">${escapeHtml(t("premiumSeedEmpty"))}</div>`;
+      }
+
+      function premiumSeedRows(rows) {
+        return (rows || []).map((entry) => {
+          const keywordCount = (entry.market_keywords || []).length;
+          const sampleCount = Number(entry.sample_count) || 0;
+          const premium = Number(entry.avg_premium_rate) || 0;
+          const seedScore = clampScore(
+            (Number(entry.brand_weight) || 0) * .52
+            + Math.max(0, premium) * 35
+            + Math.min(18, keywordCount * 3)
+            + (sampleCount < 2 ? 16 : sampleCount < 5 ? 8 : 0)
+          );
+          return {
+            ...entry,
+            seed_score: seedScore,
+            seed_terms: (entry.market_keywords || []).slice(0, 4),
+          };
+        }).filter((entry) => (entry.seed_terms || []).length || Number(entry.brand_weight) >= 70)
+          .sort((a, b) => (
+            (Number(b.seed_score) || 0) - (Number(a.seed_score) || 0)
+            || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+            || String(a.alias).localeCompare(String(b.alias))
+          )).slice(0, 6);
+      }
+
+      function premiumSeedIntentKey(entry) {
+        const samples = Number(entry.sample_count) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        const weight = Number(entry.brand_weight) || 0;
+        if (samples < 2 && weight >= 90) return "premiumSeedIntentCoreGap";
+        if (premium >= 0.25) return "premiumSeedIntentPremium";
+        if (samples < 2) return "premiumSeedIntentSeed";
+        return "premiumSeedIntentWatch";
       }
 
       function renderMarketForm(weights) {
@@ -4786,6 +4935,7 @@ INDEX_HTML = r"""<!doctype html>
         renderBrandWeightFormula(rows);
         renderBrandWeightProfile(rows);
         renderBrandIdentityMatrix(rows);
+        renderPremiumSeedRadar(rows);
         renderBrandRadarMatrix(rows);
         renderSampleCoverage(rows);
         renderSamplePlan(rows);
@@ -5222,6 +5372,10 @@ INDEX_HTML = r"""<!doctype html>
       $("brandKeywordRadar").addEventListener("click", (event) => {
         const keywordButton = event.target.closest("[data-keyword-brand]");
         if (keywordButton) prepareKeywordSample(keywordButton.dataset.keywordBrand, keywordButton.dataset.keywordTerm);
+      });
+      $("premiumSeedRadar").addEventListener("click", (event) => {
+        const keywordButton = event.target.closest("[data-premium-seed-brand]");
+        if (keywordButton) prepareKeywordSample(keywordButton.dataset.premiumSeedBrand, keywordButton.dataset.premiumSeedKeyword);
       });
       $("patternPremiumRadar").addEventListener("click", (event) => {
         const patternButton = event.target.closest("[data-pattern-brand]");
