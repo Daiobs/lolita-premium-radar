@@ -376,11 +376,13 @@ INDEX_HTML = r"""<!doctype html>
           linear-gradient(90deg, rgba(180,87,111,.1), transparent 42%),
           var(--bg-soft);
       }
+      .brand-chip.dirty { border-color: rgba(169,120,44,.68); box-shadow: inset 0 0 0 1px rgba(169,120,44,.2); }
       .brand-chip strong { display: block; color: var(--wine); }
       .brand-chip span { color: var(--muted); font-size: 12px; }
       .brand-chip input[type="range"] { width: 100%; accent-color: var(--rose-dark); }
       .weight-control { display: grid; gap: 4px; margin-top: 7px; color: var(--muted); font-size: 12px; }
       .brand-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+      .brand-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
       .focus-list { display: grid; gap: 8px; }
       .focus-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #fff7f7, #f8fbfa); }
       .focus-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
@@ -510,7 +512,11 @@ INDEX_HTML = r"""<!doctype html>
       <div>
         <div class="brand-tools">
           <h2 data-i18n="brandWeights">品牌权重</h2>
-          <button id="saveWeightsBtn" type="button" class="secondary" data-i18n="saveWeights">保存权重</button>
+          <div class="brand-actions">
+            <span id="weightDirtyStatus" class="muted" data-i18n="weightsClean">已保存</span>
+            <button id="resetWeightsBtn" type="button" class="secondary" data-i18n="resetWeights" data-disabled="true" disabled>重置</button>
+            <button id="saveWeightsBtn" type="button" class="secondary" data-i18n="saveWeights" data-disabled="true" disabled>保存权重</button>
+          </div>
         </div>
         <div id="brandWeights" class="watch-grid"></div>
       </div>
@@ -620,6 +626,10 @@ INDEX_HTML = r"""<!doctype html>
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
           saveWeights: "保存权重",
+          resetWeights: "重置",
+          weightsClean: "已保存",
+          weightsDirty: "项未保存",
+          weightsReset: "品牌权重已重置",
           weightsSaved: "品牌权重已保存",
           opportunityRadar: "机会雷达",
           opportunityHint: "基于品牌权重与二手溢价生成关注建议",
@@ -729,6 +739,10 @@ INDEX_HTML = r"""<!doctype html>
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
           saveWeights: "Save Weights",
+          resetWeights: "Reset",
+          weightsClean: "saved",
+          weightsDirty: "unsaved",
+          weightsReset: "brand weights reset",
           weightsSaved: "brand weights saved",
           opportunityRadar: "Opportunity Radar",
           opportunityHint: "Attention suggestions from brand weight and resale premium",
@@ -875,10 +889,11 @@ INDEX_HTML = r"""<!doctype html>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.weight) || 0}%"></span></div>
           <label class="weight-control">
             <span data-weight-label>${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)}</span>
-            <input type="range" min="0" max="100" step="1" value="${escapeHtml(brand.weight)}" data-brand-weight="${escapeHtml(brand.alias)}">
+            <input type="range" min="0" max="100" step="1" value="${escapeHtml(brand.weight)}" data-original-weight="${escapeHtml(brand.weight)}" data-brand-weight="${escapeHtml(brand.alias)}">
           </label>
           <p class="muted">${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(styleLabel(brand.style))}</p>
         </article>`).join("");
+        updateWeightDirtyState();
       }
 
       function renderMarketForm(weights) {
@@ -1081,6 +1096,11 @@ INDEX_HTML = r"""<!doctype html>
         }
       }
 
+      function resetBrandWeightDraft() {
+        renderBrandWeights(currentState?.brand_weights || []);
+        toast(t("weightsReset"));
+      }
+
       function handleWeightInput(event) {
         const input = event.target.closest("[data-brand-weight]");
         if (!input) return;
@@ -1089,6 +1109,23 @@ INDEX_HTML = r"""<!doctype html>
         const bar = card?.querySelector(".signal-bar span");
         if (label) label.textContent = `${t("weightLabel")} ${input.value}`;
         if (bar) bar.style.setProperty("--score", `${input.value}%`);
+        if (card) card.classList.toggle("dirty", input.value !== input.dataset.originalWeight);
+        updateWeightDirtyState();
+      }
+
+      function updateWeightDirtyState() {
+        const dirtyCount = Array.from(document.querySelectorAll("[data-brand-weight]")).filter((input) => input.value !== input.dataset.originalWeight).length;
+        const dirty = dirtyCount > 0;
+        const saveButton = $("saveWeightsBtn");
+        const resetButton = $("resetWeightsBtn");
+        [saveButton, resetButton].forEach((button) => {
+          button.dataset.disabled = dirty ? "false" : "true";
+          button.disabled = !dirty;
+        });
+        const status = $("weightDirtyStatus");
+        if (status) {
+          status.textContent = dirty ? `${dirtyCount} ${t("weightsDirty")}` : t("weightsClean");
+        }
       }
 
       function setBusy(busy) {
@@ -1186,6 +1223,7 @@ INDEX_HTML = r"""<!doctype html>
       $("marketForm").addEventListener("submit", addMarketObservation);
       $("brandWeights").addEventListener("input", handleWeightInput);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
+      $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);
       $("opportunityFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-opportunity-filter]");
         if (!button) return;

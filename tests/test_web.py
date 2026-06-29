@@ -83,6 +83,9 @@ sources:
         self.assertIn("/api/market/observations", INDEX_HTML)
         self.assertIn("/api/brand-weights", INDEX_HTML)
         self.assertIn("saveWeightsBtn", INDEX_HTML)
+        self.assertIn("resetWeightsBtn", INDEX_HTML)
+        self.assertIn("weightDirtyStatus", INDEX_HTML)
+        self.assertIn("data-original-weight", INDEX_HTML)
         self.assertIn("priorityScore", INDEX_HTML)
 
     def test_market_observation_post_appends_sample(self) -> None:
