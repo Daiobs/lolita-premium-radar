@@ -2604,6 +2604,8 @@ INDEX_HTML = r"""<!doctype html>
           samplePreviewEmpty: "输入原价和二手价后预览溢价",
           sampleTaskAnchorTitle: "价格锚点任务",
           sampleTaskAnchorHint: "填写原价、二手价和来源后保存样本",
+          coreWatchTaskSource: "core-watch",
+          coreWatchTaskNotePrefix: "核心盯盘",
           sampleSpread: "差价",
           sampleScore: "单样本分",
           sampleSignalStrong: "强溢价样本",
@@ -3114,6 +3116,8 @@ INDEX_HTML = r"""<!doctype html>
           samplePreviewEmpty: "Enter retail and resale prices to preview premium",
           sampleTaskAnchorTitle: "Price anchor task",
           sampleTaskAnchorHint: "Enter retail, resale, and source before saving the sample",
+          coreWatchTaskSource: "core-watch",
+          coreWatchTaskNotePrefix: "core watch",
           sampleSpread: "spread",
           sampleScore: "sample score",
           sampleSignalStrong: "strong premium sample",
@@ -5338,6 +5342,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function prepareCoreWatchSample(alias, keyword, actionLabel) {
         prepareKeywordSampleFields(alias, keyword);
+        setCoreWatchSampleContext(alias, keyword, actionLabel || "coreWatchActionAnchor");
         setSampleTaskHint(actionLabel || "coreWatchActionAnchor", keyword);
         toast(`${alias} · ${keyword} ${t(actionLabel || "coreWatchActionAnchor")}`);
       }
@@ -5351,6 +5356,15 @@ INDEX_HTML = r"""<!doctype html>
         $("marketRetail").focus();
         $("marketForm").scrollIntoView({ behavior: "smooth", block: "center" });
         renderSamplePreview();
+      }
+
+      function setCoreWatchSampleContext(alias, keyword, actionLabel) {
+        const source = $("marketSource");
+        const notes = $("marketNotes");
+        if (!source.value.trim()) source.value = t("coreWatchTaskSource");
+        if (!notes.value.trim()) {
+          notes.value = `${t("coreWatchTaskNotePrefix")}: ${alias} ${keyword || ""} · ${t(actionLabel)}`.trim();
+        }
       }
 
       function setSampleTaskHint(actionLabel, keyword) {
