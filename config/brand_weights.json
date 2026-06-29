@@ -6,7 +6,14 @@
     "tier": "core",
     "style": "sweet print",
     "keywords": ["angelic pretty", "ap", "アンジェリックプリティ"],
-    "market_keywords": ["贝壳", "白贝壳", "Holy Lantern", "Sugary Carnival", "Melty Cream Donut", "Wonder Cookie"]
+    "market_keywords": ["贝壳", "白贝壳", "Holy Lantern", "Sugary Carnival", "Melty Cream Donut", "Wonder Cookie"],
+    "visual": {
+      "palette": "strawberry pink",
+      "accent": "#b4576f",
+      "paper": "#fff3f6",
+      "motif": "ribbon / shell print",
+      "radar_cue": "甜系原创印花与贝壳线优先"
+    }
   },
   {
     "name": "BABY, THE STARS SHINE BRIGHT",
@@ -15,7 +22,14 @@
     "tier": "core",
     "style": "classic sweet",
     "keywords": ["baby the stars shine bright", "btssb", "baby"],
-    "market_keywords": ["うさくみゃ", "Usakumya", "Kumakumya", "Baby Doll", "Elizabeth", "Little Red Riding Hood"]
+    "market_keywords": ["うさくみゃ", "Usakumya", "Kumakumya", "Baby Doll", "Elizabeth", "Little Red Riding Hood"],
+    "visual": {
+      "palette": "ivory rose",
+      "accent": "#a9782c",
+      "paper": "#fff8ec",
+      "motif": "crown / kumya",
+      "radar_cue": "经典甜系与熊包线索优先补样本"
+    }
   },
   {
     "name": "ALICE and the PIRATES",
@@ -24,7 +38,14 @@
     "tier": "core",
     "style": "gothic prince",
     "keywords": ["alice and the pirates", "aatp", "pirates"],
-    "market_keywords": ["海盗", "Vampire Requiem", "Chess Game of Destiny", "Midsummer Night's Dream"]
+    "market_keywords": ["海盗", "Vampire Requiem", "Chess Game of Destiny", "Midsummer Night's Dream"],
+    "visual": {
+      "palette": "pirate wine",
+      "accent": "#611b31",
+      "paper": "#fff3f5",
+      "motif": "crest / cross",
+      "radar_cue": "哥特王子系与吸血鬼/棋盘款重点观察"
+    }
   },
   {
     "name": "Metamorphose temps de fille",
@@ -33,7 +54,14 @@
     "tier": "watch",
     "style": "release/restock",
     "keywords": ["metamorphose", "meta", "metamor"],
-    "market_keywords": ["Swan Lake", "Pintuck", "Gobelin", "Lucky Pack"]
+    "market_keywords": ["Swan Lake", "Pintuck", "Gobelin", "Lucky Pack"],
+    "visual": {
+      "palette": "mint release",
+      "accent": "#0f6760",
+      "paper": "#f1fbf8",
+      "motif": "swan / restock",
+      "radar_cue": "上新、再贩和福袋线索重点同步"
+    }
   },
   {
     "name": "Moi-meme-Moitie",
@@ -42,7 +70,14 @@
     "tier": "watch",
     "style": "gothic",
     "keywords": ["moi-meme-moitie", "moitie", "mmm"],
-    "market_keywords": ["Iron Gate", "Stained Glass", "Silent Moon", "十字架"]
+    "market_keywords": ["Iron Gate", "Stained Glass", "Silent Moon", "十字架"],
+    "visual": {
+      "palette": "cathedral wine",
+      "accent": "#50304d",
+      "paper": "#f7f1fa",
+      "motif": "gate / stained glass",
+      "radar_cue": "哥特圣堂元素与稀有印花重点观察"
+    }
   },
   {
     "name": "Innocent World",
@@ -51,7 +86,14 @@
     "tier": "archive",
     "style": "classic",
     "keywords": ["innocent world", "iw"],
-    "market_keywords": ["Rose Basket", "Lotus", "Classical", "圆领"]
+    "market_keywords": ["Rose Basket", "Lotus", "Classical", "圆领"],
+    "visual": {
+      "palette": "classical gold",
+      "accent": "#8d6a28",
+      "paper": "#fff8ec",
+      "motif": "basket / collar",
+      "radar_cue": "古典花篮、圆领与低频样本归档"
+    }
   },
   {
     "name": "Victorian Maiden",
@@ -60,7 +102,14 @@
     "tier": "archive",
     "style": "classic",
     "keywords": ["victorian maiden", "vm"],
-    "market_keywords": ["Regimental", "Rose", "Frill", "classic"]
+    "market_keywords": ["Regimental", "Rose", "Frill", "classic"],
+    "visual": {
+      "palette": "victorian mauve",
+      "accent": "#8c5468",
+      "paper": "#fff4f7",
+      "motif": "rose / frill",
+      "radar_cue": "古典玫瑰、军服感与褶边款补证据"
+    }
   },
   {
     "name": "Mary Magdalene",
@@ -69,7 +118,14 @@
     "tier": "archive",
     "style": "classic",
     "keywords": ["mary magdalene", "mm"],
-    "market_keywords": ["Elodie", "Rose Basket", "Fleur", "classical"]
+    "market_keywords": ["Elodie", "Rose Basket", "Fleur", "classical"],
+    "visual": {
+      "palette": "antique rose",
+      "accent": "#9b5961",
+      "paper": "#fff5f2",
+      "motif": "fleur / antique rose",
+      "radar_cue": "古典花名款与停产品线做长期档案"
+    }
   },
   {
     "name": "Juliette et Justine",
@@ -78,6 +134,13 @@
     "tier": "archive",
     "style": "art print",
     "keywords": ["juliette et justine", "jetj"],
-    "market_keywords": ["La Danse", "Le Cadre", "art print", "肖像"]
+    "market_keywords": ["La Danse", "Le Cadre", "art print", "肖像"],
+    "visual": {
+      "palette": "museum teal",
+      "accent": "#426a70",
+      "paper": "#f1fbfb",
+      "motif": "frame / portrait",
+      "radar_cue": "艺术印花与肖像款按作品线归档"
+    }
   }
 ]

@@ -98,8 +98,9 @@ simple premium-signal score for prioritizing attention. The first screen pairs
 the operational controls with a local lace-and-radar visual asset so the app
 feels closer to a Lolita market desk without depending on remote media. Brand
 weight cards use Lolita-style visual cues such as themed brand cameos, tier
-ribbons, and market-keyword pearls, while keeping the weight sliders and saved
-draft state visible for fast tuning. The brand radar matrix
+ribbons, market-keyword pearls, and per-brand visual identity metadata for
+palette, motif, and radar cue, while keeping the weight sliders and saved draft
+state visible for fast tuning. The brand radar matrix
 puts weight, average resale premium, sample count, radar score, and next action
 in one scan-friendly view, with focused filters and sorting by score, premium,
 weight, sample count, or draft-score movement. The opportunity radar turns brand
@@ -136,9 +137,12 @@ and IW/VM/MM/JetJ 65. The dashboard also builds a focus queue from those weights
 and the currently observed items/events. You can adjust existing brand weights
 from the web dashboard, preview how draft weights change opportunity radar
 scores and deltas, review unsaved changes, reset drafts, and save them back to
-the configured brand-weight file. Each brand card also explains the current
-weight band, monitoring intent, and keyword coverage so the score is easier to
-audit before changing it. The API also exposes `brand_weight_profile`, a
+the configured brand-weight file. Each brand entry can also carry `visual`
+metadata (`palette`, `accent`, `paper`, `motif`, and `radar_cue`) so AP, BABY,
+AATP, and other labels keep distinct Lolita identities across the dashboard.
+Each brand card also explains the current weight band, monitoring intent, and
+keyword coverage so the score is easier to audit before changing it. The API
+also exposes `brand_weight_profile`, a
 full-brand view with weight band, weight role, evidence level, score breakdown,
 and market keywords, plus `market_alerts` for critical/watch/sample-gap
 recommendations. A weight-tuning queue turns current premium, sample count, and

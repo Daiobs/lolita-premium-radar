@@ -15,6 +15,13 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "style": "sweet print",
         "keywords": ["angelic pretty", "ap", "アンジェリックプリティ"],
         "market_keywords": ["贝壳", "白贝壳", "Holy Lantern", "Sugary Carnival", "Melty Cream Donut", "Wonder Cookie"],
+        "visual": {
+            "palette": "strawberry pink",
+            "accent": "#b4576f",
+            "paper": "#fff3f6",
+            "motif": "ribbon / shell print",
+            "radar_cue": "甜系原创印花与贝壳线优先",
+        },
     },
     {
         "name": "BABY, THE STARS SHINE BRIGHT",
@@ -24,6 +31,13 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "style": "classic sweet",
         "keywords": ["baby the stars shine bright", "btssb", "baby"],
         "market_keywords": ["うさくみゃ", "Usakumya", "Kumakumya", "Baby Doll", "Elizabeth", "Little Red Riding Hood"],
+        "visual": {
+            "palette": "ivory rose",
+            "accent": "#a9782c",
+            "paper": "#fff8ec",
+            "motif": "crown / kumya",
+            "radar_cue": "经典甜系与熊包线索优先补样本",
+        },
     },
     {
         "name": "ALICE and the PIRATES",
@@ -33,6 +47,13 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "style": "gothic prince",
         "keywords": ["alice and the pirates", "aatp", "pirates"],
         "market_keywords": ["海盗", "Vampire Requiem", "Chess Game of Destiny", "Midsummer Night's Dream"],
+        "visual": {
+            "palette": "pirate wine",
+            "accent": "#611b31",
+            "paper": "#fff3f5",
+            "motif": "crest / cross",
+            "radar_cue": "哥特王子系与吸血鬼/棋盘款重点观察",
+        },
     },
     {
         "name": "Metamorphose temps de fille",
@@ -42,6 +63,13 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "style": "release/restock",
         "keywords": ["metamorphose", "meta", "metamor"],
         "market_keywords": ["Swan Lake", "Pintuck", "Gobelin", "Lucky Pack"],
+        "visual": {
+            "palette": "mint release",
+            "accent": "#0f6760",
+            "paper": "#f1fbf8",
+            "motif": "swan / restock",
+            "radar_cue": "上新、再贩和福袋线索重点同步",
+        },
     },
     {
         "name": "Moi-meme-Moitie",
@@ -51,6 +79,13 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "style": "gothic",
         "keywords": ["moi-meme-moitie", "moitie", "mmm"],
         "market_keywords": ["Iron Gate", "Stained Glass", "Silent Moon", "十字架"],
+        "visual": {
+            "palette": "cathedral wine",
+            "accent": "#50304d",
+            "paper": "#f7f1fa",
+            "motif": "gate / stained glass",
+            "radar_cue": "哥特圣堂元素与稀有印花重点观察",
+        },
     },
     {
         "name": "Innocent World",
@@ -60,6 +95,13 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "style": "classic",
         "keywords": ["innocent world", "iw"],
         "market_keywords": ["Rose Basket", "Lotus", "Classical", "圆领"],
+        "visual": {
+            "palette": "classical gold",
+            "accent": "#8d6a28",
+            "paper": "#fff8ec",
+            "motif": "basket / collar",
+            "radar_cue": "古典花篮、圆领与低频样本归档",
+        },
     },
     {
         "name": "Victorian Maiden",
@@ -69,6 +111,13 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "style": "classic",
         "keywords": ["victorian maiden", "vm"],
         "market_keywords": ["Regimental", "Rose", "Frill", "classic"],
+        "visual": {
+            "palette": "victorian mauve",
+            "accent": "#8c5468",
+            "paper": "#fff4f7",
+            "motif": "rose / frill",
+            "radar_cue": "古典玫瑰、军服感与褶边款补证据",
+        },
     },
     {
         "name": "Mary Magdalene",
@@ -78,6 +127,13 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "style": "classic",
         "keywords": ["mary magdalene", "mm"],
         "market_keywords": ["Elodie", "Rose Basket", "Fleur", "classical"],
+        "visual": {
+            "palette": "antique rose",
+            "accent": "#9b5961",
+            "paper": "#fff5f2",
+            "motif": "fleur / antique rose",
+            "radar_cue": "古典花名款与停产品线做长期档案",
+        },
     },
     {
         "name": "Juliette et Justine",
@@ -87,6 +143,13 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
         "style": "art print",
         "keywords": ["juliette et justine", "jetj"],
         "market_keywords": ["La Danse", "Le Cadre", "art print", "肖像"],
+        "visual": {
+            "palette": "museum teal",
+            "accent": "#426a70",
+            "paper": "#f1fbfb",
+            "motif": "frame / portrait",
+            "radar_cue": "艺术印花与肖像款按作品线归档",
+        },
     },
 ]
 
@@ -153,6 +216,7 @@ def normalize_brand_weights(rows: list[Any]) -> list[dict[str, Any]]:
             "style": text(raw.get("style")) or "general",
             "keywords": sorted({text(keyword).lower() for keyword in keywords if text(keyword)}),
             "market_keywords": ordered_unique_texts(market_keywords),
+            "visual": normalize_brand_visual(raw.get("visual")),
         }
         brand["keywords"] = sorted({*brand["keywords"], name.lower(), alias.lower()})
         brands.append(brand)
@@ -230,6 +294,21 @@ def ordered_unique_texts(values: list[Any]) -> list[str]:
         seen.add(key)
         result.append(normalized)
     return result
+
+
+def normalize_brand_visual(raw: Any) -> dict[str, str]:
+    if not isinstance(raw, dict):
+        return {}
+    visual: dict[str, str] = {}
+    for key in ["palette", "motif", "radar_cue"]:
+        value = text(raw.get(key))
+        if value:
+            visual[key] = value
+    for key in ["accent", "paper"]:
+        value = text(raw.get(key))
+        if re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+            visual[key] = value
+    return visual
 
 
 def clamp_int(value: Any, default: int) -> int:

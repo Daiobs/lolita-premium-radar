@@ -142,6 +142,7 @@ class MarketTests(unittest.TestCase):
                     "tier": "core",
                     "style": "sweet print",
                     "market_keywords": ["贝壳", "Holy Lantern"],
+                    "visual": {"accent": "#b4576f", "motif": "ribbon / shell print"},
                 },
                 {"alias": "Meta", "name": "Metamorphose", "weight": 80, "tier": "watch"},
             ],
@@ -157,6 +158,7 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(ap["evidence_level"], "ready")
         self.assertEqual(ap["evidence_score"], 100)
         self.assertEqual(ap["market_keywords"], ["贝壳", "Holy Lantern"])
+        self.assertEqual(ap["visual"]["motif"], "ribbon / shell print")
         self.assertIn("score_breakdown", ap)
         self.assertEqual(meta["evidence_level"], "missing")
 

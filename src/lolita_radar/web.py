@@ -586,6 +586,21 @@ INDEX_HTML = r"""<!doctype html>
       .brand-ribbon span:first-child { color: var(--brand-accent, var(--rose)); }
       .brand-chip input[type="range"] { width: 100%; accent-color: var(--rose-dark); }
       .weight-control { display: grid; gap: 4px; margin-top: 7px; color: var(--muted); font-size: 12px; }
+      .brand-identity {
+        display: grid;
+        gap: 5px;
+        padding: 8px 9px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, var(--line));
+        border-radius: 7px;
+        background:
+          radial-gradient(circle at 12px 10px, rgba(255,255,255,.78) 0 2px, transparent 2px) 0 0 / 18px 18px,
+          color-mix(in srgb, var(--brand-paper, #fff3f6) 74%, #fff);
+      }
+      .brand-identity span {
+        color: var(--brand-accent, var(--rose));
+        font-weight: 650;
+      }
+      .brand-identity p { margin: 0; color: var(--muted); font-size: 12px; }
       .weight-insight { display: grid; gap: 5px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(97,27,49,.16); }
       .weight-insight p { margin: 0; color: var(--muted); font-size: 12px; }
       .weight-insight strong { display: inline; color: var(--wine); }
@@ -689,6 +704,7 @@ INDEX_HTML = r"""<!doctype html>
         padding: 12px 12px 16px;
         background:
           radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 24px 24px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 12%, transparent), transparent 36%),
           linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)),
           #fffaf8;
       }
@@ -720,6 +736,7 @@ INDEX_HTML = r"""<!doctype html>
         border-radius: 8px;
         padding: 12px;
         background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 34%),
           linear-gradient(135deg, rgba(248,251,250,.92), rgba(255,247,232,.72)),
           #fffaf8;
       }
@@ -1384,6 +1401,7 @@ INDEX_HTML = r"""<!doctype html>
           weightBand: "权重档",
           weightIntent: "用途",
           keywordCount: "关键词",
+          visualMotif: "视觉",
           weightBandCore: "核心发售",
           weightBandWatch: "重点观察",
           weightBandArchive: "档案采样",
@@ -1713,6 +1731,7 @@ INDEX_HTML = r"""<!doctype html>
           weightBand: "band",
           weightIntent: "intent",
           keywordCount: "keywords",
+          visualMotif: "visual",
           weightBandCore: "core release",
           weightBandWatch: "watch priority",
           weightBandArchive: "archive sampling",
@@ -2000,7 +2019,7 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function renderBrandWeights(weights) {
-        $("brandWeights").innerHTML = weights.map((brand) => `<article class="brand-chip ${brandThemeClass(brand)}" data-tier="${escapeHtml(brand.tier || "")}">
+        $("brandWeights").innerHTML = weights.map((brand) => `<article class="brand-chip ${brandThemeClass(brand)}" data-tier="${escapeHtml(brand.tier || "")}" style="${escapeHtml(brandVisualStyle(brand))}">
           <header class="brand-chip-header">
             <div class="brand-cameo" aria-hidden="true">
               <strong>${escapeHtml(brand.alias)}</strong>
@@ -2014,8 +2033,10 @@ INDEX_HTML = r"""<!doctype html>
           <div class="brand-ribbon">
             <span>${escapeHtml(tierLabel(brand.tier))}</span>
             <span>${escapeHtml(styleLabel(brand.style))}</span>
+            ${brand.visual?.palette ? `<span>${escapeHtml(brand.visual.palette)}</span>` : ""}
           </div>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.weight) || 0}%"></span></div>
+          ${brandIdentityHtml(brand)}
           <label class="weight-control">
             <span data-weight-label>${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)}</span>
             <input type="range" min="0" max="100" step="1" value="${escapeHtml(brand.weight)}" data-original-weight="${escapeHtml(brand.weight)}" data-brand-weight="${escapeHtml(brand.alias)}">
@@ -2045,6 +2066,30 @@ INDEX_HTML = r"""<!doctype html>
         return "theme-sweet";
       }
 
+      function brandVisualStyle(brand) {
+        const accent = cssHexColor(brand.visual?.accent);
+        const paper = cssHexColor(brand.visual?.paper);
+        return [
+          accent ? `--brand-accent: ${accent}` : "",
+          paper ? `--brand-paper: ${paper}` : "",
+        ].filter(Boolean).join("; ");
+      }
+
+      function cssHexColor(value) {
+        const text = String(value || "").trim();
+        return /^#[0-9a-fA-F]{6}$/.test(text) ? text : "";
+      }
+
+      function brandIdentityHtml(brand) {
+        const visual = brand.visual || {};
+        const motif = visual.motif || styleLabel(brand.style);
+        const cue = visual.radar_cue || "";
+        return `<div class="brand-identity">
+          <span>${escapeHtml(t("visualMotif"))} · ${escapeHtml(motif)}</span>
+          ${cue ? `<p>${escapeHtml(cue)}</p>` : ""}
+        </div>`;
+      }
+
       function brandWeightInsightHtml(brand, weightValue) {
         const weight = clampScore(weightValue ?? brand.weight);
         const band = weightBandKey(weight);
@@ -2072,11 +2117,11 @@ INDEX_HTML = r"""<!doctype html>
         const brands = [...weights].sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0));
         $("brandKeywordRadar").innerHTML = brands.map((brand) => {
           const terms = brand.market_keywords || [];
-          return `<article class="keyword-card">
+          return `<article class="keyword-card" style="${escapeHtml(brandVisualStyle(brand))}">
             <header>
               <div>
                 <strong>${escapeHtml(brand.alias)}</strong>
-                <p class="muted">${escapeHtml(brand.name)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)}</p>
+                <p class="muted">${escapeHtml(brand.name)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)} · ${escapeHtml(brand.visual?.motif || styleLabel(brand.style))}</p>
               </div>
               <span class="pill ${brand.weight >= 90 ? "rose" : ""}">${escapeHtml(t("marketKeywords"))} ${escapeHtml(terms.length)}</span>
             </header>
@@ -2401,7 +2446,7 @@ INDEX_HTML = r"""<!doctype html>
           .slice(0, 9);
         $("brandWeightProfile").innerHTML = visible.length ? visible.map((entry) => {
           const keywords = (entry.market_keywords || []).slice(0, 4);
-          return `<article class="profile-card">
+          return `<article class="profile-card" style="${escapeHtml(brandVisualStyle(entry))}">
             <header>
               <div>
                 <strong>${escapeHtml(entry.alias)}</strong>
@@ -2421,6 +2466,7 @@ INDEX_HTML = r"""<!doctype html>
               ${profileBar(t("profileHeat"), entry.score_breakdown?.premium_points || 0, 55)}
               ${profileBar(t("profileEvidence"), entry.evidence_score || 0, 100)}
             </div>
+            ${brandIdentityHtml(entry)}
             <p class="muted">${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)} · ${escapeHtml(tierLabel(entry.tier))}</p>
             <div class="profile-keywords" aria-label="${escapeHtml(t("profileKeywords"))}">
               ${keywords.length ? keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("profileNoKeywords"))}</span>`}
@@ -3152,6 +3198,7 @@ INDEX_HTML = r"""<!doctype html>
             alias: brand.alias,
             tier: brand.tier,
             style: brand.style,
+            visual: brand.visual || {},
             brand_weight: weight,
             weight_band: weightBandKey(weight).replace("weightBand", "").toLowerCase(),
             weight_role: weightRoleKey(weight),
