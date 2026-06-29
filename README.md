@@ -107,7 +107,10 @@ weight, tier distribution, market-evidence coverage, and the highest-priority
 sample gaps so brand weights are easier to audit before saving. A hot-pattern
 keyword radar turns item-level terms such as `AP` + `贝壳` into one-click sample
 entry seeds, and the pattern-premium radar groups recorded samples by those
-keywords to show item-level premium, sample count, and weighted priority.
+keywords to show item-level premium, sample count, and weighted priority. The
+market action desk turns the highest-priority pattern rows into search links for
+Goofish, Taobao, Mercari JP, and Yahoo Japan Auctions plus one-click sample
+prefill.
 
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,

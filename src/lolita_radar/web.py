@@ -443,6 +443,21 @@ INDEX_HTML = r"""<!doctype html>
       .pattern-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
       .pattern-card strong { color: var(--wine); }
       .pattern-card button { justify-self: start; min-height: 30px; padding-inline: 10px; }
+      .action-board { margin: 0 20px 14px; }
+      .action-grid { display: grid; grid-template-columns: minmax(240px, .7fr) minmax(280px, 1.3fr); gap: 12px; padding: 12px; }
+      .action-brief, .action-list article {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .action-brief { display: grid; gap: 9px; align-content: start; padding: 12px; background: linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)); }
+      .action-brief strong { color: var(--wine); font: 650 32px/1 Georgia, "Times New Roman", serif; }
+      .action-list { display: grid; gap: 8px; }
+      .action-list article { display: grid; gap: 8px; padding: 12px; }
+      .action-list header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .action-list strong { color: var(--wine); }
+      .search-links { display: flex; flex-wrap: wrap; gap: 6px; }
+      .search-links a, .search-links button { min-height: 28px; padding: 0 8px; border: 1px solid rgba(15,103,96,.18); border-radius: 999px; background: #f8fbfa; color: var(--teal); box-shadow: none; font: inherit; text-decoration: none; display: inline-flex; align-items: center; }
       .signal-strip { display: grid; gap: 8px; align-content: start; }
       .signal-bar { height: 11px; overflow: hidden; border-radius: 999px; background: var(--lace); box-shadow: inset 0 0 0 1px rgba(97,27,49,.06); }
       .signal-bar span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--teal), var(--rose), var(--gold)); }
@@ -608,7 +623,7 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .action-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
@@ -675,6 +690,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="brandKeywordRadar" class="keyword-radar"></div>
+    </section>
+    <section class="panel action-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="marketActionDesk">二级市场行动台</h2>
+          <span class="muted" data-i18n="marketActionHint">把高权重款式词转成搜索和补样本任务</span>
+        </div>
+      </div>
+      <div id="marketActionDesk" class="action-grid"></div>
     </section>
     <section class="panel pattern-board">
       <div class="toolbar">
@@ -913,6 +937,17 @@ INDEX_HTML = r"""<!doctype html>
           patternPremiumHint: "把热门款式词和已录二手价样本连起来",
           noPatternPremium: "暂无款式词雷达数据",
           patternSample: "补这个款",
+          marketActionDesk: "二级市场行动台",
+          marketActionHint: "把高权重款式词转成搜索和补样本任务",
+          actionTotal: "待办款式",
+          actionNeedsSamples: "待补样本",
+          actionWithSamples: "已有样本",
+          actionSearch: "搜索入口",
+          actionQuery: "搜索词",
+          actionGoofish: "闲鱼",
+          actionTaobao: "淘宝",
+          actionMercari: "Mercari",
+          actionYahoo: "雅虎拍卖",
           weightTuning: "权重校准建议",
           weightTuningHint: "把溢价、样本和当前权重翻译成下一步动作",
           noWeightTuning: "暂无校准建议",
@@ -1111,6 +1146,17 @@ INDEX_HTML = r"""<!doctype html>
           patternPremiumHint: "Connect hot pattern terms to recorded resale-price samples",
           noPatternPremium: "No pattern premium radar data yet",
           patternSample: "sample this pattern",
+          marketActionDesk: "Market Action Desk",
+          marketActionHint: "Turn high-weight pattern terms into search and sample tasks",
+          actionTotal: "pattern tasks",
+          actionNeedsSamples: "need samples",
+          actionWithSamples: "sampled",
+          actionSearch: "search",
+          actionQuery: "query",
+          actionGoofish: "Goofish",
+          actionTaobao: "Taobao",
+          actionMercari: "Mercari",
+          actionYahoo: "Yahoo JP",
           weightTuning: "Weight Tuning",
           weightTuningHint: "Turn premium, sample count, and current weight into next actions",
           noWeightTuning: "No tuning suggestions yet",
@@ -1261,6 +1307,7 @@ INDEX_HTML = r"""<!doctype html>
         renderOpportunityRadar(state.opportunity_radar || []);
         renderMarketSignal(state.events || [], state.items || []);
         renderMarketPremium(state.market || {});
+        renderMarketActionDesk(state.market?.patterns || []);
         renderPatternPremiumRadar(state.market?.patterns || []);
         $("sources").innerHTML = state.sources.length ? state.sources.map(renderSource).join("") : `<div class="row">${escapeHtml(t("noSources"))}</div>`;
         $("eventCount").textContent = shownText(state.events.length);
@@ -1703,6 +1750,61 @@ INDEX_HTML = r"""<!doctype html>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
       }
 
+      function renderMarketActionDesk(patterns) {
+        const actions = marketActions(patterns);
+        const needsSamples = actions.filter((pattern) => Number(pattern.sample_count) < 2).length;
+        const sampled = actions.filter((pattern) => Number(pattern.sample_count) > 0).length;
+        $("marketActionDesk").innerHTML = `
+          <article class="action-brief">
+            <strong>${escapeHtml(actions.length)}</strong>
+            <p class="muted">${escapeHtml(t("actionTotal"))}</p>
+            <div class="coverage-stats">
+              <article class="coverage-stat"><strong>${escapeHtml(needsSamples)}</strong><span class="muted">${escapeHtml(t("actionNeedsSamples"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(sampled)}</strong><span class="muted">${escapeHtml(t("actionWithSamples"))}</span></article>
+            </div>
+          </article>
+          <div class="action-list">
+            ${actions.length ? actions.map((pattern) => `<article>
+              <header>
+                <div>
+                  <strong>${escapeHtml(pattern.alias)} · ${escapeHtml(pattern.keyword)}</strong>
+                  <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(pattern.priority_score)} · ${escapeHtml(t("samples"))} ${escapeHtml(pattern.sample_count)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(pattern.avg_premium_rate))}</p>
+                </div>
+                <span class="pill ${opportunityPill(pattern.band)}">${escapeHtml(valueLabel("opportunityBand", pattern.band))}</span>
+              </header>
+              <p class="muted">${escapeHtml(t("actionQuery"))} · ${escapeHtml(actionQuery(pattern))}</p>
+              <div class="search-links">
+                ${marketSearchLinks(pattern).map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
+                <button type="button" data-action-sample="${escapeHtml(pattern.alias)}" data-action-keyword="${escapeHtml(pattern.keyword)}">${escapeHtml(t("patternSample"))}</button>
+              </div>
+            </article>`).join("") : `<div class="row">${escapeHtml(t("noPatternPremium"))}</div>`}
+          </div>
+        `;
+      }
+
+      function marketActions(patterns) {
+        return [...patterns].sort((a, b) => (
+          Number(b.sample_count < 2) - Number(a.sample_count < 2)
+          || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+        )).slice(0, 6);
+      }
+
+      function actionQuery(pattern) {
+        return `${pattern.alias} ${pattern.keyword} lolita`;
+      }
+
+      function marketSearchLinks(pattern) {
+        const localQuery = encodeURIComponent(actionQuery(pattern));
+        const jpQuery = encodeURIComponent(`${pattern.name || pattern.alias} ${pattern.keyword}`);
+        return [
+          { label: t("actionGoofish"), href: `https://www.goofish.com/search?q=${localQuery}` },
+          { label: t("actionTaobao"), href: `https://s.taobao.com/search?q=${localQuery}` },
+          { label: t("actionMercari"), href: `https://jp.mercari.com/search?keyword=${jpQuery}` },
+          { label: t("actionYahoo"), href: `https://auctions.yahoo.co.jp/search/search?p=${jpQuery}` },
+        ];
+      }
+
       function renderPatternPremiumRadar(patterns) {
         $("patternPremiumRadar").innerHTML = patterns.length ? patterns.map((pattern) => `<article class="pattern-card">
           <header>
@@ -2125,6 +2227,10 @@ INDEX_HTML = r"""<!doctype html>
       $("patternPremiumRadar").addEventListener("click", (event) => {
         const patternButton = event.target.closest("[data-pattern-brand]");
         if (patternButton) prepareKeywordSample(patternButton.dataset.patternBrand, patternButton.dataset.patternKeyword);
+      });
+      $("marketActionDesk").addEventListener("click", (event) => {
+        const actionButton = event.target.closest("[data-action-sample]");
+        if (actionButton) prepareKeywordSample(actionButton.dataset.actionSample, actionButton.dataset.actionKeyword);
       });
       $("matrixFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-matrix-filter]");
