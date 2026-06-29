@@ -94,7 +94,10 @@ Then open [http://127.0.0.1:8766](http://127.0.0.1:8766). The dashboard shows
 configured sources, stored events, tracked items, and buttons for manual checks.
 The UI defaults to Chinese and includes a `中文 / EN` language switch. It also
 includes a Lolita secondary-market view with brand weights, status mix, and a
-simple premium-signal score for prioritizing attention.
+simple premium-signal score for prioritizing attention. The opportunity radar
+turns brand weights, sample counts, and resale-premium rates into watch actions
+such as tracking releases, collecting more price samples, or cooling down a
+brand.
 
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,

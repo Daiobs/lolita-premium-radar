@@ -13,6 +13,7 @@ from .brands import build_focus_queue, default_brand_weights_path, load_brand_we
 from .config import load_sources
 from .market import (
     append_market_observation,
+    build_opportunity_radar,
     default_market_observations_path,
     load_market_observations,
     summarize_market_observations,
@@ -198,6 +199,7 @@ def get_dashboard_state(
         },
         "brand_weights": brand_weights,
         "focus_queue": build_focus_queue(brand_weights, items, events, market_summary["brands"]),
+        "opportunity_radar": build_opportunity_radar(brand_weights, market_summary["brands"]),
         "market": {
             "observations": market_observations,
             "summary": market_summary,
@@ -417,6 +419,20 @@ INDEX_HTML = r"""<!doctype html>
       .market-board { margin: 0 20px 14px; }
       .market-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; padding: 12px; }
       .market-list { display: grid; gap: 9px; }
+      .opportunity-board { margin: 0 20px 14px; }
+      .opportunity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; padding: 12px; }
+      .opportunity-card {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background:
+          linear-gradient(135deg, rgba(180,87,111,.1), rgba(15,103,96,.08)),
+          #fffaf8;
+      }
+      .opportunity-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .opportunity-card strong { color: var(--wine); }
       .market-card {
         border: 1px solid var(--line);
         border-radius: 8px;
@@ -486,6 +502,13 @@ INDEX_HTML = r"""<!doctype html>
         </div>
         <div id="brandWeights" class="watch-grid"></div>
       </div>
+    </section>
+    <section class="panel opportunity-board">
+      <div class="toolbar">
+        <h2 data-i18n="opportunityRadar">机会雷达</h2>
+        <span class="muted" data-i18n="opportunityHint">基于品牌权重与二手溢价生成关注建议</span>
+      </div>
+      <div id="opportunityRadar" class="opportunity-grid"></div>
     </section>
     <section class="panel market-board">
       <div class="toolbar">
@@ -576,6 +599,8 @@ INDEX_HTML = r"""<!doctype html>
           brandWeights: "品牌权重",
           saveWeights: "保存权重",
           weightsSaved: "品牌权重已保存",
+          opportunityRadar: "机会雷达",
+          opportunityHint: "基于品牌权重与二手溢价生成关注建议",
           focusQueue: "重点关注队列",
           marketPremium: "二手溢价观察",
           premiumByBrand: "品牌溢价排行",
@@ -595,6 +620,7 @@ INDEX_HTML = r"""<!doctype html>
           observed: "已捕捉",
           noFocusQueue: "暂无关注队列",
           noMarket: "暂无价格样本",
+          noOpportunity: "暂无机会雷达数据",
           samples: "样本",
           avgPremium: "均值",
           maxPremium: "最高",
@@ -609,6 +635,22 @@ INDEX_HTML = r"""<!doctype html>
           observedAt: "日期",
           addSample: "加入样本",
           sampleAdded: "价格样本已加入",
+          opportunityBand: {
+            lead: "重点盯新款",
+            watch: "持续观察",
+            collect_samples: "补价格样本",
+            cooldown: "暂缓",
+          },
+          reasonCode: {
+            core_brand: "核心品牌",
+            watch_brand: "观察品牌",
+            needs_samples: "样本不足",
+            sample_supported: "样本支撑",
+            strong_premium: "强溢价",
+            positive_premium: "正溢价",
+            discounted_resale: "二手折价",
+            baseline: "基础权重",
+          },
           noSources: "暂无配置数据源。",
           noEvents: "暂无事件。运行检查后会先建立基线。",
           noItems: "暂无跟踪条目。",
@@ -658,6 +700,8 @@ INDEX_HTML = r"""<!doctype html>
           brandWeights: "Brand Weights",
           saveWeights: "Save Weights",
           weightsSaved: "brand weights saved",
+          opportunityRadar: "Opportunity Radar",
+          opportunityHint: "Attention suggestions from brand weight and resale premium",
           focusQueue: "Focus Queue",
           marketPremium: "Resale Premium Watch",
           premiumByBrand: "Premium by Brand",
@@ -677,6 +721,7 @@ INDEX_HTML = r"""<!doctype html>
           observed: "observed",
           noFocusQueue: "No focus queue yet",
           noMarket: "No price samples yet",
+          noOpportunity: "No opportunity radar data yet",
           samples: "samples",
           avgPremium: "avg",
           maxPremium: "max",
@@ -691,6 +736,22 @@ INDEX_HTML = r"""<!doctype html>
           observedAt: "date",
           addSample: "Add Sample",
           sampleAdded: "price sample added",
+          opportunityBand: {
+            lead: "track releases",
+            watch: "watch",
+            collect_samples: "collect samples",
+            cooldown: "cooldown",
+          },
+          reasonCode: {
+            core_brand: "core brand",
+            watch_brand: "watch brand",
+            needs_samples: "needs samples",
+            sample_supported: "sample supported",
+            strong_premium: "strong premium",
+            positive_premium: "positive premium",
+            discounted_resale: "discounted resale",
+            baseline: "baseline weight",
+          },
           noSources: "No sources configured.",
           noEvents: "No events yet. Run a check to build the baseline.",
           noItems: "No tracked items yet.",
@@ -758,6 +819,7 @@ INDEX_HTML = r"""<!doctype html>
         renderMarketForm(state.brand_weights || []);
         renderBrandWeights(state.brand_weights || []);
         renderFocusQueue(state.focus_queue || []);
+        renderOpportunityRadar(state.opportunity_radar || []);
         renderMarketSignal(state.events || [], state.items || []);
         renderMarketPremium(state.market || {});
         $("sources").innerHTML = state.sources.length ? state.sources.map(renderSource).join("") : `<div class="row">${escapeHtml(t("noSources"))}</div>`;
@@ -799,6 +861,22 @@ INDEX_HTML = r"""<!doctype html>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.score) || 0}%"></span></div>
           <p class="muted">${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)} · ${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(t("observed"))} ${escapeHtml(brand.item_count)}/${escapeHtml(brand.event_count)}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noFocusQueue"))}</div>`;
+      }
+
+      function renderOpportunityRadar(opportunities) {
+        $("opportunityRadar").innerHTML = opportunities.length ? opportunities.map((entry) => `<article class="opportunity-card">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)}</strong>
+              <p class="muted">${escapeHtml(entry.name)}</p>
+            </div>
+            <span class="pill ${opportunityPill(entry.band)}">${escapeHtml(valueLabel("opportunityBand", entry.band))}</span>
+          </header>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(entry.priority_score) || 0}%"></span></div>
+          <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</p>
+          <p class="muted">${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
+          <p class="muted">${escapeHtml(reasonLabels(entry.reason_codes).join(" · "))}</p>
+        </article>`).join("") : `<div class="row">${escapeHtml(t("noOpportunity"))}</div>`;
       }
 
       function renderMarketSignal(events, items) {
@@ -997,6 +1075,17 @@ INDEX_HTML = r"""<!doctype html>
 
       function styleLabel(style) {
         return valueLabel("brandStyle", style);
+      }
+
+      function opportunityPill(band) {
+        if (band === "lead") return "rose";
+        if (band === "collect_samples") return "gold";
+        if (band === "cooldown") return "off";
+        return "";
+      }
+
+      function reasonLabels(codes) {
+        return (codes || []).map((code) => valueLabel("reasonCode", code));
       }
 
       function countBy(rows, key) {

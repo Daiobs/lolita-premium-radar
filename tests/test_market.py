@@ -5,6 +5,7 @@ from pathlib import Path
 
 from lolita_radar.market import (
     append_market_observation,
+    build_opportunity_radar,
     load_market_observations,
     premium_priority_score,
     summarize_market_observations,
@@ -85,6 +86,23 @@ class MarketTests(unittest.TestCase):
         high_weight_score = premium_priority_score(0.4, brand_weight=100, sample_count=1)
 
         self.assertGreater(high_weight_score, low_weight_score)
+
+    def test_build_opportunity_radar_labels_next_action(self) -> None:
+        opportunities = build_opportunity_radar(
+            brand_weights=[
+                {"alias": "AP", "name": "Angelic Pretty", "weight": 100, "tier": "core", "style": "sweet print"},
+                {"alias": "Meta", "name": "Metamorphose", "weight": 86, "tier": "watch", "style": "release/restock"},
+            ],
+            market_brands=[
+                {"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.7, "max_premium_rate": 0.9},
+                {"brand_alias": "Meta", "sample_count": 2, "avg_premium_rate": 0.1, "max_premium_rate": 0.2},
+            ],
+        )
+
+        self.assertEqual(opportunities[0]["alias"], "AP")
+        self.assertEqual(opportunities[0]["band"], "lead")
+        self.assertIn("strong_premium", opportunities[0]["reason_codes"])
+        self.assertEqual(opportunities[1]["band"], "watch")
 
 
 if __name__ == "__main__":

@@ -111,6 +111,80 @@ def summarize_market_observations(
     }
 
 
+def build_opportunity_radar(
+    brand_weights: list[dict[str, Any]],
+    market_brands: list[dict[str, Any]],
+    limit: int = 8,
+) -> list[dict[str, Any]]:
+    market_by_alias = {text(row.get("brand_alias")).upper(): row for row in market_brands}
+    opportunities = []
+    for brand in brand_weights:
+        alias = text(brand.get("alias"))
+        if not alias:
+            continue
+        market = market_by_alias.get(alias.upper(), {})
+        sample_count = clamp_int(market.get("sample_count"), default=0)
+        avg_premium_rate = float(market.get("avg_premium_rate") or 0)
+        max_premium_rate = float(market.get("max_premium_rate") or 0)
+        weight = clamp_int(brand.get("weight"), default=50)
+        score = premium_priority_score(avg_premium_rate, weight, sample_count)
+        band = opportunity_band(score, avg_premium_rate, sample_count, weight)
+        opportunities.append(
+            {
+                "name": text(brand.get("name")) or alias,
+                "alias": alias,
+                "tier": text(brand.get("tier")) or "watch",
+                "style": text(brand.get("style")) or "general",
+                "brand_weight": weight,
+                "sample_count": sample_count,
+                "avg_premium_rate": round(avg_premium_rate, 4),
+                "max_premium_rate": round(max_premium_rate, 4),
+                "priority_score": score,
+                "band": band,
+                "reason_codes": opportunity_reasons(avg_premium_rate, sample_count, weight),
+            }
+        )
+    return sorted(
+        opportunities,
+        key=lambda row: (
+            int(row["priority_score"]),
+            int(row["brand_weight"]),
+            int(row["sample_count"]),
+            float(row["avg_premium_rate"]),
+        ),
+        reverse=True,
+    )[:limit]
+
+
+def opportunity_band(score: int, avg_premium_rate: float, sample_count: int, brand_weight: int) -> str:
+    if sample_count < 2 and brand_weight >= 85:
+        return "collect_samples"
+    if score >= 78 and avg_premium_rate >= 0.25 and sample_count >= 2:
+        return "lead"
+    if score >= 62 or brand_weight >= 85:
+        return "watch"
+    return "cooldown"
+
+
+def opportunity_reasons(avg_premium_rate: float, sample_count: int, brand_weight: int) -> list[str]:
+    reasons = []
+    if brand_weight >= 90:
+        reasons.append("core_brand")
+    elif brand_weight >= 70:
+        reasons.append("watch_brand")
+    if sample_count < 2:
+        reasons.append("needs_samples")
+    elif sample_count >= 5:
+        reasons.append("sample_supported")
+    if avg_premium_rate >= 0.5:
+        reasons.append("strong_premium")
+    elif avg_premium_rate >= 0.25:
+        reasons.append("positive_premium")
+    elif avg_premium_rate < 0:
+        reasons.append("discounted_resale")
+    return reasons or ["baseline"]
+
+
 def positive_float(value: Any) -> float:
     try:
         number = float(value)
