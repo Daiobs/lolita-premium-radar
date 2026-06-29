@@ -220,7 +220,11 @@ sample form or exported as one seed-task row per brand/term in
 `lolita-premium-seeds.csv`; the same panel summarizes total seed tasks, core
 brand evidence gaps, top seed, and average seed score before export, and marks
 each seed as seed-sample, add-second, expand-samples, or keep-watching based on
-current sample count. A draft audit list shows the
+current sample count. A brand-weight rubric splits the 0-100 scale into core
+release, priority watch, sample-seed, and archive lanes, showing each lane's
+brand count, average weight, average premium, sample gaps, lead label, and a
+one-click sample-gap action so AP/BABY/AATP-style priorities are easier to
+explain before changing weights. A draft audit list shows the
 exact saved weight, draft weight, and
 delta for every unsaved brand, plus average shift, raise/lower counts, and the
 largest move before you persist changes. The same audit flags save-before-review

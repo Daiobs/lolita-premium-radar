@@ -1484,6 +1484,75 @@ INDEX_HTML = r"""<!doctype html>
       .scenario-move strong { overflow-wrap: anywhere; }
       .scenario-delta { color: var(--gold); font-weight: 700; text-align: right; }
       .scenario-card button { justify-self: start; min-height: 30px; }
+      .rubric-board { margin: 0 20px 14px; }
+      .rubric-grid { display: grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 10px; padding: 12px; }
+      .rubric-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        min-height: 218px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 12px 16px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 66%, #fff), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .rubric-card::before {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: 7px;
+        height: 5px;
+        background:
+          radial-gradient(circle at 8px 0, rgba(255,255,255,.86) 0 5px, transparent 5px) 0 0 / 16px 6px repeat-x,
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .rubric-card::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 8px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.34) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .rubric-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; padding-top: 4px; }
+      .rubric-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .rubric-score { display: grid; grid-template-columns: 58px 1fr; gap: 9px; align-items: center; }
+      .rubric-score strong { font: 650 28px/1 Georgia, "Times New Roman", serif; }
+      .rubric-card p { margin: 0; color: var(--muted); }
+      .rubric-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .rubric-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 50px;
+        padding: 7px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .rubric-stats strong { color: var(--wine); font: 650 17px/1 Georgia, "Times New Roman", serif; }
+      .rubric-brands, .rubric-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      .rubric-brands span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.74);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .rubric-actions button { min-height: 29px; padding-inline: 9px; }
       .guardrail-board { margin: 0 20px 14px; }
       .guardrail-grid { display: grid; grid-template-columns: minmax(220px, .62fr) minmax(340px, 1.38fr); gap: 12px; padding: 12px; }
       .guardrail-brief, .guardrail-card, .guardrail-lane {
@@ -2363,7 +2432,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .rubric-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2435,6 +2504,7 @@ INDEX_HTML = r"""<!doctype html>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
+      <button type="button" data-radar-jump="brandWeightRubric" data-i18n="navRubric">标尺</button>
       <button type="button" data-radar-jump="weightScenarioCompare" data-i18n="navScenarios">情景</button>
       <button type="button" data-radar-jump="resaleRunSheet" data-i18n="navRunSheet">巡检</button>
       <button type="button" data-radar-jump="brandLookbook" data-i18n="navLookbook">造型册</button>
@@ -2489,6 +2559,15 @@ INDEX_HTML = r"""<!doctype html>
         <div id="brandWeights" class="watch-grid"></div>
         <div id="weightDraftAudit" class="weight-draft-audit empty"></div>
       </div>
+    </section>
+    <section class="panel rubric-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandWeightRubric">品牌权重标尺</h2>
+          <span class="muted" data-i18n="brandWeightRubricHint">把 0-100 权重拆成核心、重点、采样和档案四档</span>
+        </div>
+      </div>
+      <div id="brandWeightRubric" class="rubric-grid"></div>
     </section>
     <section class="panel scenario-board">
       <div class="toolbar">
@@ -2864,6 +2943,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "样本证据",
           navDaily: "简报",
           navWeights: "权重",
+          navRubric: "标尺",
           navScenarios: "情景",
           navRunSheet: "巡检",
           navLookbook: "造型册",
@@ -2966,6 +3046,24 @@ INDEX_HTML = r"""<!doctype html>
           weightDraftRiskThinRaiseHint: "样本不足却上调，建议先补原价和二手价",
           weightDraftRiskLargeMoveHint: "变化幅度较大，适合先作为情景草稿观察",
           weightDraftRiskArchiveJumpHint: "档案品牌升到观察档，确认是否有新溢价或新发售信号",
+          brandWeightRubric: "品牌权重标尺",
+          brandWeightRubricHint: "把 0-100 权重拆成核心、重点、采样和档案四档",
+          rubricRange: "权重区间",
+          rubricAvgWeight: "均权",
+          rubricAvgPremium: "均值溢价",
+          rubricSampleGaps: "样本缺口",
+          rubricBrands: "品牌数",
+          rubricCore: "核心发售",
+          rubricCoreHint: "AP、BABY、AATP 这类优先看新品、预约、再贩和二手锚点",
+          rubricLead: "重点盯盘",
+          rubricLeadHint: "溢价或上新信号足够时升级，先看款式词和样本厚度",
+          rubricSeed: "采样种子",
+          rubricSeedHint: "适合先补原价/二手价样本，确认是否有异常溢价",
+          rubricArchive: "档案低频",
+          rubricArchiveHint: "低频观察，除非出现强溢价或明确发售信号再上调",
+          rubricNoBrands: "暂无品牌",
+          rubricReviewWeights: "查看权重",
+          rubricSampleGap: "补首个缺口",
           draftPreview: "草稿预览",
           scoreDelta: "变化",
           weightsReset: "品牌权重已重置",
@@ -3496,6 +3594,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "sample evidence",
           navDaily: "Brief",
           navWeights: "Weights",
+          navRubric: "Rubric",
           navScenarios: "Scenarios",
           navRunSheet: "Run Sheet",
           navLookbook: "Lookbook",
@@ -3598,6 +3697,24 @@ INDEX_HTML = r"""<!doctype html>
           weightDraftRiskThinRaiseHint: "weight rises with thin samples; collect retail and resale evidence first",
           weightDraftRiskLargeMoveHint: "large shift is better treated as a scenario draft first",
           weightDraftRiskArchiveJumpHint: "archive brand moves into watch tier; confirm premium or release signals",
+          brandWeightRubric: "Brand Weight Rubric",
+          brandWeightRubricHint: "Split the 0-100 weight scale into core, priority, sampling, and archive lanes",
+          rubricRange: "weight range",
+          rubricAvgWeight: "avg weight",
+          rubricAvgPremium: "avg premium",
+          rubricSampleGaps: "sample gaps",
+          rubricBrands: "brands",
+          rubricCore: "core release",
+          rubricCoreHint: "Prioritize AP, BABY, AATP-style releases, preorders, restocks, and resale anchors",
+          rubricLead: "priority watch",
+          rubricLeadHint: "Promote when premium or release evidence strengthens; check terms and sample depth first",
+          rubricSeed: "sample seed",
+          rubricSeedHint: "Collect paired retail/resale samples before deciding whether the brand deserves more weight",
+          rubricArchive: "archive low-frequency",
+          rubricArchiveHint: "Watch lightly unless strong premium or clear release signals justify a raise",
+          rubricNoBrands: "No brands",
+          rubricReviewWeights: "view weights",
+          rubricSampleGap: "sample first gap",
           draftPreview: "draft preview",
           scoreDelta: "delta",
           weightsReset: "brand weights reset",
@@ -7526,6 +7643,7 @@ INDEX_HTML = r"""<!doctype html>
         renderStyleCompass(rows);
         renderDailyRadarBrief(rows);
         renderResaleRunSheet(rows);
+        renderBrandWeightRubric(rows);
         renderWeightScenarioCompare(rows);
         renderBrandLookbook(rows);
         renderBrandWeightScorecard(rows);
@@ -7543,6 +7661,71 @@ INDEX_HTML = r"""<!doctype html>
         renderSamplePlan(rows);
         renderWeightTuning(rows);
         renderPriceDiscipline(rows);
+      }
+
+      function renderBrandWeightRubric(rows) {
+        const lanes = brandWeightRubricRows(rows);
+        $("brandWeightRubric").innerHTML = lanes.length ? lanes.map((lane) => `<article class="rubric-card" style="${escapeHtml(brandVisualStyle(lane.lead_brand || lane))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(t(lane.label))}</strong>
+              <p>${escapeHtml(t("rubricRange"))} ${escapeHtml(lane.range)}</p>
+            </div>
+            <span class="pill ${escapeHtml(lane.tone)}">${escapeHtml(lane.count)}</span>
+          </header>
+          <div class="rubric-score">
+            <strong>${escapeHtml(lane.avg_weight)}</strong>
+            <div>
+              <p>${escapeHtml(t("rubricAvgWeight"))} · ${escapeHtml(t("rubricBrands"))} ${escapeHtml(lane.count)}</p>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lane.avg_weight)}%"></span></div>
+            </div>
+          </div>
+          <div class="rubric-stats">
+            <span><strong>${escapeHtml(formatPercent(lane.avg_premium))}</strong>${escapeHtml(t("rubricAvgPremium"))}</span>
+            <span><strong>${escapeHtml(lane.sample_gaps)}</strong>${escapeHtml(t("rubricSampleGaps"))}</span>
+            <span><strong>${escapeHtml(lane.lead_brand?.alias || "-")}</strong>${escapeHtml(t("dailyLead"))}</span>
+          </div>
+          <p>${escapeHtml(t(lane.hint))}</p>
+          <div class="rubric-brands">
+            ${lane.members.length ? lane.members.slice(0, 5).map((brand) => `<span>${escapeHtml(brand.alias)} · ${escapeHtml(brand.brand_weight)}</span>`).join("") : `<span>${escapeHtml(t("rubricNoBrands"))}</span>`}
+          </div>
+          <div class="rubric-actions">
+            <button type="button" class="secondary" data-rubric-jump="brandWeights">${escapeHtml(t("rubricReviewWeights"))}</button>
+            ${lane.sample_alias ? `<button type="button" class="secondary" data-rubric-sample="${escapeHtml(lane.sample_alias)}">${escapeHtml(t("rubricSampleGap"))}</button>` : ""}
+          </div>
+        </article>`).join("") : `<div class="row">${escapeHtml(t("rubricNoBrands"))}</div>`;
+      }
+
+      function brandWeightRubricRows(rows) {
+        const definitions = [
+          { key: "core", label: "rubricCore", hint: "rubricCoreHint", range: "90-100", min: 90, max: 101, tone: "rose" },
+          { key: "lead", label: "rubricLead", hint: "rubricLeadHint", range: "75-89", min: 75, max: 90, tone: "gold" },
+          { key: "seed", label: "rubricSeed", hint: "rubricSeedHint", range: "60-74", min: 60, max: 75, tone: "" },
+          { key: "archive", label: "rubricArchive", hint: "rubricArchiveHint", range: "0-59", min: 0, max: 60, tone: "off" },
+        ];
+        return definitions.map((lane) => {
+          const members = (rows || []).filter((entry) => {
+            const weight = Number(entry.brand_weight) || 0;
+            return weight >= lane.min && weight < lane.max;
+          }).sort((a, b) => (
+            (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+            || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+          ));
+          const count = members.length;
+          const avgWeight = count ? Math.round(members.reduce((sum, entry) => sum + (Number(entry.brand_weight) || 0), 0) / count) : 0;
+          const avgPremium = count ? members.reduce((sum, entry) => sum + (Number(entry.avg_premium_rate) || 0), 0) / count : 0;
+          const gaps = members.filter((entry) => Number(entry.sample_count) < sampleTarget(entry.brand_weight, entry.tier));
+          return {
+            ...lane,
+            members,
+            count,
+            avg_weight: avgWeight,
+            avg_premium: avgPremium,
+            sample_gaps: gaps.length,
+            lead_brand: members[0] || null,
+            sample_alias: gaps[0]?.alias || "",
+          };
+        });
       }
 
       function renderWeightScenarioCompare(rows) {
@@ -8115,6 +8298,15 @@ INDEX_HTML = r"""<!doctype html>
       $("weightScenarios").addEventListener("click", (event) => {
         const button = event.target.closest("[data-weight-scenario]");
         if (button) applyWeightScenario(button.dataset.weightScenario);
+      });
+      $("brandWeightRubric").addEventListener("click", (event) => {
+        const jumpButton = event.target.closest("[data-rubric-jump]");
+        if (jumpButton) {
+          jumpToRadarSection(jumpButton.dataset.rubricJump);
+          return;
+        }
+        const sampleButton = event.target.closest("[data-rubric-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.rubricSample);
       });
       $("weightScenarioCompare").addEventListener("click", (event) => {
         const button = event.target.closest("[data-scenario-preview-apply]");
