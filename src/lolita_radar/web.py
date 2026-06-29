@@ -1220,6 +1220,10 @@ INDEX_HTML = r"""<!doctype html>
         background: linear-gradient(180deg, var(--rose), var(--gold));
       }
       .market-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .price-corridor { display: grid; gap: 5px; margin-top: 2px; }
+      .price-corridor-row { display: grid; grid-template-columns: 64px 1fr auto; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+      .price-corridor-track { height: 7px; overflow: hidden; border-radius: 999px; background: var(--lace); }
+      .price-corridor-track span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--gold), var(--rose)); }
       .market-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 8px; }
       .market-heading h2 { margin: 0; padding: 0; border: 0; background: transparent; }
       .market-heading .segmented { justify-content: flex-end; }
@@ -1702,6 +1706,10 @@ INDEX_HTML = r"""<!doctype html>
           premiumBandPremium: "溢价",
           premiumBandNearRetail: "近原价",
           premiumBandDiscount: "折价",
+          priceCorridor: "价格走廊",
+          retailRange: "原价",
+          resaleRange: "二手",
+          avgSpread: "均价差",
           metricSources: "数据源",
           metricTrackedItems: "跟踪条目",
           metricEvents: "事件",
@@ -2073,6 +2081,10 @@ INDEX_HTML = r"""<!doctype html>
           premiumBandPremium: "Premium",
           premiumBandNearRetail: "Near retail",
           premiumBandDiscount: "Discount",
+          priceCorridor: "Price corridor",
+          retailRange: "retail",
+          resaleRange: "resale",
+          avgSpread: "avg spread",
           metricSources: "Sources",
           metricTrackedItems: "Tracked Items",
           metricEvents: "Events",
@@ -3260,10 +3272,14 @@ INDEX_HTML = r"""<!doctype html>
         $("premiumBrands").innerHTML = brands.length ? brands.map((brand) => `<article class="market-card">
           <header>
             <strong>${escapeHtml(brand.brand_alias)}</strong>
-            <span class="premium-rate">${formatPercent(brand.avg_premium_rate)}</span>
+            <div>
+              <span class="premium-rate">${formatPercent(brand.avg_premium_rate)}</span>
+              <span class="pill ${premiumBandPill(brand.premium_band)}">${escapeHtml(valueLabel("premiumBand", brand.premium_band))}</span>
+            </div>
           </header>
           <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(brand.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.brand_weight)}</p>
-          <p class="muted">${escapeHtml(t("samples"))} ${escapeHtml(brand.sample_count)} · ${escapeHtml(t("maxPremium"))} ${escapeHtml(formatPercent(brand.max_premium_rate))}</p>
+          ${renderPriceCorridor(brand)}
+          <p class="muted">${escapeHtml(t("samples"))} ${escapeHtml(brand.sample_count)} · ${escapeHtml(t("maxPremium"))} ${escapeHtml(formatPercent(brand.max_premium_rate))} · ${escapeHtml(t("avgSpread"))} ${escapeHtml(formatMoney(brand.avg_spread, brand.currency))}</p>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.priority_score) || premiumWidth(brand.avg_premium_rate)}%"></span></div>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
         $("premiumRecords").innerHTML = visibleRecords.length ? visibleRecords.map((record) => `<article class="market-card">
@@ -3279,6 +3295,29 @@ INDEX_HTML = r"""<!doctype html>
           <p class="muted">${escapeHtml(t("retailPrice"))} ${formatMoney(record.retail_price, record.currency)} · ${escapeHtml(t("resalePrice"))} ${formatMoney(record.resale_price, record.currency)}</p>
           <p class="muted">${escapeHtml([record.condition, record.source, record.observed_at].filter(Boolean).join(" · "))}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
+      }
+
+      function renderPriceCorridor(brand) {
+        return `<div class="price-corridor" aria-label="${escapeHtml(t("priceCorridor"))}">
+          ${priceCorridorRow(t("retailRange"), brand.avg_retail_price, brand.min_retail_price, brand.max_retail_price, brand.currency, brand.avg_retail_price)}
+          ${priceCorridorRow(t("resaleRange"), brand.avg_resale_price, brand.min_resale_price, brand.max_resale_price, brand.currency, brand.avg_resale_price)}
+        </div>`;
+      }
+
+      function priceCorridorRow(label, average, min, max, currency, widthValue) {
+        const range = Number(min) === Number(max)
+          ? formatMoney(average, currency)
+          : `${formatMoney(min, currency)}-${formatMoney(max, currency)}`;
+        return `<div class="price-corridor-row">
+          <span>${escapeHtml(label)}</span>
+          <div class="price-corridor-track" aria-hidden="true"><span style="--score: ${escapeHtml(priceCorridorWidth(widthValue, max))}%"></span></div>
+          <span>${escapeHtml(range)}</span>
+        </div>`;
+      }
+
+      function priceCorridorWidth(value, max) {
+        const denominator = Math.max(Number(max) || 0, Number(value) || 0, 1);
+        return Math.max(6, Math.min(100, Math.round((Number(value) || 0) / denominator * 100)));
       }
 
       function syncPremiumExportButton(records) {
@@ -3411,6 +3450,10 @@ INDEX_HTML = r"""<!doctype html>
           ["watch_urls", "watch_urls"],
           ["avg_premium_rate", "avg_premium_rate"],
           ["max_premium_rate", "max_premium_rate"],
+          ["premium_band", "premium_band"],
+          ["avg_retail_price", "avg_retail_price"],
+          ["avg_resale_price", "avg_resale_price"],
+          ["avg_spread", "avg_spread"],
           ["sample_count", "sample_count"],
           ["priority_score", "priority_score"],
           ["evidence_level", "evidence_level"],
@@ -3905,6 +3948,10 @@ INDEX_HTML = r"""<!doctype html>
             sample_count: sampleCount,
             avg_premium_rate: avgPremiumRate,
             max_premium_rate: maxPremiumRate,
+            premium_band: market.premium_band || premiumBand(avgPremiumRate),
+            avg_retail_price: Number(market.avg_retail_price) || 0,
+            avg_resale_price: Number(market.avg_resale_price) || 0,
+            avg_spread: Number(market.avg_spread) || 0,
             evidence_level: evidenceLevel(sampleCount),
             evidence_score: evidenceScore(sampleCount),
             priority_score: priorityScore,

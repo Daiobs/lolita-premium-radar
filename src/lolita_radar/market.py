@@ -76,6 +76,9 @@ def summarize_market_observations(
         resale_prices = [float(row["resale_price"]) for row in rows]
         retail_prices = [float(row["retail_price"]) for row in rows]
         avg_premium_rate = sum(premium_rates) / len(premium_rates)
+        avg_retail_price = sum(retail_prices) / len(retail_prices)
+        avg_resale_price = sum(resale_prices) / len(resale_prices)
+        avg_spread = avg_resale_price - avg_retail_price
         brand_weight = weight_by_alias.get(alias, 50)
         brands.append(
             {
@@ -83,8 +86,14 @@ def summarize_market_observations(
                 "sample_count": len(rows),
                 "avg_premium_rate": round(avg_premium_rate, 4),
                 "max_premium_rate": round(max(premium_rates), 4),
-                "avg_retail_price": round(sum(retail_prices) / len(retail_prices), 2),
-                "avg_resale_price": round(sum(resale_prices) / len(resale_prices), 2),
+                "avg_retail_price": round(avg_retail_price, 2),
+                "avg_resale_price": round(avg_resale_price, 2),
+                "avg_spread": round(avg_spread, 2),
+                "min_retail_price": round(min(retail_prices), 2),
+                "max_retail_price": round(max(retail_prices), 2),
+                "min_resale_price": round(min(resale_prices), 2),
+                "max_resale_price": round(max(resale_prices), 2),
+                "premium_band": premium_band(avg_premium_rate),
                 "brand_weight": brand_weight,
                 "priority_score": premium_priority_score(avg_premium_rate, brand_weight, len(rows)),
                 "currency": rows[0].get("currency") or "CNY",

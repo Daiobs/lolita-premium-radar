@@ -189,6 +189,10 @@ Sample links and notes are kept as evidence, and matching pattern-premium cards
 show the highest-premium evidence rows that support the radar score. Once a
 brand has at least two samples, the dashboard also calculates a momentum row
 with the latest premium, previous average, delta, direction, and weighted score.
+Brand premium rows now include a price corridor with average retail/resale
+prices, observed price ranges, average spread, and a band label for the brand's
+average premium, making it easier to compare original-price anchors against
+secondary-market asking prices.
 Each sample
 also gets a quality score based on source, URL, observed date, condition, and
 notes. Each recorded sample also gets a `premium_band` so the dashboard can
