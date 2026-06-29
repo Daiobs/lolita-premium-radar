@@ -792,6 +792,40 @@ INDEX_HTML = r"""<!doctype html>
       .strategy-card { display: grid; gap: 8px; padding: 11px; }
       .strategy-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .strategy-card .profile-row { grid-template-columns: 62px 1fr 32px; }
+      .formula-board { margin: 0 20px 14px; }
+      .formula-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; padding: 12px; }
+      .formula-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        min-height: 210px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 12px 16px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 34%),
+          linear-gradient(135deg, rgba(255,247,232,.72), rgba(248,251,250,.92)),
+          #fffaf8;
+        overflow: hidden;
+      }
+      .formula-card::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 7px;
+        height: 4px;
+        background: radial-gradient(circle, color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, transparent) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .formula-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .formula-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .formula-score { display: grid; grid-template-columns: minmax(62px, .42fr) minmax(80px, .58fr); gap: 10px; align-items: center; }
+      .formula-score strong { font: 650 30px/1 Georgia, "Times New Roman", serif; }
+      .formula-parts { display: grid; gap: 5px; }
+      .formula-parts .profile-row { grid-template-columns: 82px 1fr 42px; }
+      .formula-card button { justify-self: start; min-height: 30px; }
       .profile-board { margin: 0 20px 14px; }
       .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; padding: 12px; }
       .profile-card {
@@ -1270,6 +1304,7 @@ INDEX_HTML = r"""<!doctype html>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
       <button type="button" data-radar-jump="brandIdentityMatrix" data-i18n="navIdentity">身份</button>
+      <button type="button" data-radar-jump="brandWeightFormula" data-i18n="navFormula">配方</button>
       <button type="button" data-radar-jump="brandRadarMatrix" data-i18n="navMatrix">矩阵</button>
       <button type="button" data-radar-jump="marketForm" data-i18n="navPremium">溢价</button>
       <button type="button" data-radar-jump="evidenceHealth" data-i18n="navEvidence">证据</button>
@@ -1333,6 +1368,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="brandWeightStrategy" class="strategy-grid"></div>
+    </section>
+    <section class="panel formula-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandWeightFormula">品牌权重配方</h2>
+          <span class="muted" data-i18n="brandWeightFormulaHint">拆解基线、溢价、证据和关注入口，给出可审计目标权重</span>
+        </div>
+      </div>
+      <div id="brandWeightFormula" class="formula-grid"></div>
     </section>
     <section class="panel profile-board">
       <div class="toolbar">
@@ -1567,6 +1611,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "样本证据",
           navWeights: "权重",
           navIdentity: "身份",
+          navFormula: "配方",
           navMatrix: "矩阵",
           navPremium: "溢价",
           navEvidence: "证据",
@@ -1709,6 +1754,21 @@ INDEX_HTML = r"""<!doctype html>
           weightNoGap: "样本缺口已清空",
           brandWeightStrategy: "品牌权重策略台",
           brandWeightStrategyHint: "把权重档、溢价证据和草稿变化转成下一步校准动作",
+          brandWeightFormula: "品牌权重配方",
+          brandWeightFormulaHint: "拆解基线、溢价、证据和关注入口，给出可审计目标权重",
+          formulaBase: "基线",
+          formulaPremium: "溢价",
+          formulaEvidence: "证据",
+          formulaKeywords: "款式词",
+          formulaWatchability: "入口",
+          formulaTarget: "建议目标",
+          formulaConfidence: "置信度",
+          formulaApplyDraft: "套用目标",
+          formulaAligned: "已匹配",
+          formulaRaise: "建议上调",
+          formulaLower: "建议下调",
+          formulaNoRows: "暂无权重配方",
+          formulaDraftApplied: "已套用配方目标",
           strategyHeat: "策略温度",
           strategyActionable: "待处理动作",
           strategyCoverage: "证据覆盖",
@@ -1922,6 +1982,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "sample evidence",
           navWeights: "Weights",
           navIdentity: "Identity",
+          navFormula: "Formula",
           navMatrix: "Matrix",
           navPremium: "Premium",
           navEvidence: "Evidence",
@@ -2064,6 +2125,21 @@ INDEX_HTML = r"""<!doctype html>
           weightNoGap: "sample gaps cleared",
           brandWeightStrategy: "Brand Weight Strategy",
           brandWeightStrategyHint: "Turn tiers, premium evidence, and draft changes into tuning moves",
+          brandWeightFormula: "Brand Weight Formula",
+          brandWeightFormulaHint: "Break down baseline, premium, evidence, and watch links into auditable target weights",
+          formulaBase: "base",
+          formulaPremium: "premium",
+          formulaEvidence: "evidence",
+          formulaKeywords: "terms",
+          formulaWatchability: "watch links",
+          formulaTarget: "target",
+          formulaConfidence: "confidence",
+          formulaApplyDraft: "apply target",
+          formulaAligned: "aligned",
+          formulaRaise: "raise",
+          formulaLower: "lower",
+          formulaNoRows: "No weight formulas yet",
+          formulaDraftApplied: "formula target applied",
           strategyHeat: "strategy heat",
           strategyActionable: "open moves",
           strategyCoverage: "evidence coverage",
@@ -2883,6 +2959,112 @@ INDEX_HTML = r"""<!doctype html>
         return moves.slice(0, limit);
       }
 
+      function renderBrandWeightFormula(rows) {
+        const formulas = buildBrandWeightFormula(rows);
+        $("brandWeightFormula").innerHTML = formulas.length ? formulas.map((entry) => `<article class="formula-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)}</strong>
+              <p class="muted">${escapeHtml(entry.name)}</p>
+            </div>
+            <span class="pill ${formulaPill(entry.delta)}">${escapeHtml(t(formulaLabel(entry.delta)))}</span>
+          </header>
+          <div class="formula-score">
+            <div>
+              <strong>${escapeHtml(entry.target_weight)}</strong>
+              <p class="muted">${escapeHtml(t("formulaTarget"))} · ${escapeHtml(formatDelta(entry.delta))}</p>
+            </div>
+            <div>
+              <p class="muted">${escapeHtml(t("formulaConfidence"))} ${escapeHtml(entry.confidence)}%</p>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.confidence)}%"></span></div>
+            </div>
+          </div>
+          <div class="formula-parts">
+            ${formulaPartBar(t("formulaBase"), entry.parts.base, 90)}
+            ${formulaPartBar(t("formulaPremium"), entry.parts.premium, 16)}
+            ${formulaPartBar(t("formulaEvidence"), entry.parts.evidence, 8)}
+            ${formulaPartBar(t("formulaKeywords"), entry.parts.keywords, 4)}
+            ${formulaPartBar(t("formulaWatchability"), entry.parts.watchability, 4)}
+          </div>
+          <p class="muted">${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
+          ${entry.delta ? `<button type="button" class="secondary" data-formula-apply="${escapeHtml(entry.alias)}" data-formula-target="${escapeHtml(entry.target_weight)}">${escapeHtml(t("formulaApplyDraft"))}</button>` : ""}
+        </article>`).join("") : `<div class="row">${escapeHtml(t("formulaNoRows"))}</div>`;
+      }
+
+      function buildBrandWeightFormula(rows, limit = 9) {
+        return (rows || []).map((entry) => {
+          const parts = brandWeightFormulaParts(entry);
+          const rawTarget = parts.base + parts.premium + parts.evidence + parts.keywords + parts.watchability;
+          const weight = Number(entry.brand_weight) || 0;
+          const samples = Number(entry.sample_count) || 0;
+          const isCore = entry.tier === "core" || weight >= 90;
+          let target = clampScore(Math.round(rawTarget / 5) * 5);
+          if (samples < 2 && target > weight) target = weight;
+          if (samples < 2 && isCore && target < weight) target = weight;
+          return {
+            ...entry,
+            parts,
+            target_weight: target,
+            delta: target - weight,
+            confidence: formulaConfidence(entry),
+          };
+        }).sort((a, b) => (
+          Math.abs(Number(b.delta) || 0) - Math.abs(Number(a.delta) || 0)
+          || (Number(b.confidence) || 0) - (Number(a.confidence) || 0)
+          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+        )).slice(0, limit);
+      }
+
+      function brandWeightFormulaParts(entry) {
+        const weight = Number(entry.brand_weight) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        const samples = Number(entry.sample_count) || 0;
+        const keywords = (entry.market_keywords || []).length;
+        const watchLinks = (entry.watch_urls || []).length;
+        const isCore = entry.tier === "core" || weight >= 90;
+        const base = isCore ? 90 : entry.tier === "watch" || weight >= 70 ? 70 : 56;
+        const premiumPart = premium >= 0.5 ? 12 : premium >= 0.25 ? 8 : premium >= 0.1 ? 4 : premium < -0.05 ? -8 : 0;
+        const evidencePart = samples >= 5 ? 6 : samples >= 2 ? 3 : samples === 1 || isCore ? 0 : -4;
+        return {
+          base,
+          premium: premiumPart,
+          evidence: evidencePart,
+          keywords: Math.min(4, keywords),
+          watchability: Math.min(4, watchLinks),
+        };
+      }
+
+      function formulaConfidence(entry) {
+        const sampleScore = Math.min(60, (Number(entry.sample_count) || 0) * 12);
+        const visualScore = entry.visual?.accent && entry.visual?.motif && entry.visual?.radar_cue ? 20 : 8;
+        const watchScore = Math.min(20, (entry.watch_urls || []).length * 5);
+        return clampScore(sampleScore + visualScore + watchScore);
+      }
+
+      function formulaPartBar(label, value, max) {
+        const numeric = Number(value) || 0;
+        const width = Math.min(100, Math.round(Math.abs(numeric) / max * 100));
+        return `<div class="profile-row">
+          <span>${escapeHtml(label)}</span>
+          <div class="score-track" aria-hidden="true"><span style="--score: ${escapeHtml(width)}%"></span></div>
+          <span>${escapeHtml(numeric > 0 ? `+${numeric}` : numeric)}</span>
+        </div>`;
+      }
+
+      function formulaLabel(delta) {
+        const value = Number(delta) || 0;
+        if (value >= 5) return "formulaRaise";
+        if (value <= -5) return "formulaLower";
+        return "formulaAligned";
+      }
+
+      function formulaPill(delta) {
+        const value = Number(delta) || 0;
+        if (value >= 5) return "rose";
+        if (value <= -5) return "warn";
+        return "";
+      }
+
       function strategyPill(action) {
         if (action === "collect") return "gold";
         if (action === "raise" || action === "hold") return "rose";
@@ -3211,12 +3393,16 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function csvFromBrandWeights(rows) {
+        const csvRows = rows || [];
         const fields = [
           ["alias", "alias"],
           ["name", "name"],
           ["saved_weight", "saved_weight"],
           ["draft_weight", "brand_weight"],
           ["score_delta", "score_delta"],
+          ["formula_target", "formula_target"],
+          ["formula_delta", "formula_delta"],
+          ["formula_confidence", "formula_confidence"],
           ["tier", "tier"],
           ["style", "style"],
           ["palette", "palette"],
@@ -3230,15 +3416,22 @@ INDEX_HTML = r"""<!doctype html>
           ["evidence_level", "evidence_level"],
           ["market_keywords", "market_keywords"],
         ];
-        const enriched = (rows || []).map((row) => ({
-          ...row,
-          saved_weight: brandByAlias(row.alias)?.weight ?? row.brand_weight,
-          palette: row.visual?.palette || "",
-          motif: row.visual?.motif || "",
-          radar_cue: row.visual?.radar_cue || "",
-          watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
-          market_keywords: (row.market_keywords || []).join(" | "),
-        }));
+        const formulaByAlias = new Map(buildBrandWeightFormula(csvRows, csvRows.length).map((row) => [row.alias, row]));
+        const enriched = csvRows.map((row) => {
+          const formula = formulaByAlias.get(row.alias) || {};
+          return {
+            ...row,
+            saved_weight: brandByAlias(row.alias)?.weight ?? row.brand_weight,
+            formula_target: formula.target_weight ?? "",
+            formula_delta: formula.delta ?? "",
+            formula_confidence: formula.confidence ?? "",
+            palette: row.visual?.palette || "",
+            motif: row.visual?.motif || "",
+            radar_cue: row.visual?.radar_cue || "",
+            watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
+            market_keywords: (row.market_keywords || []).join(" | "),
+          };
+        });
         const lines = [
           fields.map(([header]) => csvCell(header)).join(","),
           ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
@@ -3485,6 +3678,18 @@ INDEX_HTML = r"""<!doctype html>
         toast(`${alias} ${t("tuningDraftApplied")}`);
       }
 
+      function applyFormulaDraft(alias, targetWeight) {
+        const input = document.querySelector(`[data-brand-weight="${cssEscape(alias)}"]`);
+        if (!input) return;
+        input.value = clampScore(targetWeight);
+        updateWeightDraftInput(input);
+        updateWeightDirtyState();
+        renderBrandRadarViews();
+        renderOpportunityRadar(buildDraftOpportunityRadar());
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+        toast(`${alias} ${t("formulaDraftApplied")}`);
+      }
+
       function applyAllTuningDrafts() {
         const suggestions = actionableTuningSuggestions(buildWeightTuning(buildBrandRadarMatrix()));
         if (!suggestions.length) return;
@@ -3596,6 +3801,7 @@ INDEX_HTML = r"""<!doctype html>
         const rows = buildBrandRadarMatrix();
         renderWeightSnapshot(rows);
         renderBrandWeightStrategy(rows);
+        renderBrandWeightFormula(rows);
         renderBrandWeightProfile(rows);
         renderBrandIdentityMatrix(rows);
         renderBrandRadarMatrix(rows);
@@ -3978,6 +4184,10 @@ INDEX_HTML = r"""<!doctype html>
         }
         const sampleButton = event.target.closest("[data-tuning-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.tuningSample);
+      });
+      $("brandWeightFormula").addEventListener("click", (event) => {
+        const applyButton = event.target.closest("[data-formula-apply]");
+        if (applyButton) applyFormulaDraft(applyButton.dataset.formulaApply, applyButton.dataset.formulaTarget);
       });
       $("sampleCoverage").addEventListener("click", (event) => {
         const sampleButton = event.target.closest("[data-coverage-sample]");
