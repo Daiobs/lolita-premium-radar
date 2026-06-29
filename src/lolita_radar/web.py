@@ -788,6 +788,49 @@ INDEX_HTML = r"""<!doctype html>
         font-size: 12px;
         text-decoration: none;
       }
+      .draft-risk-board { margin: 0 20px 14px; }
+      .draft-risk-grid { display: grid; grid-template-columns: minmax(220px, .58fr) minmax(360px, 1.42fr); gap: 12px; padding: 12px; }
+      .draft-risk-brief, .draft-risk-card {
+        border: 1px solid color-mix(in srgb, var(--warn) 16%, var(--line));
+        border-radius: 8px;
+        background: #fffaf8;
+        box-shadow: var(--paper-shadow);
+      }
+      .draft-risk-brief {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(199,87,58,.12), transparent 35%),
+          linear-gradient(135deg, rgba(255,248,236,.86), rgba(248,251,250,.94));
+      }
+      .draft-risk-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .draft-risk-brief p, .draft-risk-card p { margin: 0; color: var(--muted); }
+      .draft-risk-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+      .draft-risk-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 50px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.76);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .draft-risk-stats strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .draft-risk-list { display: grid; gap: 8px; }
+      .draft-risk-card {
+        display: grid;
+        grid-template-columns: minmax(68px, .28fr) minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+      }
+      .draft-risk-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .draft-risk-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+      .draft-risk-actions button { min-height: 30px; padding-inline: 10px; }
       .radar-nav {
         position: sticky;
         top: 0;
@@ -2879,7 +2922,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2957,6 +3000,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
       <div id="brandCrownQueue" class="crown-grid"></div>
     </section>
+    <section class="panel draft-risk-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="draftRiskRadar">权重草稿风险</h2>
+          <span class="muted" data-i18n="draftRiskHint">把未保存的调权风险提前放到首页，保存前先复核</span>
+        </div>
+      </div>
+      <div id="draftRiskRadar" class="draft-risk-grid"></div>
+    </section>
     <section class="panel daily-board">
       <div class="toolbar">
         <div>
@@ -2973,7 +3025,7 @@ INDEX_HTML = r"""<!doctype html>
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandPortfolio" data-i18n="navPortfolio">组合</button>
       <button type="button" data-radar-jump="releaseWatchQueue" data-i18n="navReleaseWatch">发售</button>
-      <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
+      <button type="button" data-radar-jump="brandWeightsPanel" data-i18n="navWeights">权重</button>
       <button type="button" data-radar-jump="brandWeightRubric" data-i18n="navRubric">标尺</button>
       <button type="button" data-radar-jump="brandPlaybook" data-i18n="navPlaybook">作战卡</button>
       <button type="button" data-radar-jump="weightScenarioCompare" data-i18n="navScenarios">情景</button>
@@ -3031,7 +3083,7 @@ INDEX_HTML = r"""<!doctype html>
         <h2 data-i18n="focusQueue">重点关注队列</h2>
         <div id="focusQueue" class="focus-list"></div>
       </div>
-      <div>
+      <div id="brandWeightsPanel" data-radar-anchor="exact">
         <div class="brand-tools">
           <h2 data-i18n="brandWeights">品牌权重</h2>
           <div class="brand-actions">
@@ -3514,6 +3566,17 @@ INDEX_HTML = r"""<!doctype html>
           exportCrownCsv: "导出皇冠 CSV",
           exportedCrownCsv: "品牌皇冠队列已导出",
           noCrownCsv: "暂无可导出的皇冠队列",
+          draftRiskRadar: "权重草稿风险",
+          draftRiskHint: "把未保存的调权风险提前放到首页，保存前先复核",
+          draftRiskScore: "草稿风险分",
+          draftRiskClean: "暂无未保存调权",
+          draftRiskCleanHint: "当前品牌权重与已保存配置一致",
+          draftRiskNoOpen: "暂无高风险",
+          draftRiskNoOpenHint: "草稿已有变更，但未触发保存前拦截项",
+          draftRiskReview: "查看权重",
+          draftRiskChanged: "变更",
+          draftRiskOpen: "风险",
+          draftRiskMaxMove: "最大移动",
           dailyRadarBrief: "今日雷达简报",
           dailyRadarBriefHint: "把核心盯盘、权重校准和采样缺口收成今天的行动队列",
           dailyLead: "主线",
@@ -4279,6 +4342,17 @@ INDEX_HTML = r"""<!doctype html>
           exportCrownCsv: "export crown CSV",
           exportedCrownCsv: "brand crown queue exported",
           noCrownCsv: "no crown queue to export",
+          draftRiskRadar: "Weight Draft Risk",
+          draftRiskHint: "Bring unsaved weight-change risks to the first screen before saving",
+          draftRiskScore: "draft risk score",
+          draftRiskClean: "no unsaved weight changes",
+          draftRiskCleanHint: "Current brand weights match the saved configuration",
+          draftRiskNoOpen: "no open risk",
+          draftRiskNoOpenHint: "The draft has changes, but no save-blocking warnings",
+          draftRiskReview: "review weights",
+          draftRiskChanged: "changed",
+          draftRiskOpen: "risks",
+          draftRiskMaxMove: "largest move",
           dailyRadarBrief: "Daily Radar Brief",
           dailyRadarBriefHint: "Turn core watch, weight tuning, and sample gaps into today's action queue",
           dailyLead: "lead",
@@ -8602,6 +8676,67 @@ INDEX_HTML = r"""<!doctype html>
         return Number.isFinite(limit) ? sorted.slice(0, limit) : sorted;
       }
 
+      function renderDraftRiskRadar(rows = weightDraftRows()) {
+        const target = $("draftRiskRadar");
+        if (!target) return;
+        const stats = weightDraftStats(rows);
+        const risks = weightDraftRisks(rows);
+        const riskScore = draftRiskScore(rows, risks);
+        if (!rows.length) {
+          target.innerHTML = `
+            <article class="draft-risk-brief">
+              <strong>0</strong>
+              <p>${escapeHtml(t("draftRiskScore"))} · ${escapeHtml(t("draftRiskCleanHint"))}</p>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: 0%"></span></div>
+              <div class="draft-risk-stats">
+                <span><strong>0</strong>${escapeHtml(t("draftRiskChanged"))}</span>
+                <span><strong>0</strong>${escapeHtml(t("draftRiskOpen"))}</span>
+                <span><strong>-</strong>${escapeHtml(t("draftRiskMaxMove"))}</span>
+              </div>
+            </article>
+            <div class="draft-risk-list">
+              <article class="draft-risk-card">
+                <strong>${escapeHtml(t("draftRiskClean"))}</strong>
+                <p>${escapeHtml(t("draftRiskCleanHint"))}</p>
+                <button type="button" class="secondary" data-draft-risk-review>${escapeHtml(t("draftRiskReview"))}</button>
+              </article>
+            </div>
+          `;
+          return;
+        }
+        target.innerHTML = `
+          <article class="draft-risk-brief">
+            <strong>${escapeHtml(riskScore)}</strong>
+            <p>${escapeHtml(t("draftRiskScore"))} · ${escapeHtml(weightDirtyStatusText(rows.length, risks.length))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(riskScore)}%"></span></div>
+            <div class="draft-risk-stats">
+              <span><strong>${escapeHtml(rows.length)}</strong>${escapeHtml(t("draftRiskChanged"))}</span>
+              <span><strong>${escapeHtml(risks.length)}</strong>${escapeHtml(t("draftRiskOpen"))}</span>
+              <span><strong>${escapeHtml(stats.maxAlias)} ${escapeHtml(formatDelta(stats.maxDelta))}</strong>${escapeHtml(t("draftRiskMaxMove"))}</span>
+            </div>
+          </article>
+          <div class="draft-risk-list">
+            ${risks.length ? risks.map((risk) => `<article class="draft-risk-card">
+              <strong>${escapeHtml(risk.alias)}</strong>
+              <div>
+                <strong>${escapeHtml(t(risk.label))}</strong>
+                <p>${escapeHtml(t(risk.hint))}</p>
+              </div>
+              <span class="pill ${Number(risk.rank) >= 3 ? "warn" : "gold"}">${escapeHtml(risk.rank)}</span>
+            </article>`).join("") : `<article class="draft-risk-card"><strong>${escapeHtml(t("draftRiskNoOpen"))}</strong><p>${escapeHtml(t("draftRiskNoOpenHint"))}</p><span class="pill off">0</span></article>`}
+            <div class="draft-risk-actions">
+              <button type="button" class="secondary" data-draft-risk-review>${escapeHtml(t("draftRiskReview"))}</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function draftRiskScore(rows, risks) {
+        const maxMove = Math.max(0, ...((rows || []).map((row) => Math.abs(Number(row.delta) || 0))));
+        const riskRank = (risks || []).reduce((sum, risk) => sum + (Number(risk.rank) || 0), 0);
+        return clampScore(Math.round((rows || []).length * 8 + maxMove * 1.8 + riskRank * 10));
+      }
+
       function buildDraftOpportunityRadar() {
         return buildOpportunityRows().slice(0, 8);
       }
@@ -8615,6 +8750,7 @@ INDEX_HTML = r"""<!doctype html>
         renderStyleCompass(rows);
         renderNorthStarRadar(rows);
         renderBrandCrownQueue(rows);
+        renderDraftRiskRadar();
         renderDailyRadarBrief(rows);
         renderResaleRunSheet(rows);
         renderBrandPortfolio(rows);
@@ -9868,7 +10004,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function jumpToRadarSection(targetId) {
         const target = $(targetId);
-        const section = target?.closest("section, main") || target;
+        const section = target?.dataset.radarAnchor === "exact" ? target : target?.closest("section, main") || target;
         if (!section) return;
         section.scrollIntoView({ behavior: "smooth", block: "start" });
       }
@@ -9897,6 +10033,10 @@ INDEX_HTML = r"""<!doctype html>
         }
         const jumpButton = event.target.closest("[data-crown-jump]");
         if (jumpButton) jumpToRadarSection(jumpButton.dataset.crownJump);
+      });
+      $("draftRiskRadar").addEventListener("click", (event) => {
+        const reviewButton = event.target.closest("[data-draft-risk-review]");
+        if (reviewButton) jumpToRadarSection("brandWeightsPanel");
       });
       $("marketForm").addEventListener("submit", addMarketObservation);
       ["marketBrand", "marketRetail", "marketResale", "marketCurrency"].forEach((id) => {

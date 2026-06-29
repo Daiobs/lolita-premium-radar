@@ -108,7 +108,10 @@ prefilling pattern samples, or jumping to the release queue; each crown card als
 shows an evidence confidence badge plus the formula target, weight delta, and
 formula confidence, so suggested weight moves can be applied as unsaved drafts
 directly from the first-screen queue. The same queue can be exported as
-`lolita-brand-crown.csv` for daily brand-weight review.
+`lolita-brand-crown.csv` for daily brand-weight review. A first-screen draft-risk
+radar mirrors the full draft audit by showing unsaved change count, risk count,
+largest move, and the top save-before-review warnings as soon as weights are
+tuned.
 Brand weights, scorecards, core watch gaps, and sample plans are also summarized
 into a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
 priority checks into a short action queue with jump, sample, and pattern-prefill
