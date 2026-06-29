@@ -1553,6 +1553,84 @@ INDEX_HTML = r"""<!doctype html>
         font-size: 12px;
       }
       .rubric-actions button { min-height: 29px; padding-inline: 9px; }
+      .playbook-board { margin: 0 20px 14px; }
+      .playbook-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(275px, 1fr)); gap: 10px; padding: 12px; }
+      .playbook-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        min-height: 246px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 12px 16px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 66%, #fff), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .playbook-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .playbook-card::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 8px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.34) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .playbook-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .playbook-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .playbook-card p { margin: 0; color: var(--muted); }
+      .playbook-score { display: grid; grid-template-columns: 62px 1fr; gap: 9px; align-items: center; }
+      .playbook-score strong { font: 650 30px/1 Georgia, "Times New Roman", serif; }
+      .playbook-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .playbook-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 52px;
+        padding: 7px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .playbook-stats strong { color: var(--wine); font: 650 17px/1 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+      .playbook-reasons, .playbook-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      .playbook-reasons span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .playbook-actions a, .playbook-actions button {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 22%, var(--line));
+        border-radius: 999px;
+        background: #fffdfb;
+        color: color-mix(in srgb, var(--brand-accent, var(--rose)) 72%, var(--wine));
+        box-shadow: none;
+        font: inherit;
+        font-size: 12px;
+        text-decoration: none;
+      }
       .guardrail-board { margin: 0 20px 14px; }
       .guardrail-grid { display: grid; grid-template-columns: minmax(220px, .62fr) minmax(340px, 1.38fr); gap: 12px; padding: 12px; }
       .guardrail-brief, .guardrail-card, .guardrail-lane {
@@ -2432,7 +2510,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .rubric-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2505,6 +2583,7 @@ INDEX_HTML = r"""<!doctype html>
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
       <button type="button" data-radar-jump="brandWeightRubric" data-i18n="navRubric">标尺</button>
+      <button type="button" data-radar-jump="brandPlaybook" data-i18n="navPlaybook">作战卡</button>
       <button type="button" data-radar-jump="weightScenarioCompare" data-i18n="navScenarios">情景</button>
       <button type="button" data-radar-jump="resaleRunSheet" data-i18n="navRunSheet">巡检</button>
       <button type="button" data-radar-jump="brandLookbook" data-i18n="navLookbook">造型册</button>
@@ -2568,6 +2647,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="brandWeightRubric" class="rubric-grid"></div>
+    </section>
+    <section class="panel playbook-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandPlaybook">品牌作战卡</h2>
+          <span class="muted" data-i18n="brandPlaybookHint">把权重、证据、款式词和下一步动作合成单品牌执行卡</span>
+        </div>
+      </div>
+      <div id="brandPlaybook" class="playbook-grid"></div>
     </section>
     <section class="panel scenario-board">
       <div class="toolbar">
@@ -2944,6 +3032,7 @@ INDEX_HTML = r"""<!doctype html>
           navDaily: "简报",
           navWeights: "权重",
           navRubric: "标尺",
+          navPlaybook: "作战卡",
           navScenarios: "情景",
           navRunSheet: "巡检",
           navLookbook: "造型册",
@@ -3064,6 +3153,27 @@ INDEX_HTML = r"""<!doctype html>
           rubricNoBrands: "暂无品牌",
           rubricReviewWeights: "查看权重",
           rubricSampleGap: "补首个缺口",
+          brandPlaybook: "品牌作战卡",
+          brandPlaybookHint: "把权重、证据、款式词和下一步动作合成单品牌执行卡",
+          playbookAction: "下一步",
+          playbookPrimaryTerm: "主搜词",
+          playbookTarget: "目标权重",
+          playbookSample: "补样本",
+          playbookKeyword: "补款式",
+          playbookApply: "套用目标",
+          playbookNoRows: "暂无品牌作战卡",
+          playbookActionAnchor: "先补价格锚点",
+          playbookActionPair: "补第二条样本",
+          playbookActionTrack: "追踪溢价价差",
+          playbookActionRaise: "准备上调权重",
+          playbookActionCool: "复核降温",
+          playbookActionHold: "维持观察",
+          playbookReasonCore: "核心高权重",
+          playbookReasonThin: "样本偏薄",
+          playbookReasonPremium: "溢价支撑",
+          playbookReasonDiscount: "折价复核",
+          playbookReasonTarget: "目标权重变化",
+          playbookReasonKeyword: "款式词明确",
           draftPreview: "草稿预览",
           scoreDelta: "变化",
           weightsReset: "品牌权重已重置",
@@ -3595,6 +3705,7 @@ INDEX_HTML = r"""<!doctype html>
           navDaily: "Brief",
           navWeights: "Weights",
           navRubric: "Rubric",
+          navPlaybook: "Playbook",
           navScenarios: "Scenarios",
           navRunSheet: "Run Sheet",
           navLookbook: "Lookbook",
@@ -3715,6 +3826,27 @@ INDEX_HTML = r"""<!doctype html>
           rubricNoBrands: "No brands",
           rubricReviewWeights: "view weights",
           rubricSampleGap: "sample first gap",
+          brandPlaybook: "Brand Playbook",
+          brandPlaybookHint: "Combine weight, evidence, pattern terms, and next action into per-brand execution cards",
+          playbookAction: "next action",
+          playbookPrimaryTerm: "primary term",
+          playbookTarget: "target weight",
+          playbookSample: "add sample",
+          playbookKeyword: "add pattern",
+          playbookApply: "apply target",
+          playbookNoRows: "No brand playbook yet",
+          playbookActionAnchor: "add price anchor first",
+          playbookActionPair: "add second sample",
+          playbookActionTrack: "track premium spread",
+          playbookActionRaise: "prepare weight raise",
+          playbookActionCool: "cooldown review",
+          playbookActionHold: "hold watch",
+          playbookReasonCore: "core high weight",
+          playbookReasonThin: "thin evidence",
+          playbookReasonPremium: "premium supported",
+          playbookReasonDiscount: "discount review",
+          playbookReasonTarget: "target shift",
+          playbookReasonKeyword: "clear pattern terms",
           draftPreview: "draft preview",
           scoreDelta: "delta",
           weightsReset: "brand weights reset",
@@ -7644,6 +7776,7 @@ INDEX_HTML = r"""<!doctype html>
         renderDailyRadarBrief(rows);
         renderResaleRunSheet(rows);
         renderBrandWeightRubric(rows);
+        renderBrandPlaybook(rows);
         renderWeightScenarioCompare(rows);
         renderBrandLookbook(rows);
         renderBrandWeightScorecard(rows);
@@ -7661,6 +7794,95 @@ INDEX_HTML = r"""<!doctype html>
         renderSamplePlan(rows);
         renderWeightTuning(rows);
         renderPriceDiscipline(rows);
+      }
+
+      function renderBrandPlaybook(rows) {
+        const cards = brandPlaybookRows(rows);
+        $("brandPlaybook").innerHTML = cards.length ? cards.map((entry) => {
+          const links = marketSearchLinks({ ...entry, keyword: entry.primary_term || entry.alias }).slice(0, 4);
+          return `<article class="playbook-card" style="${escapeHtml(brandVisualStyle(entry))}">
+            <header>
+              <div>
+                <strong>${escapeHtml(entry.alias)} · ${escapeHtml(entry.name)}</strong>
+                <p>${escapeHtml(t("playbookPrimaryTerm"))} ${escapeHtml(entry.primary_term || "-")}</p>
+              </div>
+              <span class="pill ${escapeHtml(entry.action_tone)}">${escapeHtml(t(entry.action_label))}</span>
+            </header>
+            <div class="playbook-score">
+              <strong>${escapeHtml(entry.brand_weight)}</strong>
+              <div>
+                <p>${escapeHtml(t("weightLabel"))} · ${escapeHtml(t("playbookTarget"))} ${escapeHtml(entry.target_weight)}</p>
+                <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.brand_weight)}%"></span></div>
+              </div>
+            </div>
+            <div class="playbook-stats">
+              <span><strong>${escapeHtml(formatPercent(entry.avg_premium_rate))}</strong>${escapeHtml(t("avgPremium"))}</span>
+              <span><strong>${escapeHtml(entry.sample_count)}</strong>${escapeHtml(t("samples"))}</span>
+              <span><strong>${escapeHtml(entry.confidence)}%</strong>${escapeHtml(t("formulaConfidence"))}</span>
+            </div>
+            <p>${escapeHtml(t("playbookAction"))} · ${escapeHtml(t(entry.action_label))}</p>
+            <div class="playbook-reasons">
+              ${entry.reason_labels.map((label) => `<span>${escapeHtml(t(label))}</span>`).join("")}
+            </div>
+            <div class="playbook-actions">
+              ${Number(entry.sample_count) < 2 ? `<button type="button" class="secondary" data-playbook-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("playbookSample"))}</button>` : ""}
+              ${entry.primary_term ? `<button type="button" class="secondary" data-playbook-keyword-brand="${escapeHtml(entry.alias)}" data-playbook-keyword="${escapeHtml(entry.primary_term)}">${escapeHtml(t("playbookKeyword"))}</button>` : ""}
+              ${Number(entry.target_weight) !== Number(entry.brand_weight) ? `<button type="button" class="secondary" data-playbook-apply="${escapeHtml(entry.alias)}" data-playbook-target="${escapeHtml(entry.target_weight)}">${escapeHtml(t("playbookApply"))}</button>` : ""}
+              ${links.map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
+            </div>
+          </article>`;
+        }).join("") : `<div class="row">${escapeHtml(t("playbookNoRows"))}</div>`;
+      }
+
+      function brandPlaybookRows(rows) {
+        const formulaByAlias = new Map(buildBrandWeightFormula(rows, Array.isArray(rows) ? rows.length : 0).map((entry) => [entry.alias, entry]));
+        return (rows || []).map((entry) => {
+          const formula = formulaByAlias.get(entry.alias) || {};
+          const primaryTerm = (entry.market_keywords || [])[0] || entry.alias;
+          const action = playbookAction(entry, formula);
+          return {
+            ...entry,
+            primary_term: primaryTerm,
+            target_weight: formula.target_weight ?? entry.brand_weight,
+            confidence: formula.confidence ?? formulaConfidence(entry),
+            action_label: action.label,
+            action_rank: action.rank,
+            action_tone: action.tone,
+            reason_labels: playbookReasons(entry, formula),
+          };
+        }).sort((a, b) => (
+          (Number(b.action_rank) || 0) - (Number(a.action_rank) || 0)
+          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+          || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+        )).slice(0, 6);
+      }
+
+      function playbookAction(entry, formula) {
+        const samples = Number(entry.sample_count) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        const target = Number(formula.target_weight ?? entry.brand_weight) || 0;
+        const weight = Number(entry.brand_weight) || 0;
+        if (samples <= 0 && weight >= 70) return { label: "playbookActionAnchor", rank: 6, tone: "gold" };
+        if (samples < 2 && weight >= 70) return { label: "playbookActionPair", rank: 5, tone: "gold" };
+        if (premium >= 0.35) return { label: "playbookActionTrack", rank: 4, tone: "rose" };
+        if (target > weight) return { label: "playbookActionRaise", rank: 3, tone: "rose" };
+        if (target < weight || premium < -0.05) return { label: "playbookActionCool", rank: 2, tone: "warn" };
+        return { label: "playbookActionHold", rank: 1, tone: "off" };
+      }
+
+      function playbookReasons(entry, formula) {
+        const reasons = [];
+        const weight = Number(entry.brand_weight) || 0;
+        const samples = Number(entry.sample_count) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        const target = Number(formula.target_weight ?? entry.brand_weight) || 0;
+        if (weight >= 90 || entry.tier === "core") reasons.push("playbookReasonCore");
+        if (samples < 2) reasons.push("playbookReasonThin");
+        if (premium >= 0.25) reasons.push("playbookReasonPremium");
+        if (premium < -0.05) reasons.push("playbookReasonDiscount");
+        if (target !== weight) reasons.push("playbookReasonTarget");
+        if ((entry.market_keywords || []).length) reasons.push("playbookReasonKeyword");
+        return reasons.slice(0, 4);
       }
 
       function renderBrandWeightRubric(rows) {
@@ -8307,6 +8529,20 @@ INDEX_HTML = r"""<!doctype html>
         }
         const sampleButton = event.target.closest("[data-rubric-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.rubricSample);
+      });
+      $("brandPlaybook").addEventListener("click", (event) => {
+        const applyButton = event.target.closest("[data-playbook-apply]");
+        if (applyButton) {
+          applyFormulaDraft(applyButton.dataset.playbookApply, applyButton.dataset.playbookTarget);
+          return;
+        }
+        const keywordButton = event.target.closest("[data-playbook-keyword-brand]");
+        if (keywordButton) {
+          prepareKeywordSample(keywordButton.dataset.playbookKeywordBrand, keywordButton.dataset.playbookKeyword);
+          return;
+        }
+        const sampleButton = event.target.closest("[data-playbook-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.playbookSample);
       });
       $("weightScenarioCompare").addEventListener("click", (event) => {
         const button = event.target.closest("[data-scenario-preview-apply]");

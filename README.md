@@ -224,7 +224,11 @@ current sample count. A brand-weight rubric splits the 0-100 scale into core
 release, priority watch, sample-seed, and archive lanes, showing each lane's
 brand count, average weight, average premium, sample gaps, lead label, and a
 one-click sample-gap action so AP/BABY/AATP-style priorities are easier to
-explain before changing weights. A draft audit list shows the
+explain before changing weights. A brand playbook then turns each highest-priority
+label into an execution card with current weight, formula target, confidence,
+average premium, sample count, primary market term, direct search links, and
+next action such as adding a price anchor, adding a second sample, tracking
+premium spread, preparing a weight raise, or cooling down. A draft audit list shows the
 exact saved weight, draft weight, and
 delta for every unsaved brand, plus average shift, raise/lower counts, and the
 largest move before you persist changes. The same audit flags save-before-review
