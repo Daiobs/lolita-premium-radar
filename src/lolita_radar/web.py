@@ -828,6 +828,37 @@ INDEX_HTML = r"""<!doctype html>
       .formula-parts { display: grid; gap: 5px; }
       .formula-parts .profile-row { grid-template-columns: 82px 1fr 42px; }
       .formula-card button { justify-self: start; min-height: 30px; }
+      .trajectory-board { margin: 0 20px 14px; }
+      .trajectory-grid { display: grid; grid-template-columns: minmax(210px, .62fr) minmax(300px, 1.38fr); gap: 12px; padding: 12px; }
+      .trajectory-brief, .trajectory-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .trajectory-brief {
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(80,130,126,.12), transparent 36%),
+          linear-gradient(135deg, rgba(255,248,236,.78), rgba(252,246,249,.9));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.45);
+      }
+      .trajectory-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .trajectory-brief p, .trajectory-card p { margin: 0; color: var(--muted); }
+      .trajectory-list { display: grid; gap: 8px; }
+      .trajectory-card { display: grid; gap: 9px; padding: 11px; }
+      .trajectory-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .trajectory-card strong { color: var(--wine); }
+      .trajectory-path { display: grid; grid-template-columns: 56px 1fr 56px; gap: 8px; align-items: center; }
+      .trajectory-node { display: grid; gap: 2px; text-align: center; }
+      .trajectory-node strong { font: 650 22px/1 Georgia, "Times New Roman", serif; }
+      .trajectory-node span { color: var(--muted); font-size: 11px; }
+      .trajectory-line { height: 9px; overflow: hidden; border-radius: 999px; background: var(--lace); }
+      .trajectory-line span { display: block; height: 100%; width: var(--score); background: linear-gradient(90deg, var(--teal), var(--rose), var(--gold)); }
+      .trajectory-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+      .trajectory-actions button { min-height: 30px; }
       .profile-board { margin: 0 20px 14px; }
       .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; padding: 12px; }
       .profile-card {
@@ -1363,6 +1394,7 @@ INDEX_HTML = r"""<!doctype html>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
       <button type="button" data-radar-jump="brandIdentityMatrix" data-i18n="navIdentity">身份</button>
+      <button type="button" data-radar-jump="weightTrajectory" data-i18n="navTrajectory">轨迹</button>
       <button type="button" data-radar-jump="brandWeightFormula" data-i18n="navFormula">配方</button>
       <button type="button" data-radar-jump="brandRadarMatrix" data-i18n="navMatrix">矩阵</button>
       <button type="button" data-radar-jump="marketForm" data-i18n="navPremium">溢价</button>
@@ -1428,6 +1460,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="brandWeightStrategy" class="strategy-grid"></div>
+    </section>
+    <section class="panel trajectory-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="weightTrajectory">权重校准轨迹</h2>
+          <span class="muted" data-i18n="weightTrajectoryHint">把当前权重、建议目标和证据信心串成可执行路径</span>
+        </div>
+      </div>
+      <div id="weightTrajectory" class="trajectory-grid"></div>
     </section>
     <section class="panel formula-board">
       <div class="toolbar">
@@ -1683,6 +1724,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "样本证据",
           navWeights: "权重",
           navIdentity: "身份",
+          navTrajectory: "轨迹",
           navFormula: "配方",
           navMatrix: "矩阵",
           navPremium: "溢价",
@@ -1831,6 +1873,21 @@ INDEX_HTML = r"""<!doctype html>
           weightNoGap: "样本缺口已清空",
           brandWeightStrategy: "品牌权重策略台",
           brandWeightStrategyHint: "把权重档、溢价证据和草稿变化转成下一步校准动作",
+          weightTrajectory: "权重校准轨迹",
+          weightTrajectoryHint: "把当前权重、建议目标和证据信心串成可执行路径",
+          trajectoryChanged: "待校准",
+          trajectoryStable: "已对齐",
+          trajectoryAvgTarget: "均值目标",
+          trajectoryAvgShift: "均值偏移",
+          trajectoryCurrent: "当前",
+          trajectoryTarget: "目标",
+          trajectoryApply: "套用目标",
+          trajectorySample: "补样本",
+          trajectoryRaise: "上调轨迹",
+          trajectoryLower: "下调轨迹",
+          trajectoryCollect: "先补证据",
+          trajectoryAligned: "权重对齐",
+          trajectoryNoRows: "暂无权重轨迹",
           brandWeightFormula: "品牌权重配方",
           brandWeightFormulaHint: "拆解基线、溢价、证据和关注入口，给出可审计目标权重",
           formulaBase: "基线",
@@ -2082,6 +2139,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "sample evidence",
           navWeights: "Weights",
           navIdentity: "Identity",
+          navTrajectory: "Trajectory",
           navFormula: "Formula",
           navMatrix: "Matrix",
           navPremium: "Premium",
@@ -2230,6 +2288,21 @@ INDEX_HTML = r"""<!doctype html>
           weightNoGap: "sample gaps cleared",
           brandWeightStrategy: "Brand Weight Strategy",
           brandWeightStrategyHint: "Turn tiers, premium evidence, and draft changes into tuning moves",
+          weightTrajectory: "Weight Trajectory",
+          weightTrajectoryHint: "Connect current weight, target, and evidence confidence into an executable path",
+          trajectoryChanged: "to tune",
+          trajectoryStable: "aligned",
+          trajectoryAvgTarget: "avg target",
+          trajectoryAvgShift: "avg shift",
+          trajectoryCurrent: "current",
+          trajectoryTarget: "target",
+          trajectoryApply: "apply target",
+          trajectorySample: "add sample",
+          trajectoryRaise: "raise path",
+          trajectoryLower: "lower path",
+          trajectoryCollect: "collect evidence first",
+          trajectoryAligned: "weight aligned",
+          trajectoryNoRows: "No weight trajectory yet",
           brandWeightFormula: "Brand Weight Formula",
           brandWeightFormulaHint: "Break down baseline, premium, evidence, and watch links into auditable target weights",
           formulaBase: "base",
@@ -3224,6 +3297,101 @@ INDEX_HTML = r"""<!doctype html>
         return moves.slice(0, limit);
       }
 
+      function renderWeightTrajectory(rows) {
+        const allTracks = buildWeightTrajectory(rows, Array.isArray(rows) ? rows.length : 0);
+        const tracks = allTracks.slice(0, 7);
+        const stats = weightTrajectoryStats(allTracks);
+        $("weightTrajectory").innerHTML = `
+          <article class="trajectory-brief">
+            <strong>${escapeHtml(stats.changed)}</strong>
+            <p>${escapeHtml(t("trajectoryChanged"))} · ${escapeHtml(stats.stable)} ${escapeHtml(t("trajectoryStable"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.changeRate)}%"></span></div>
+            <div class="coverage-stats">
+              <article class="coverage-stat"><strong>${escapeHtml(stats.avgTarget)}</strong><span class="muted">${escapeHtml(t("trajectoryAvgTarget"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(stats.avgShift)}</strong><span class="muted">${escapeHtml(t("trajectoryAvgShift"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(stats.total)}</strong><span class="muted">${escapeHtml(t("weightDistribution"))}</span></article>
+            </div>
+          </article>
+          <div class="trajectory-list">
+            ${tracks.length ? tracks.map((entry) => `<article class="trajectory-card" style="${escapeHtml(brandVisualStyle(entry))}">
+              <header>
+                <div>
+                  <strong>${escapeHtml(entry.alias)}</strong>
+                  <p>${escapeHtml(entry.name)}</p>
+                </div>
+                <span class="pill ${trajectoryPill(entry.direction)}">${escapeHtml(t(entry.label))}</span>
+              </header>
+              <div class="trajectory-path">
+                <div class="trajectory-node"><strong>${escapeHtml(entry.brand_weight)}</strong><span>${escapeHtml(t("trajectoryCurrent"))}</span></div>
+                <div class="trajectory-line" aria-hidden="true"><span style="--score: ${escapeHtml(entry.path_score)}%"></span></div>
+                <div class="trajectory-node"><strong>${escapeHtml(entry.target_weight)}</strong><span>${escapeHtml(t("trajectoryTarget"))}</span></div>
+              </div>
+              <p>${escapeHtml(t("formulaConfidence"))} ${escapeHtml(entry.confidence)}% · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
+              <div class="trajectory-actions">
+                ${entry.delta ? `<button type="button" class="secondary" data-trajectory-apply="${escapeHtml(entry.alias)}" data-trajectory-target="${escapeHtml(entry.target_weight)}">${escapeHtml(t("trajectoryApply"))}</button>` : ""}
+                ${Number(entry.sample_count) < 2 ? `<button type="button" class="secondary" data-trajectory-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("trajectorySample"))}</button>` : ""}
+              </div>
+            </article>`).join("") : `<div class="row">${escapeHtml(t("trajectoryNoRows"))}</div>`}
+          </div>
+        `;
+      }
+
+      function buildWeightTrajectory(rows, limit = 7) {
+        return buildBrandWeightFormula(rows, Array.isArray(rows) ? rows.length : 0).map((entry) => {
+          const delta = Number(entry.delta) || 0;
+          const sampleCount = Number(entry.sample_count) || 0;
+          let direction = "aligned";
+          let label = "trajectoryAligned";
+          if (sampleCount < 2 && Number(entry.brand_weight) >= 70) {
+            direction = "collect";
+            label = "trajectoryCollect";
+          } else if (delta > 0) {
+            direction = "raise";
+            label = "trajectoryRaise";
+          } else if (delta < 0) {
+            direction = "lower";
+            label = "trajectoryLower";
+          }
+          return {
+            ...entry,
+            direction,
+            label,
+            path_score: Math.max(4, Math.min(100, Math.max(Number(entry.brand_weight) || 0, Number(entry.target_weight) || 0))),
+          };
+        }).sort((a, b) => (
+          trajectoryRank(b.direction) - trajectoryRank(a.direction)
+          || Math.abs(Number(b.delta) || 0) - Math.abs(Number(a.delta) || 0)
+          || (Number(b.confidence) || 0) - (Number(a.confidence) || 0)
+          || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+        )).slice(0, limit);
+      }
+
+      function weightTrajectoryStats(rows) {
+        const total = rows.length || 0;
+        const changed = rows.filter((entry) => Number(entry.delta) !== 0).length;
+        const avgTarget = total ? Math.round(rows.reduce((sum, row) => sum + (Number(row.target_weight) || 0), 0) / total) : 0;
+        const avgShift = total ? Math.round(rows.reduce((sum, row) => sum + Math.abs(Number(row.delta) || 0), 0) / total) : 0;
+        return {
+          total,
+          changed,
+          stable: Math.max(0, total - changed),
+          avgTarget,
+          avgShift,
+          changeRate: total ? Math.round(changed / total * 100) : 0,
+        };
+      }
+
+      function trajectoryRank(direction) {
+        return { collect: 4, raise: 3, lower: 2, aligned: 1 }[direction] || 0;
+      }
+
+      function trajectoryPill(direction) {
+        if (direction === "collect") return "gold";
+        if (direction === "raise") return "rose";
+        if (direction === "lower") return "warn";
+        return "off";
+      }
+
       function renderBrandWeightFormula(rows) {
         const formulas = buildBrandWeightFormula(rows);
         $("brandWeightFormula").innerHTML = formulas.length ? formulas.map((entry) => `<article class="formula-card" style="${escapeHtml(brandVisualStyle(entry))}">
@@ -4143,6 +4311,7 @@ INDEX_HTML = r"""<!doctype html>
         const rows = buildBrandRadarMatrix();
         renderWeightSnapshot(rows);
         renderBrandWeightStrategy(rows);
+        renderWeightTrajectory(rows);
         renderBrandWeightFormula(rows);
         renderBrandWeightProfile(rows);
         renderBrandIdentityMatrix(rows);
@@ -4536,6 +4705,15 @@ INDEX_HTML = r"""<!doctype html>
       $("brandWeightFormula").addEventListener("click", (event) => {
         const applyButton = event.target.closest("[data-formula-apply]");
         if (applyButton) applyFormulaDraft(applyButton.dataset.formulaApply, applyButton.dataset.formulaTarget);
+      });
+      $("weightTrajectory").addEventListener("click", (event) => {
+        const applyButton = event.target.closest("[data-trajectory-apply]");
+        if (applyButton) {
+          applyFormulaDraft(applyButton.dataset.trajectoryApply, applyButton.dataset.trajectoryTarget);
+          return;
+        }
+        const sampleButton = event.target.closest("[data-trajectory-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.trajectorySample);
       });
       $("sampleCoverage").addEventListener("click", (event) => {
         const sampleButton = event.target.closest("[data-coverage-sample]");

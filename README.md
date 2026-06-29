@@ -122,13 +122,15 @@ weight, tier distribution, market-evidence coverage, and the highest-priority
 sample gaps so brand weights are easier to audit before saving. A brand-weight
 strategy panel converts the current saved or draft weights into calibration
 moves such as collecting evidence, raising premium-supported brands, or cooling
-discounted brands. A brand-weight composition panel explains each brand's
-configured weight, monitoring role, premium heat, evidence level, and pattern
-keywords in one card. A brand identity matrix compares each label's palette,
-motif, radar cue, weight, premium rate, and sample evidence in one scan-friendly
-view. A hot-pattern
-keyword radar turns item-level terms such as `AP` + `贝壳` into one-click sample
-entry seeds, and the pattern-premium radar groups recorded samples by those
+discounted brands. A weight-trajectory panel then turns the same evidence into
+current-to-target paths with confidence, average shift, and direct actions to
+apply a target draft or collect the missing sample. A brand-weight composition
+panel explains each brand's configured weight, monitoring role, premium heat,
+evidence level, and pattern keywords in one card. A brand identity matrix
+compares each label's palette, motif, radar cue, weight, premium rate, and sample
+evidence in one scan-friendly view. A hot-pattern keyword radar turns item-level
+terms such as `AP` + `贝壳` into one-click sample entry seeds, and the
+pattern-premium radar groups recorded samples by those
 keywords to show item-level premium, sample count, and weighted priority. The
 market action desk turns the highest-priority pattern rows into search links for
 Goofish, Taobao, Mercari JP, and Yahoo Japan Auctions plus one-click sample
@@ -152,7 +154,8 @@ also be exported as CSV with identity metadata, premium evidence, sample counts,
 market keywords, and an auditable formula target for spreadsheet review. The
 formula panel breaks each target into baseline tier weight, resale premium,
 sample evidence, keyword depth, and watch-link readiness; applying a formula
-target only creates an unsaved draft until you choose to save the brand weights.
+target, from either the formula cards or the trajectory path, only creates an
+unsaved draft until you choose to save the brand weights.
 Each brand entry can also carry `visual`
 metadata (`palette`, `accent`, `paper`, `motif`, and `radar_cue`) plus
 `watch_urls` search links so AP, BABY, AATP, and other labels keep distinct
