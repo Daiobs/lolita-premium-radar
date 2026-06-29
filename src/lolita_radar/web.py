@@ -1744,6 +1744,18 @@ INDEX_HTML = r"""<!doctype html>
       .market-form input, .market-form select { min-height: 36px; width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 0 9px; background: #fffdfb; color: var(--text); font: inherit; }
       .market-form .wide { grid-column: span 2; }
       .market-form button { align-self: end; }
+      .sample-task-hint {
+        display: none;
+        gap: 4px;
+        margin: 0 12px 12px;
+        padding: 10px 12px;
+        border: 1px dashed rgba(169,120,44,.32);
+        border-radius: 8px;
+        background: linear-gradient(90deg, rgba(255,248,236,.82), rgba(255,253,251,.94));
+        color: var(--muted);
+      }
+      .sample-task-hint.show { display: grid; }
+      .sample-task-hint strong { color: var(--wine); }
       .sample-preview {
         display: grid;
         grid-template-columns: minmax(160px, .7fr) 1fr;
@@ -2121,6 +2133,7 @@ INDEX_HTML = r"""<!doctype html>
         </label>
         <button id="addMarketBtn" type="submit" data-i18n="addSample">加入样本</button>
       </form>
+      <div id="sampleTaskHint" class="sample-task-hint"></div>
       <div id="samplePreview" class="sample-preview"></div>
       <div class="market-grid">
         <div>
@@ -2589,6 +2602,8 @@ INDEX_HTML = r"""<!doctype html>
           sampleAdded: "价格样本已加入",
           samplePreview: "样本预览",
           samplePreviewEmpty: "输入原价和二手价后预览溢价",
+          sampleTaskAnchorTitle: "价格锚点任务",
+          sampleTaskAnchorHint: "填写原价、二手价和来源后保存样本",
           sampleSpread: "差价",
           sampleScore: "单样本分",
           sampleSignalStrong: "强溢价样本",
@@ -3097,6 +3112,8 @@ INDEX_HTML = r"""<!doctype html>
           sampleAdded: "price sample added",
           samplePreview: "Sample Preview",
           samplePreviewEmpty: "Enter retail and resale prices to preview premium",
+          sampleTaskAnchorTitle: "Price anchor task",
+          sampleTaskAnchorHint: "Enter retail, resale, and source before saving the sample",
           sampleSpread: "spread",
           sampleScore: "sample score",
           sampleSignalStrong: "strong premium sample",
@@ -5151,6 +5168,7 @@ INDEX_HTML = r"""<!doctype html>
           $("marketResale").value = "";
           $("marketUrl").value = "";
           $("marketNotes").value = "";
+          clearSampleTaskHint();
           renderSamplePreview();
           toast(t("sampleAdded"));
         } catch (error) {
@@ -5302,6 +5320,7 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function prepareMarketSample(alias) {
+        clearSampleTaskHint();
         const select = $("marketBrand");
         if (Array.from(select.options).some((option) => option.value === alias)) {
           select.value = alias;
@@ -5312,6 +5331,18 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function prepareKeywordSample(alias, keyword) {
+        clearSampleTaskHint();
+        prepareKeywordSampleFields(alias, keyword);
+        toast(`${alias} · ${keyword} ${t("keywordSampleReady")}`);
+      }
+
+      function prepareCoreWatchSample(alias, keyword, actionLabel) {
+        prepareKeywordSampleFields(alias, keyword);
+        setSampleTaskHint(actionLabel || "coreWatchActionAnchor", keyword);
+        toast(`${alias} · ${keyword} ${t(actionLabel || "coreWatchActionAnchor")}`);
+      }
+
+      function prepareKeywordSampleFields(alias, keyword) {
         const select = $("marketBrand");
         if (Array.from(select.options).some((option) => option.value === alias)) {
           select.value = alias;
@@ -5320,7 +5351,18 @@ INDEX_HTML = r"""<!doctype html>
         $("marketRetail").focus();
         $("marketForm").scrollIntoView({ behavior: "smooth", block: "center" });
         renderSamplePreview();
-        toast(`${alias} · ${keyword} ${t("keywordSampleReady")}`);
+      }
+
+      function setSampleTaskHint(actionLabel, keyword) {
+        const hint = $("sampleTaskHint");
+        hint.classList.add("show");
+        hint.innerHTML = `<strong>${escapeHtml(t(actionLabel))}${keyword ? ` · ${escapeHtml(keyword)}` : ""}</strong><span>${escapeHtml(t("sampleTaskAnchorHint"))}</span>`;
+      }
+
+      function clearSampleTaskHint() {
+        const hint = $("sampleTaskHint");
+        hint.classList.remove("show");
+        hint.innerHTML = "";
       }
 
       function updateWeightDirtyState() {
@@ -5510,11 +5552,11 @@ INDEX_HTML = r"""<!doctype html>
             ${reasons.map((reason) => `<span class="${escapeHtml(reason.tone)}">${escapeHtml(t(reason.label))}</span>`).join("")}
           </div>
           <div class="core-watch-terms" aria-label="${escapeHtml(t("coreWatchTerms"))}">
-            ${terms.length ? terms.map((term) => `<button type="button" data-core-watch-brand="${escapeHtml(entry.alias)}" data-core-watch-term="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("") : `<span class="muted">${escapeHtml(t("noMarketKeywords"))}</span>`}
+            ${terms.length ? terms.map((term) => `<button type="button" data-core-watch-brand="${escapeHtml(entry.alias)}" data-core-watch-term="${escapeHtml(term)}" data-core-watch-action="${escapeHtml(nextAction.label)}">${escapeHtml(term)}</button>`).join("") : `<span class="muted">${escapeHtml(t("noMarketKeywords"))}</span>`}
           </div>
           <div class="core-watch-links" aria-label="${escapeHtml(t("coreWatchSearch"))}">
             ${marketSearchLinks({ ...entry, keyword: primaryTerm }).map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
-            <button type="button" class="secondary" data-core-watch-brand="${escapeHtml(entry.alias)}" data-core-watch-term="${escapeHtml(primaryTerm)}">${escapeHtml(t("coreWatchSample"))}</button>
+            <button type="button" class="secondary" data-core-watch-brand="${escapeHtml(entry.alias)}" data-core-watch-term="${escapeHtml(primaryTerm)}" data-core-watch-action="${escapeHtml(nextAction.label)}">${escapeHtml(t("coreWatchSample"))}</button>
           </div>
         </article>`;
       }
@@ -6019,7 +6061,7 @@ INDEX_HTML = r"""<!doctype html>
       });
       $("coreMarketWatch").addEventListener("click", (event) => {
         const watchButton = event.target.closest("[data-core-watch-brand]");
-        if (watchButton) prepareKeywordSample(watchButton.dataset.coreWatchBrand, watchButton.dataset.coreWatchTerm);
+        if (watchButton) prepareCoreWatchSample(watchButton.dataset.coreWatchBrand, watchButton.dataset.coreWatchTerm, watchButton.dataset.coreWatchAction);
       });
       $("premiumSeedRadar").addEventListener("click", (event) => {
         const keywordButton = event.target.closest("[data-premium-seed-brand]");

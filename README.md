@@ -144,7 +144,9 @@ average resale, and average spread when samples exist, or a clear missing-anchor
 state when the next task is still price collection. The watch-desk summary counts
 price-anchor gaps, each card marks the next action such as adding a price anchor,
 adding a second sample, tracking spread, reviewing discount, or holding watch,
-and the whole watch desk can be exported as
+and clicking a core watch term opens the resale-sample form with a visible
+price-anchor task hint before you enter retail and resale prices. The whole
+watch desk can be exported as
 `lolita-core-watch.csv` for a daily search/sample checklist. The
 market action desk turns the highest-priority pattern rows into search links for
 Goofish, Taobao, Mercari JP, and Yahoo Japan Auctions plus one-click sample
