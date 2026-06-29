@@ -2064,6 +2064,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="brandWeightScorecard">品牌权重评分卡</h2>
           <span class="muted" data-i18n="brandWeightScorecardHint">把基线、溢价、证据、款式词和监控入口拆成可审计分项</span>
         </div>
+        <button id="exportScorecardsCsvBtn" type="button" class="secondary" data-i18n="exportScorecardsCsv">导出评分卡 CSV</button>
       </div>
       <div id="brandWeightScorecard" class="scorecard-grid"></div>
     </section>
@@ -2483,6 +2484,9 @@ INDEX_HTML = r"""<!doctype html>
           scorecardTarget: "目标",
           scorecardVerdict: "结论",
           scorecardNoRows: "暂无权重评分卡",
+          exportScorecardsCsv: "导出评分卡 CSV",
+          exportedScorecardsCsv: "权重评分卡已导出",
+          noScorecardsCsv: "暂无可导出的权重评分卡",
           brandRadarMatrix: "品牌雷达矩阵",
           matrixHint: "把权重、溢价、样本和动作放在一起看",
           matrixBrand: "品牌",
@@ -3021,6 +3025,9 @@ INDEX_HTML = r"""<!doctype html>
           scorecardTarget: "target",
           scorecardVerdict: "verdict",
           scorecardNoRows: "No weight scorecards yet",
+          exportScorecardsCsv: "export scorecards CSV",
+          exportedScorecardsCsv: "weight scorecards exported",
+          noScorecardsCsv: "no weight scorecards to export",
           brandRadarMatrix: "Brand Radar Matrix",
           matrixHint: "Weight, premium, samples, and action in one view",
           matrixBrand: "brand",
@@ -3692,7 +3699,7 @@ INDEX_HTML = r"""<!doctype html>
         ` : `<div class="row">${escapeHtml(t("scorecardNoRows"))}</div>`;
       }
 
-      function brandWeightScorecardRows(rows) {
+      function brandWeightScorecardRows(rows, limit = 6) {
         return buildBrandWeightFormula(rows, Number.POSITIVE_INFINITY).map((entry) => ({
           ...entry,
           scorecard_verdict: scorecardVerdict(entry),
@@ -3701,7 +3708,7 @@ INDEX_HTML = r"""<!doctype html>
           || Math.abs(Number(b.delta) || 0) - Math.abs(Number(a.delta) || 0)
           || (Number(b.confidence) || 0) - (Number(a.confidence) || 0)
           || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
-        )).slice(0, 6);
+        )).slice(0, limit);
       }
 
       function brandWeightScorecardStats(cards) {
@@ -5181,6 +5188,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedWeightsCsv"));
       }
 
+      function exportBrandWeightScorecardsCsv() {
+        const rows = brandWeightScorecardRows(buildBrandRadarMatrix(), Number.POSITIVE_INFINITY);
+        if (!rows.length) {
+          toast(t("noScorecardsCsv"));
+          return;
+        }
+        const csv = csvFromBrandWeightScorecards(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-weight-scorecards.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedScorecardsCsv"));
+      }
+
       function exportSamplePlanCsv() {
         const rows = buildSamplePlanRows(buildBrandRadarMatrix());
         if (!rows.length) {
@@ -5443,6 +5469,49 @@ INDEX_HTML = r"""<!doctype html>
             market_keywords: (row.market_keywords || []).join(" | "),
           };
         });
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromBrandWeightScorecards(rows) {
+        const fields = [
+          ["alias", "alias"],
+          ["name", "name"],
+          ["verdict", "verdict"],
+          ["current_weight", "brand_weight"],
+          ["target_weight", "target_weight"],
+          ["delta", "delta"],
+          ["confidence", "confidence"],
+          ["part_base", "part_base"],
+          ["part_premium", "part_premium"],
+          ["part_evidence", "part_evidence"],
+          ["part_keywords", "part_keywords"],
+          ["part_watchability", "part_watchability"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["max_premium_rate", "max_premium_rate"],
+          ["sample_count", "sample_count"],
+          ["tier", "tier"],
+          ["style", "style"],
+          ["evidence_level", "evidence_level"],
+          ["market_keywords", "market_keywords"],
+          ["watch_urls", "watch_urls"],
+          ["radar_cue", "radar_cue"],
+        ];
+        const enriched = (rows || []).map((row) => ({
+          ...row,
+          verdict: t(scorecardVerdictLabel(row.scorecard_verdict)),
+          part_base: row.parts?.base ?? "",
+          part_premium: row.parts?.premium ?? "",
+          part_evidence: row.parts?.evidence ?? "",
+          part_keywords: row.parts?.keywords ?? "",
+          part_watchability: row.parts?.watchability ?? "",
+          market_keywords: (row.market_keywords || []).join(" | "),
+          watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
+          radar_cue: row.visual?.radar_cue || "",
+        }));
         const lines = [
           fields.map(([header]) => csvCell(header)).join(","),
           ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
@@ -6473,6 +6542,7 @@ INDEX_HTML = r"""<!doctype html>
         if (button) applyWeightScenario(button.dataset.weightScenario);
       });
       $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
+      $("exportScorecardsCsvBtn").addEventListener("click", exportBrandWeightScorecardsCsv);
       $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);
       $("exportCoreWatchCsvBtn").addEventListener("click", exportCoreWatchCsv);
       $("exportSamplePlanCsvBtn").addEventListener("click", exportSamplePlanCsv);
