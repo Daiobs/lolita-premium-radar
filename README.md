@@ -94,7 +94,10 @@ Then open [http://127.0.0.1:8766](http://127.0.0.1:8766). The dashboard shows
 configured sources, stored events, tracked items, and buttons for manual checks.
 The UI defaults to Chinese and includes a `中文 / EN` language switch. It also
 includes a Lolita secondary-market view with brand weights, status mix, and a
-simple premium-signal score for prioritizing attention. The brand radar matrix
+simple premium-signal score for prioritizing attention. The first-screen brand
+weight cards use Lolita-style visual cues such as themed brand cameos, tier
+ribbons, and market-keyword pearls, while keeping the weight sliders and saved
+draft state visible for fast tuning. The brand radar matrix
 puts weight, average resale premium, sample count, radar score, and next action
 in one scan-friendly view, with focused filters and sorting by score, premium,
 weight, sample count, or draft-score movement. The opportunity radar turns brand

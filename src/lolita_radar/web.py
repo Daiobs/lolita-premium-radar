@@ -435,12 +435,16 @@ INDEX_HTML = r"""<!doctype html>
       .watch-grid { display: grid; grid-template-columns: repeat(4, minmax(125px, 1fr)); gap: 9px; }
       .brand-chip {
         position: relative;
+        display: grid;
+        gap: 9px;
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 13px 10px 10px;
+        padding: 14px 10px 12px;
         background:
-          linear-gradient(90deg, rgba(180,87,111,.1), transparent 42%),
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, transparent), transparent 34%),
+          linear-gradient(90deg, color-mix(in srgb, var(--brand-accent, var(--rose)) 12%, transparent), transparent 42%),
           var(--bg-soft);
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.42);
         overflow: hidden;
       }
       .brand-chip::before {
@@ -452,11 +456,67 @@ INDEX_HTML = r"""<!doctype html>
         height: 6px;
         background:
           radial-gradient(circle at 8px 0, rgba(255,255,255,.85) 0 6px, transparent 6px) 0 0 / 16px 6px repeat-x,
-          linear-gradient(90deg, var(--rose), var(--gold), var(--teal));
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold), var(--teal));
+      }
+      .brand-chip::after {
+        content: "";
+        position: absolute;
+        inset: auto 9px 6px;
+        height: 4px;
+        background: radial-gradient(circle, color-mix(in srgb, var(--brand-accent, var(--rose)) 34%, transparent) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .brand-chip.theme-sweet { --brand-accent: #b4576f; --brand-paper: #fff3f6; }
+      .brand-chip.theme-classic { --brand-accent: #a9782c; --brand-paper: #fff8ec; }
+      .brand-chip.theme-gothic { --brand-accent: #611b31; --brand-paper: #fff3f5; }
+      .brand-chip.theme-mint { --brand-accent: #0f6760; --brand-paper: #f1fbf8; }
+      .brand-chip-header { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 9px; align-items: center; }
+      .brand-cameo {
+        display: grid;
+        place-items: center;
+        align-content: center;
+        min-height: 54px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 35%, var(--line));
+        border-radius: 999px;
+        background:
+          radial-gradient(circle at 50% 25%, rgba(255,255,255,.85), transparent 36%),
+          var(--brand-paper, #fff3f6);
+        box-shadow: var(--pearl-shadow);
+      }
+      .brand-cameo strong { font: 650 17px/1 Georgia, "Times New Roman", serif; }
+      .brand-cameo span { color: var(--brand-accent, var(--rose)); font: 650 11px/1 Georgia, "Times New Roman", serif; }
+      .brand-title { min-width: 0; }
+      .brand-title strong, .brand-title span { overflow-wrap: anywhere; }
+      .brand-ribbon { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .brand-ribbon span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 7px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 999px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .brand-ribbon span:first-child { background: var(--brand-paper, #fff3f6); color: var(--brand-accent, var(--rose)); }
+      .brand-keywords { display: flex; flex-wrap: wrap; gap: 5px; min-height: 23px; }
+      .brand-keywords span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,255,255,.54);
+        color: var(--muted);
+        font-size: 12px;
       }
       .brand-chip.dirty { border-color: rgba(169,120,44,.68); box-shadow: inset 0 0 0 1px rgba(169,120,44,.2); }
       .brand-chip strong { display: block; color: var(--wine); }
       .brand-chip span { color: var(--muted); font-size: 12px; }
+      .brand-cameo span { color: var(--brand-accent, var(--rose)); font: 650 11px/1 Georgia, "Times New Roman", serif; }
+      .brand-ribbon span:first-child { color: var(--brand-accent, var(--rose)); }
       .brand-chip input[type="range"] { width: 100%; accent-color: var(--rose-dark); }
       .weight-control { display: grid; gap: 4px; margin-top: 7px; color: var(--muted); font-size: 12px; }
       .weight-insight { display: grid; gap: 5px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(97,27,49,.16); }
@@ -1693,20 +1753,49 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function renderBrandWeights(weights) {
-        $("brandWeights").innerHTML = weights.map((brand) => `<article class="brand-chip">
-          <strong>${escapeHtml(brand.alias)}</strong>
-          <span>${escapeHtml(brand.name)}</span>
+        $("brandWeights").innerHTML = weights.map((brand) => `<article class="brand-chip ${brandThemeClass(brand)}" data-tier="${escapeHtml(brand.tier || "")}">
+          <header class="brand-chip-header">
+            <div class="brand-cameo" aria-hidden="true">
+              <strong>${escapeHtml(brand.alias)}</strong>
+              <span>${escapeHtml(brand.weight)}</span>
+            </div>
+            <div class="brand-title">
+              <strong>${escapeHtml(brand.name)}</strong>
+              <span>${escapeHtml(brand.alias)}</span>
+            </div>
+          </header>
+          <div class="brand-ribbon">
+            <span>${escapeHtml(tierLabel(brand.tier))}</span>
+            <span>${escapeHtml(styleLabel(brand.style))}</span>
+          </div>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.weight) || 0}%"></span></div>
           <label class="weight-control">
             <span data-weight-label>${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight)}</span>
             <input type="range" min="0" max="100" step="1" value="${escapeHtml(brand.weight)}" data-original-weight="${escapeHtml(brand.weight)}" data-brand-weight="${escapeHtml(brand.alias)}">
           </label>
-          <p class="muted">${escapeHtml(tierLabel(brand.tier))} · ${escapeHtml(styleLabel(brand.style))}</p>
+          <div class="brand-keywords" aria-label="${escapeHtml(t("marketKeywords"))}">
+            ${brandKeywordPearlsHtml(brand)}
+          </div>
           <div class="weight-insight" data-weight-insight="${escapeHtml(brand.alias)}">
             ${brandWeightInsightHtml(brand, brand.weight)}
           </div>
         </article>`).join("");
         updateWeightDirtyState();
+      }
+
+      function brandKeywordPearlsHtml(brand) {
+        const terms = (brand.market_keywords || brand.keywords || []).slice(0, 3);
+        return terms.length
+          ? terms.map((term) => `<span>${escapeHtml(term)}</span>`).join("")
+          : `<span>${escapeHtml(t("noMarketKeywords"))}</span>`;
+      }
+
+      function brandThemeClass(brand) {
+        const style = `${brand.style || ""} ${brand.tier || ""}`.toLowerCase();
+        if (style.includes("gothic") || style.includes("prince")) return "theme-gothic";
+        if (style.includes("classic")) return "theme-classic";
+        if (style.includes("release") || style.includes("restock")) return "theme-mint";
+        return "theme-sweet";
       }
 
       function brandWeightInsightHtml(brand, weightValue) {
