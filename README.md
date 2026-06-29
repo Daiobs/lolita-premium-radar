@@ -102,8 +102,13 @@ a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
 priority checks into a short action queue with jump, sample, and pattern-prefill
 buttons, plus grouped action lanes that can be clicked to filter the brief by
 price anchors, evidence collection, tuning, or sampling; the same brief can be
-exported as `lolita-daily-radar.csv` for a daily watch checklist. Brand
-weight cards use Lolita-style visual cues such as themed brand cameos, tier
+exported as `lolita-daily-radar.csv` for a daily watch checklist. A release
+watch queue matches tracked release, preorder, restock, and shop-news items
+against each brand's alias, official keywords, and market pattern terms, then
+scores each signal with brand weight, resale premium, status, and sample gaps so
+new AP/BABY/AATP-style drops can move straight into source review, resale search,
+or price-sample entry. Brand weight cards use Lolita-style visual cues such as
+themed brand cameos, tier
 ribbons, market-keyword pearls, and per-brand visual identity metadata for
 palette, motif, and radar cue, while keeping the weight sliders and saved draft
 state visible for fast tuning. A brand-weight scenario comparison panel previews

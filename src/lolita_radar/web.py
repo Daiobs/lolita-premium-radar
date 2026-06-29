@@ -1716,6 +1716,97 @@ INDEX_HTML = r"""<!doctype html>
         padding: 0 9px;
         border-radius: 999px;
       }
+      .release-board { margin: 0 20px 14px; }
+      .release-grid { display: grid; grid-template-columns: minmax(230px, .62fr) minmax(340px, 1.38fr); gap: 12px; padding: 12px; }
+      .release-brief, .release-card {
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, var(--line));
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .release-brief {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(15,103,96,.14), transparent 36%),
+          linear-gradient(135deg, rgba(241,251,248,.92), rgba(255,247,232,.82));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+        overflow: hidden;
+      }
+      .release-brief::after, .release-card::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 8px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(15,103,96,.28) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .release-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .release-brief p, .release-card p { margin: 0; color: var(--muted); }
+      .release-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .release-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 50px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .release-stats strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .release-list { display: grid; gap: 8px; }
+      .release-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        padding: 12px 12px 14px;
+        background:
+          radial-gradient(circle at 50% 0, rgba(255,255,255,.9) 0 5px, transparent 5px) 0 0 / 18px 10px repeat-x,
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 66%, #fff), rgba(248,251,250,.92));
+        box-shadow: var(--paper-shadow);
+        overflow: hidden;
+      }
+      .release-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--teal));
+      }
+      .release-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .release-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .release-score { display: grid; grid-template-columns: 58px 1fr; gap: 8px; align-items: center; }
+      .release-score strong { font: 650 26px/1 Georgia, "Times New Roman", serif; }
+      .release-meta, .release-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      .release-meta span, .release-actions a, .release-actions button {
+        min-height: 27px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .release-meta span {
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line));
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+      }
+      .release-actions a, .release-actions button {
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 22%, var(--line));
+        background: #fffdfb;
+        box-shadow: none;
+        color: color-mix(in srgb, var(--brand-accent, var(--rose)) 72%, var(--wine));
+        font: inherit;
+        text-decoration: none;
+      }
       .guardrail-board { margin: 0 20px 14px; }
       .guardrail-grid { display: grid; grid-template-columns: minmax(220px, .62fr) minmax(340px, 1.38fr); gap: 12px; padding: 12px; }
       .guardrail-brief, .guardrail-card, .guardrail-lane {
@@ -2596,7 +2687,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .portfolio-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2668,6 +2759,7 @@ INDEX_HTML = r"""<!doctype html>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandPortfolio" data-i18n="navPortfolio">组合</button>
+      <button type="button" data-radar-jump="releaseWatchQueue" data-i18n="navReleaseWatch">发售</button>
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
       <button type="button" data-radar-jump="brandWeightRubric" data-i18n="navRubric">标尺</button>
       <button type="button" data-radar-jump="brandPlaybook" data-i18n="navPlaybook">作战卡</button>
@@ -2706,6 +2798,15 @@ INDEX_HTML = r"""<!doctype html>
         <button id="exportPortfolioCsvBtn" type="button" class="secondary" data-i18n="exportPortfolioCsv">导出组合 CSV</button>
       </div>
       <div id="brandPortfolio" class="portfolio-grid"></div>
+    </section>
+    <section class="panel release-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="releaseWatchQueue">新品发售关注队列</h2>
+          <span class="muted" data-i18n="releaseWatchHint">把上新/预约/再贩条目接到品牌权重和二手溢价判断</span>
+        </div>
+      </div>
+      <div id="releaseWatchQueue" class="release-grid"></div>
     </section>
     <section class="atelier">
       <div class="signal-strip">
@@ -3128,6 +3229,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "样本证据",
           navDaily: "简报",
           navPortfolio: "组合",
+          navReleaseWatch: "发售",
           navWeights: "权重",
           navRubric: "标尺",
           navPlaybook: "作战卡",
@@ -3210,6 +3312,22 @@ INDEX_HTML = r"""<!doctype html>
           exportPortfolioCsv: "导出组合 CSV",
           exportedPortfolioCsv: "品牌组合总览已导出",
           noPortfolioCsv: "暂无可导出的组合总览",
+          releaseWatchQueue: "新品发售关注队列",
+          releaseWatchHint: "把上新/预约/再贩条目接到品牌权重和二手溢价判断",
+          releaseWatchScore: "发售关注分",
+          releaseWatchSignals: "发售信号",
+          releaseWatchBrands: "匹配品牌",
+          releaseWatchTopScore: "最高分",
+          releaseWatchPremium: "溢价支持",
+          releaseWatchNoRows: "暂无匹配到品牌权重的上新条目",
+          releaseWatchMatched: "匹配词",
+          releaseWatchSource: "来源",
+          releaseWatchOpen: "打开原页",
+          releaseWatchSample: "补价格样本",
+          releaseActionSample: "先补价格锚点",
+          releaseActionTrackPremium: "跟踪二手溢价",
+          releaseActionWatchDrop: "盯发售窗口",
+          releaseActionReview: "复核发售信号",
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
           saveWeights: "保存权重",
@@ -3823,6 +3941,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualEvidence: "sample evidence",
           navDaily: "Brief",
           navPortfolio: "Portfolio",
+          navReleaseWatch: "Release",
           navWeights: "Weights",
           navRubric: "Rubric",
           navPlaybook: "Playbook",
@@ -3905,6 +4024,22 @@ INDEX_HTML = r"""<!doctype html>
           exportPortfolioCsv: "export portfolio CSV",
           exportedPortfolioCsv: "brand portfolio overview exported",
           noPortfolioCsv: "no portfolio overview to export",
+          releaseWatchQueue: "Release Watch Queue",
+          releaseWatchHint: "Connect release, preorder, and restock items to brand weights and resale premium evidence",
+          releaseWatchScore: "release score",
+          releaseWatchSignals: "release signals",
+          releaseWatchBrands: "matched brands",
+          releaseWatchTopScore: "top score",
+          releaseWatchPremium: "premium-backed",
+          releaseWatchNoRows: "No release items matched brand weights yet",
+          releaseWatchMatched: "matched terms",
+          releaseWatchSource: "source",
+          releaseWatchOpen: "open source",
+          releaseWatchSample: "add price sample",
+          releaseActionSample: "collect price anchor",
+          releaseActionTrackPremium: "track resale premium",
+          releaseActionWatchDrop: "watch release window",
+          releaseActionReview: "review release signal",
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
           saveWeights: "Save Weights",
@@ -7970,6 +8105,7 @@ INDEX_HTML = r"""<!doctype html>
         renderDailyRadarBrief(rows);
         renderResaleRunSheet(rows);
         renderBrandPortfolio(rows);
+        renderReleaseWatchQueue(rows);
         renderBrandWeightRubric(rows);
         renderBrandPlaybook(rows);
         renderWeightScenarioCompare(rows);
@@ -8094,6 +8230,158 @@ INDEX_HTML = r"""<!doctype html>
             lead_brand: driftRows[0] || null,
           },
         ];
+      }
+
+      function renderReleaseWatchQueue(rows) {
+        const releases = releaseWatchRows(rows);
+        const stats = releaseWatchStats(releases);
+        $("releaseWatchQueue").innerHTML = releases.length ? `
+          <article class="release-brief">
+            <strong>${escapeHtml(stats.top_score)}</strong>
+            <p>${escapeHtml(t("releaseWatchTopScore"))} · ${escapeHtml(t("releaseWatchHint"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.top_score)}%"></span></div>
+            <div class="release-stats">
+              <span><strong>${escapeHtml(releases.length)}</strong>${escapeHtml(t("releaseWatchSignals"))}</span>
+              <span><strong>${escapeHtml(stats.brand_count)}</strong>${escapeHtml(t("releaseWatchBrands"))}</span>
+              <span><strong>${escapeHtml(stats.premium_backed)}</strong>${escapeHtml(t("releaseWatchPremium"))}</span>
+              <span><strong>${escapeHtml(stats.sample_gaps)}</strong>${escapeHtml(t("dailySampleGaps"))}</span>
+            </div>
+          </article>
+          <div class="release-list">
+            ${releases.map(releaseWatchCardHtml).join("")}
+          </div>
+        ` : `<div class="row">${escapeHtml(t("releaseWatchNoRows"))}</div>`;
+      }
+
+      function releaseWatchCardHtml(entry) {
+        const links = marketSearchLinks({ ...entry, keyword: entry.primary_keyword || entry.alias }).slice(0, 4);
+        return `<article class="release-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)} · ${escapeHtml(entry.title)}</strong>
+              <p>${escapeHtml(t("releaseWatchSource"))} ${escapeHtml(entry.source)} · ${escapeHtml(valueLabel("status", entry.status))}</p>
+            </div>
+            <span class="pill ${escapeHtml(releaseWatchPill(entry.action_label))}">${escapeHtml(t(entry.action_label))}</span>
+          </header>
+          <div class="release-score">
+            <strong>${escapeHtml(entry.release_score)}</strong>
+            <div>
+              <p>${escapeHtml(t("releaseWatchScore"))} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</p>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.release_score)}%"></span></div>
+            </div>
+          </div>
+          <div class="release-meta">
+            <span>${escapeHtml(t("releaseWatchMatched"))} ${escapeHtml(entry.matched_terms.join(" / ") || "-")}</span>
+            <span>${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</span>
+            <span>${escapeHtml(entry.published_at || t("undated"))}</span>
+          </div>
+          <div class="release-actions">
+            ${entry.url ? `<a href="${escapeHtml(entry.url)}" target="_blank" rel="noreferrer">${escapeHtml(t("releaseWatchOpen"))}</a>` : ""}
+            <button type="button" data-release-sample="${escapeHtml(entry.alias)}" data-release-keyword="${escapeHtml(entry.primary_keyword || entry.alias)}">${escapeHtml(t("releaseWatchSample"))}</button>
+            ${links.map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
+          </div>
+        </article>`;
+      }
+
+      function releaseWatchRows(rows) {
+        return (currentState?.items || []).flatMap((item) => {
+          const matches = releaseBrandMatches(item, rows).slice(0, 1);
+          return matches.map((entry) => {
+            const sampleCount = Number(entry.sample_count) || 0;
+            const premium = Number(entry.avg_premium_rate) || 0;
+            const weight = Number(entry.brand_weight) || 0;
+            const releaseScore = clampScore(Math.round(
+              weight * .42
+              + releaseStatusScore(item.status)
+              + Math.max(0, premium) * 30
+              + (sampleCount < 2 && weight >= 70 ? 10 : 0)
+              + Math.min(10, entry.matched_terms.length * 3)
+            ));
+            return {
+              ...entry,
+              title: item.title || "",
+              url: safeUrl(item.url),
+              source: item.source || "",
+              status: item.status || "",
+              published_at: item.published_at || item.last_seen_at || "",
+              primary_keyword: releasePrimaryKeyword(entry, entry.matched_terms),
+              release_score: releaseScore,
+              action_label: releaseWatchAction(entry, item),
+            };
+          });
+        }).sort((a, b) => (
+          (Number(b.release_score) || 0) - (Number(a.release_score) || 0)
+          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+        )).slice(0, 6);
+      }
+
+      function releaseBrandMatches(item, rows) {
+        const haystack = [item.source, item.title, item.url, item.status].map((value) => String(value || "").toLowerCase()).join(" ");
+        return (rows || []).map((entry) => {
+          const terms = releaseWatchTerms(entry);
+          const matchedTerms = terms.filter((term) => releaseKeywordMatches(term, haystack)).slice(0, 4);
+          return matchedTerms.length ? { ...entry, matched_terms: matchedTerms } : null;
+        }).filter(Boolean).sort((a, b) => (
+          (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+          || (b.matched_terms.length || 0) - (a.matched_terms.length || 0)
+        ));
+      }
+
+      function releaseWatchTerms(entry) {
+        return uniqueValues([
+          entry.alias,
+          entry.name,
+          ...(entry.keywords || []),
+          ...(entry.market_keywords || []),
+        ]);
+      }
+
+      function releaseKeywordMatches(term, haystack) {
+        const keyword = String(term || "").trim().toLowerCase();
+        if (!keyword) return false;
+        if (/^[a-z0-9 -]+$/.test(keyword) && keyword.replaceAll("-", "").replaceAll(" ", "").length <= 3) {
+          return new RegExp(`(^|[^a-z0-9])${escapeRegExp(keyword)}([^a-z0-9]|$)`).test(haystack);
+        }
+        return haystack.includes(keyword);
+      }
+
+      function releasePrimaryKeyword(entry, matchedTerms) {
+        const matched = new Set((matchedTerms || []).map((term) => String(term).toLowerCase()));
+        return (entry.market_keywords || []).find((term) => matched.has(String(term).toLowerCase()))
+          || matchedTerms?.[0]
+          || entry.alias;
+      }
+
+      function releaseWatchStats(rows) {
+        return {
+          top_score: rows.length ? Math.max(...rows.map((row) => Number(row.release_score) || 0)) : 0,
+          brand_count: new Set(rows.map((row) => row.alias)).size,
+          premium_backed: rows.filter((row) => Number(row.avg_premium_rate) >= 0.25).length,
+          sample_gaps: rows.filter((row) => Number(row.sample_count) < 2).length,
+        };
+      }
+
+      function releaseStatusScore(status) {
+        return {
+          preorder: 18,
+          restock: 16,
+          new_arrival: 14,
+          shop_news: 8,
+        }[status] || 8;
+      }
+
+      function releaseWatchAction(entry, item) {
+        if (Number(entry.sample_count) < 2) return "releaseActionSample";
+        if (Number(entry.avg_premium_rate) >= 0.25) return "releaseActionTrackPremium";
+        if (["preorder", "restock", "new_arrival"].includes(item.status)) return "releaseActionWatchDrop";
+        return "releaseActionReview";
+      }
+
+      function releaseWatchPill(actionLabel) {
+        if (actionLabel === "releaseActionSample") return "gold";
+        if (actionLabel === "releaseActionTrackPremium") return "rose";
+        if (actionLabel === "releaseActionReview") return "off";
+        return "";
       }
 
       function renderBrandPlaybook(rows) {
@@ -8658,6 +8946,10 @@ INDEX_HTML = r"""<!doctype html>
         return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
       }
 
+      function escapeRegExp(value) {
+        return String(value ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
       function safeUrl(value) {
         const text = String(value || "").trim();
         return /^https?:\/\//.test(text) ? text : "";
@@ -8838,6 +9130,10 @@ INDEX_HTML = r"""<!doctype html>
         }
         const sampleButton = event.target.closest("[data-portfolio-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.portfolioSample);
+      });
+      $("releaseWatchQueue").addEventListener("click", (event) => {
+        const sampleButton = event.target.closest("[data-release-sample]");
+        if (sampleButton) prepareKeywordSample(sampleButton.dataset.releaseSample, sampleButton.dataset.releaseKeyword);
       });
       $("brandPlaybook").addEventListener("click", (event) => {
         const applyButton = event.target.closest("[data-playbook-apply]");
