@@ -112,7 +112,8 @@ the configured brand-weight file. Each brand card also explains the current
 weight band, monitoring intent, and keyword coverage so the score is easier to
 audit before changing it. A weight-tuning queue turns current premium, sample
 count, and weight into concrete actions such as collecting price samples,
-considering an upgrade, holding, or cooling down.
+considering an upgrade, holding, or cooling down; the action buttons can prefill
+the sample form or apply a suggested target weight as an unsaved draft.
 
 Use another brand-weight file:
 

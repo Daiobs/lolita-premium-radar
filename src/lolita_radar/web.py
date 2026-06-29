@@ -468,6 +468,7 @@ INDEX_HTML = r"""<!doctype html>
       }
       .tuning-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .tuning-card strong { color: var(--wine); }
+      .tuning-card button { justify-self: start; min-height: 32px; }
       .opportunity-board { margin: 0 20px 14px; }
       .opportunity-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 10px; align-items: center; }
       .opportunity-summary { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -783,6 +784,10 @@ INDEX_HTML = r"""<!doctype html>
           tuningHoldReason: "权重、溢价和样本暂时匹配",
           tuningCoolReason: "二手折价或热度不足，保存权重前先复核",
           tuningBaselineReason: "低权重且样本不足，保持低频观察",
+          tuningAddSample: "去补样本",
+          tuningApplyDraft: "套用为草稿",
+          tuningDraftApplied: "已套用建议权重",
+          tuningSampleReady: "已选中品牌，可补价格样本",
           radarScore: "雷达分",
           observed: "已捕捉",
           noFocusQueue: "暂无关注队列",
@@ -940,6 +945,10 @@ INDEX_HTML = r"""<!doctype html>
           tuningHoldReason: "weight, premium, and sample count are currently aligned",
           tuningCoolReason: "discounted resale or weak heat; review before saving this weight",
           tuningBaselineReason: "low weight and thin samples; keep low-frequency watch",
+          tuningAddSample: "add sample",
+          tuningApplyDraft: "apply draft",
+          tuningDraftApplied: "draft weight applied",
+          tuningSampleReady: "brand selected for price sample",
           radarScore: "radar score",
           observed: "observed",
           noFocusQueue: "No focus queue yet",
@@ -1183,7 +1192,18 @@ INDEX_HTML = r"""<!doctype html>
           <p class="muted">${escapeHtml(t("tuningTarget"))} ${escapeHtml(entry.target_weight)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)} · ${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</p>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(entry.priority_score) || 0}%"></span></div>
           <p class="muted">${escapeHtml(t("tuningReason"))} · ${escapeHtml(t(entry.reason))}</p>
+          ${tuningActionHtml(entry)}
         </article>`).join("") : `<div class="row">${escapeHtml(t("noWeightTuning"))}</div>`;
+      }
+
+      function tuningActionHtml(entry) {
+        if (entry.kind === "collect" || entry.kind === "baseline") {
+          return `<button type="button" class="secondary" data-tuning-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("tuningAddSample"))}</button>`;
+        }
+        if (Number(entry.target_weight) !== Number(entry.brand_weight)) {
+          return `<button type="button" class="secondary" data-tuning-apply="${escapeHtml(entry.alias)}" data-tuning-target="${escapeHtml(entry.target_weight)}">${escapeHtml(t("tuningApplyDraft"))}</button>`;
+        }
+        return "";
       }
 
       function buildWeightTuning(rows) {
@@ -1205,7 +1225,7 @@ INDEX_HTML = r"""<!doctype html>
           return { kind: "collect", label: "tuningCollect", reason: "tuningCollectReason", target_weight: weight };
         }
         if (sampleCount >= 2 && premium >= 0.25 && weight < 90) {
-          return { kind: "raise", label: "tuningRaise", reason: "tuningRaiseReason", target_weight: premium >= 0.5 ? 90 : Math.max(70, weight) };
+          return { kind: "raise", label: "tuningRaise", reason: "tuningRaiseReason", target_weight: premium >= 0.5 ? 90 : Math.min(90, Math.max(70, weight + 10)) };
         }
         if (sampleCount >= 2 && premium < 0 && weight > 70) {
           return { kind: "cool", label: "tuningCool", reason: "tuningCoolReason", target_weight: Math.max(60, weight - 10) };
@@ -1446,6 +1466,25 @@ INDEX_HTML = r"""<!doctype html>
         renderOpportunityRadar(buildDraftOpportunityRadar());
       }
 
+      function applyTuningDraft(alias, targetWeight) {
+        const input = document.querySelector(`[data-brand-weight="${cssEscape(alias)}"]`);
+        if (!input) return;
+        input.value = clampScore(targetWeight);
+        handleWeightInput({ target: input });
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+        toast(`${alias} ${t("tuningDraftApplied")}`);
+      }
+
+      function prepareMarketSample(alias) {
+        const select = $("marketBrand");
+        if (Array.from(select.options).some((option) => option.value === alias)) {
+          select.value = alias;
+        }
+        $("marketItem").focus();
+        $("marketForm").scrollIntoView({ behavior: "smooth", block: "center" });
+        toast(`${alias} ${t("tuningSampleReady")}`);
+      }
+
       function updateWeightDirtyState() {
         const dirtyCount = Array.from(document.querySelectorAll("[data-brand-weight]")).filter((input) => input.value !== input.dataset.originalWeight).length;
         const dirty = dirtyCount > 0;
@@ -1478,9 +1517,9 @@ INDEX_HTML = r"""<!doctype html>
 
       function buildOpportunityRows() {
         const draftWeights = new Map(Array.from(document.querySelectorAll("[data-brand-weight]")).map((input) => [input.dataset.brandWeight, Number(input.value) || 0]));
-        const marketRows = new Map((currentState?.market?.summary?.brands || []).map((row) => [row.brand_alias, row]));
+        const marketRows = new Map((currentState?.market?.summary?.brands || []).map((row) => [normalizeAlias(row.brand_alias), row]));
         return (currentState?.brand_weights || []).map((brand) => {
-          const market = marketRows.get(brand.alias) || {};
+          const market = marketRows.get(normalizeAlias(brand.alias)) || {};
           const sampleCount = Number(market.sample_count) || 0;
           const avgPremiumRate = Number(market.avg_premium_rate) || 0;
           const maxPremiumRate = Number(market.max_premium_rate) || 0;
@@ -1555,6 +1594,10 @@ INDEX_HTML = r"""<!doctype html>
         return (currentState?.brand_weights || []).find((brand) => brand.alias === alias);
       }
 
+      function normalizeAlias(alias) {
+        return String(alias || "").toUpperCase();
+      }
+
       function formatDelta(value) {
         const number = Number(value) || 0;
         return number > 0 ? `+${number}` : String(number);
@@ -1580,6 +1623,10 @@ INDEX_HTML = r"""<!doctype html>
 
       function escapeHtml(value) {
         return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+      }
+
+      function cssEscape(value) {
+        return String(value ?? "").replaceAll("\\", "\\\\").replaceAll('"', '\\"');
       }
 
       function t(key) {
@@ -1663,6 +1710,15 @@ INDEX_HTML = r"""<!doctype html>
       $("brandWeights").addEventListener("input", handleWeightInput);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
       $("resetWeightsBtn").addEventListener("click", resetBrandWeightDraft);
+      $("weightTuning").addEventListener("click", (event) => {
+        const applyButton = event.target.closest("[data-tuning-apply]");
+        if (applyButton) {
+          applyTuningDraft(applyButton.dataset.tuningApply, applyButton.dataset.tuningTarget);
+          return;
+        }
+        const sampleButton = event.target.closest("[data-tuning-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.tuningSample);
+      });
       $("matrixFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-matrix-filter]");
         if (!button) return;
