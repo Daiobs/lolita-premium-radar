@@ -645,16 +645,27 @@ INDEX_HTML = r"""<!doctype html>
         grid-template-columns: minmax(0, 1fr) 42px;
         gap: 8px;
         align-items: center;
+        width: 100%;
         min-height: 30px;
         padding: 6px 8px;
         border: 1px dashed rgba(97,27,49,.14);
         border-radius: 7px;
         background: rgba(255,253,251,.66);
+        box-shadow: none;
         color: var(--muted);
+        cursor: pointer;
         font-size: 12px;
+        text-align: left;
+      }
+      .daily-lane:hover, .daily-lane.active {
+        border-color: rgba(180,87,111,.32);
+        background:
+          linear-gradient(90deg, rgba(255,253,251,.9), color-mix(in srgb, var(--brand-paper, #fff3f6) 72%, #fff));
+        filter: none;
       }
       .daily-lane strong { color: var(--wine); overflow-wrap: anywhere; }
       .daily-lane span { text-align: right; color: var(--brand-accent, var(--rose)); font-weight: 650; }
+      .daily-lane.active span { color: var(--wine); }
       .daily-list { display: grid; gap: 9px; }
       .daily-card {
         position: relative;
@@ -2517,7 +2528,9 @@ INDEX_HTML = r"""<!doctype html>
           dailyJump: "查看",
           dailySample: "补样本",
           dailyKeyword: "补款式",
+          dailyLaneAll: "全部行动",
           dailyNoActions: "暂无今日行动",
+          dailyNoFilteredActions: "当前分组暂无行动",
           dailyKindCore: "核心盯盘",
           dailyKindScorecard: "权重评分",
           dailyKindSampling: "采样计划",
@@ -3076,7 +3089,9 @@ INDEX_HTML = r"""<!doctype html>
           dailyJump: "view",
           dailySample: "add sample",
           dailyKeyword: "add pattern",
+          dailyLaneAll: "all actions",
           dailyNoActions: "No daily actions yet",
+          dailyNoFilteredActions: "No actions in this lane",
           dailyKindCore: "core watch",
           dailyKindScorecard: "weight score",
           dailyKindSampling: "sampling plan",
@@ -3605,6 +3620,7 @@ INDEX_HTML = r"""<!doctype html>
       let activeMatrixSort = "score";
       let activePremiumFilter = "all";
       let activePremiumBrandFilter = "all";
+      let activeDailyLane = "all";
       let previewingDraftWeights = false;
       if (!translations[currentLanguage]) currentLanguage = "zh";
       if (!["sweet", "classic", "gothic"].includes(currentTheme)) currentTheme = "classic";
@@ -3688,10 +3704,17 @@ INDEX_HTML = r"""<!doctype html>
       function renderDailyRadarBrief(rows) {
         const target = $("dailyRadarBrief");
         if (!target) return;
-        const actions = dailyRadarActions(rows);
+        const allActions = dailyRadarActions(rows);
+        const laneOptions = dailyRadarLanes(allActions);
+        const validLanes = new Set(["all", ...laneOptions.map((lane) => lane.label)]);
+        if (!validLanes.has(activeDailyLane)) activeDailyLane = "all";
+        const actions = activeDailyLane === "all" ? allActions : allActions.filter((entry) => entry.daily_label === activeDailyLane);
         const stats = dailyRadarStats(actions, rows);
-        const lanes = dailyRadarLanes(actions);
-        target.innerHTML = actions.length ? `
+        const laneButtons = [
+          { label: "dailyLaneAll", key: "all", count: allActions.length, avgScore: dailyAverageScore(allActions) },
+          ...laneOptions.map((lane) => ({ ...lane, key: lane.label })),
+        ];
+        target.innerHTML = allActions.length ? `
           <article class="daily-brief">
             <strong>${escapeHtml(stats.lead)}</strong>
             <p>${escapeHtml(t("dailyLead"))} · ${escapeHtml(t("dailyAvgPriority"))} ${escapeHtml(stats.avgPriority)}</p>
@@ -3701,12 +3724,12 @@ INDEX_HTML = r"""<!doctype html>
               <article class="daily-stat"><strong>${escapeHtml(stats.sampleGaps)}</strong><span>${escapeHtml(t("dailySampleGaps"))}</span></article>
             </div>
             <div class="daily-lanes" aria-label="${escapeHtml(t("dailyActionLanes"))}">
-              ${lanes.map((lane) => `<div class="daily-lane"><strong>${escapeHtml(t(lane.label))}</strong><span>${escapeHtml(lane.count)} · ${escapeHtml(lane.avgScore)}</span></div>`).join("")}
+              ${laneButtons.map((lane) => `<button type="button" class="daily-lane ${activeDailyLane === lane.key ? "active" : ""}" data-daily-lane="${escapeHtml(lane.key)}" aria-pressed="${activeDailyLane === lane.key ? "true" : "false"}"><strong>${escapeHtml(t(lane.label))}</strong><span>${escapeHtml(lane.count)} · ${escapeHtml(lane.avgScore)}</span></button>`).join("")}
             </div>
             <p>${escapeHtml(t("dailyRadarBriefHint"))}</p>
           </article>
           <div class="daily-list">
-            ${actions.map(dailyRadarActionHtml).join("")}
+            ${actions.length ? actions.map(dailyRadarActionHtml).join("") : `<div class="row">${escapeHtml(t("dailyNoFilteredActions"))}</div>`}
           </div>
         ` : `<div class="row">${escapeHtml(t("dailyNoActions"))}</div>`;
       }
@@ -3768,12 +3791,18 @@ INDEX_HTML = r"""<!doctype html>
 
       function dailyRadarStats(actions, rows) {
         const sampleGaps = (rows || []).filter((entry) => Number(entry.sample_count) < sampleTarget(entry.brand_weight, entry.tier)).length;
-        const avgPriority = actions.length ? Math.round(actions.reduce((sum, entry) => sum + (Number(entry.daily_score) || 0), 0) / actions.length) : 0;
+        const avgPriority = dailyAverageScore(actions);
         return {
           lead: actions[0]?.alias || "-",
           sampleGaps,
           avgPriority,
         };
+      }
+
+      function dailyAverageScore(actions) {
+        return (actions || []).length
+          ? Math.round(actions.reduce((sum, entry) => sum + (Number(entry.daily_score) || 0), 0) / actions.length)
+          : 0;
       }
 
       function dailyRadarLanes(actions) {
@@ -6899,6 +6928,12 @@ INDEX_HTML = r"""<!doctype html>
         if (sampleButton) prepareMarketSample(sampleButton.dataset.weightSample);
       });
       $("dailyRadarBrief").addEventListener("click", (event) => {
+        const laneButton = event.target.closest("[data-daily-lane]");
+        if (laneButton) {
+          activeDailyLane = laneButton.dataset.dailyLane || "all";
+          renderBrandRadarViews();
+          return;
+        }
         const jumpButton = event.target.closest("[data-daily-jump]");
         if (jumpButton) {
           jumpToRadarSection(jumpButton.dataset.dailyJump);
