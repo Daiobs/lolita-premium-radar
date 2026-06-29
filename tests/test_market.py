@@ -9,6 +9,7 @@ from lolita_radar.market import (
     build_opportunity_radar,
     build_pattern_radar,
     load_market_observations,
+    premium_band,
     premium_priority_score,
     premium_score_breakdown,
     summarize_market_observations,
@@ -63,6 +64,9 @@ class MarketTests(unittest.TestCase):
         self.assertGreater(summary["brands"][0]["priority_score"], summary["brands"][1]["priority_score"])
         self.assertEqual(summary["records"][0]["premium_rate"], 0.7)
         self.assertIn("priority_score", summary["records"][0])
+        self.assertEqual(summary["records"][0]["premium_band"], "hot")
+        self.assertEqual(next(row for row in summary["premium_bands"] if row["band"] == "hot")["count"], 1)
+        self.assertEqual(next(row for row in summary["premium_bands"] if row["band"] == "premium")["count"], 1)
         self.assertIn("quality_score", summary["records"][0])
         self.assertEqual(summary["quality"]["sample_count"], 3)
         self.assertEqual(summary["quality"]["weak_count"], 3)
@@ -100,6 +104,13 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(breakdown["brand_points"], 40)
         self.assertEqual(breakdown["sample_points"], 6)
         self.assertEqual(premium_priority_score(0.4, brand_weight=100, sample_count=3), 68)
+
+    def test_premium_band_segments_market_samples(self) -> None:
+        self.assertEqual(premium_band(0.95), "collector")
+        self.assertEqual(premium_band(0.5), "hot")
+        self.assertEqual(premium_band(0.25), "premium")
+        self.assertEqual(premium_band(0), "near_retail")
+        self.assertEqual(premium_band(-0.2), "discount")
 
     def test_build_opportunity_radar_labels_next_action(self) -> None:
         opportunities = build_opportunity_radar(

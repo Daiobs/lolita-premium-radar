@@ -114,6 +114,9 @@ market action desk turns the highest-priority pattern rows into search links for
 Goofish, Taobao, Mercari JP, and Yahoo Japan Auctions plus one-click sample
 prefill. An evidence-health panel scores sample quality from source, link, date,
 condition, and notes so weak evidence is visible before it drives weighting.
+Recorded resale samples are also segmented into collector, hot, premium,
+near-retail, and discount bands, with dashboard filters for scanning the
+strongest signals first.
 
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,
@@ -148,7 +151,9 @@ previews premium rate, spread, and a single-sample score before submission.
 Sample links and notes are kept as evidence, and matching pattern-premium cards
 show the highest-premium evidence rows that support the radar score. Each sample
 also gets a quality score based on source, URL, observed date, condition, and
-notes. Brand premium rows include a weighted priority score that combines resale
+notes. Each recorded sample also gets a `premium_band` so the dashboard can
+filter collector-level, hot, ordinary premium, near-retail, and discount samples.
+Brand premium rows include a weighted priority score that combines resale
 premium, sample count, and the configured brand weight.
 
 ```json

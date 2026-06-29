@@ -93,11 +93,13 @@ def summarize_market_observations(
     records = []
     for observation in observations:
         brand_weight = weight_by_alias.get(observation["brand_alias"], 50)
+        premium_rate = float(observation["premium_rate"])
         records.append(
             {
                 **observation,
                 "brand_weight": brand_weight,
-                "priority_score": premium_priority_score(float(observation["premium_rate"]), brand_weight, 1),
+                "priority_score": premium_priority_score(premium_rate, brand_weight, 1),
+                "premium_band": premium_band(premium_rate),
                 "quality_score": sample_quality_score(observation),
                 "quality_flags": sample_quality_flags(observation),
             }
@@ -105,6 +107,7 @@ def summarize_market_observations(
     return {
         "sample_count": len(observations),
         "quality": summarize_sample_quality(observations),
+        "premium_bands": summarize_premium_bands(records),
         "brands": sorted(
             brands,
             key=lambda row: (int(row["priority_score"]), float(row["avg_premium_rate"]), int(row["sample_count"])),
@@ -310,6 +313,16 @@ def summarize_sample_quality(observations: list[dict[str, Any]]) -> dict[str, An
     }
 
 
+def summarize_premium_bands(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    bands = ["collector", "hot", "premium", "near_retail", "discount"]
+    counts = {band: 0 for band in bands}
+    for record in records:
+        band = text(record.get("premium_band"))
+        if band in counts:
+            counts[band] += 1
+    return [{"band": band, "count": counts[band]} for band in bands]
+
+
 def sample_quality_score(observation: dict[str, Any]) -> int:
     score = 30
     if text(observation.get("source")):
@@ -395,6 +408,18 @@ def evidence_level(sample_count: int) -> str:
 
 def evidence_score(sample_count: int) -> int:
     return max(0, min(100, sample_count * 20))
+
+
+def premium_band(premium_rate: float) -> str:
+    if premium_rate >= 0.8:
+        return "collector"
+    if premium_rate >= 0.5:
+        return "hot"
+    if premium_rate >= 0.25:
+        return "premium"
+    if premium_rate >= -0.1:
+        return "near_retail"
+    return "discount"
 
 
 def positive_float(value: Any) -> float:

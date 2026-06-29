@@ -747,6 +747,9 @@ INDEX_HTML = r"""<!doctype html>
         background: linear-gradient(180deg, var(--rose), var(--gold));
       }
       .market-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .market-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 8px; }
+      .market-heading h2 { margin: 0; padding: 0; border: 0; background: transparent; }
+      .market-heading .segmented { justify-content: flex-end; }
       .premium-rate { font: 650 22px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
       .market-form {
         display: grid;
@@ -782,6 +785,7 @@ INDEX_HTML = r"""<!doctype html>
         .actions { justify-content: flex-start; }
         .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .action-grid, .quality-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
+        .market-heading { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
@@ -1001,7 +1005,17 @@ INDEX_HTML = r"""<!doctype html>
           <div id="premiumBrands" class="market-list"></div>
         </div>
         <div>
-          <h2 data-i18n="premiumRecords">高溢价样本</h2>
+          <div class="market-heading">
+            <h2 data-i18n="premiumRecords">高溢价样本</h2>
+            <div id="premiumRecordFilters" class="segmented" role="group" aria-label="Premium sample filter">
+              <button type="button" data-premium-filter="all" data-i18n="premiumFilterAll">全部</button>
+              <button type="button" data-premium-filter="collector" data-i18n="premiumBandCollector">藏品级</button>
+              <button type="button" data-premium-filter="hot" data-i18n="premiumBandHot">强溢价</button>
+              <button type="button" data-premium-filter="premium" data-i18n="premiumBandPremium">溢价</button>
+              <button type="button" data-premium-filter="near_retail" data-i18n="premiumBandNearRetail">近原价</button>
+              <button type="button" data-premium-filter="discount" data-i18n="premiumBandDiscount">折价</button>
+            </div>
+          </div>
           <div id="premiumRecords" class="market-list"></div>
         </div>
       </div>
@@ -1079,6 +1093,12 @@ INDEX_HTML = r"""<!doctype html>
           marketPremium: "二手溢价观察",
           premiumByBrand: "品牌溢价排行",
           premiumRecords: "高溢价样本",
+          premiumFilterAll: "全部",
+          premiumBandCollector: "藏品级",
+          premiumBandHot: "强溢价",
+          premiumBandPremium: "溢价",
+          premiumBandNearRetail: "近原价",
+          premiumBandDiscount: "折价",
           metricSources: "数据源",
           metricTrackedItems: "跟踪条目",
           metricEvents: "事件",
@@ -1208,6 +1228,13 @@ INDEX_HTML = r"""<!doctype html>
           sampleSignalPositive: "正溢价样本",
           sampleSignalDiscount: "折价样本",
           sampleSignalNeutral: "接近原价",
+          premiumBand: {
+            collector: "藏品级",
+            hot: "强溢价",
+            premium: "溢价",
+            near_retail: "近原价",
+            discount: "折价",
+          },
           opportunityBand: {
             lead: "重点盯新款",
             watch: "持续观察",
@@ -1318,6 +1345,12 @@ INDEX_HTML = r"""<!doctype html>
           marketPremium: "Resale Premium Watch",
           premiumByBrand: "Premium by Brand",
           premiumRecords: "High-Premium Samples",
+          premiumFilterAll: "All",
+          premiumBandCollector: "Collector",
+          premiumBandHot: "Hot",
+          premiumBandPremium: "Premium",
+          premiumBandNearRetail: "Near retail",
+          premiumBandDiscount: "Discount",
           metricSources: "Sources",
           metricTrackedItems: "Tracked Items",
           metricEvents: "Events",
@@ -1447,6 +1480,13 @@ INDEX_HTML = r"""<!doctype html>
           sampleSignalPositive: "positive premium sample",
           sampleSignalDiscount: "discounted sample",
           sampleSignalNeutral: "near retail",
+          premiumBand: {
+            collector: "collector",
+            hot: "hot premium",
+            premium: "premium",
+            near_retail: "near retail",
+            discount: "discount",
+          },
           opportunityBand: {
             lead: "track releases",
             watch: "watch",
@@ -1516,6 +1556,7 @@ INDEX_HTML = r"""<!doctype html>
       let activeOpportunityFilter = "all";
       let activeMatrixFilter = "all";
       let activeMatrixSort = "score";
+      let activePremiumFilter = "all";
       let previewingDraftWeights = false;
       if (!translations[currentLanguage]) currentLanguage = "zh";
 
@@ -1642,10 +1683,11 @@ INDEX_HTML = r"""<!doctype html>
         const spread = resale - retail;
         const breakdown = premiumScoreBreakdown(premiumRate, Number(brand.weight) || 50, 1);
         const score = opportunityPriorityScore(breakdown);
+        const band = premiumBand(premiumRate);
         $("samplePreview").innerHTML = `
           <div>
             <strong>${escapeHtml(formatPercent(premiumRate))}</strong>
-            <p>${escapeHtml(sampleSignalLabel(premiumRate))}</p>
+            <p>${escapeHtml(sampleSignalLabel(premiumRate))} · ${escapeHtml(valueLabel("premiumBand", band))}</p>
           </div>
           <p>${escapeHtml(alias)} · ${escapeHtml(t("sampleSpread"))} ${escapeHtml(formatMoney(spread, currency))} · ${escapeHtml(t("sampleScore"))} ${escapeHtml(score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(brand.weight || 50)}</p>
         `;
@@ -2024,6 +2066,8 @@ INDEX_HTML = r"""<!doctype html>
         const summary = market.summary || {};
         const brands = summary.brands || [];
         const records = summary.records || [];
+        const visibleRecords = activePremiumFilter === "all" ? records : records.filter((record) => record.premium_band === activePremiumFilter);
+        syncPremiumRecordFilters(summary.premium_bands || []);
         $("marketCount").textContent = `${summary.sample_count || 0} ${t("samples")}`;
         $("premiumBrands").innerHTML = brands.length ? brands.map((brand) => `<article class="market-card">
           <header>
@@ -2034,16 +2078,32 @@ INDEX_HTML = r"""<!doctype html>
           <p class="muted">${escapeHtml(t("samples"))} ${escapeHtml(brand.sample_count)} · ${escapeHtml(t("maxPremium"))} ${escapeHtml(formatPercent(brand.max_premium_rate))}</p>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(brand.priority_score) || premiumWidth(brand.avg_premium_rate)}%"></span></div>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
-        $("premiumRecords").innerHTML = records.length ? records.map((record) => `<article class="market-card">
+        $("premiumRecords").innerHTML = visibleRecords.length ? visibleRecords.map((record) => `<article class="market-card">
           <header>
             <strong>${escapeHtml(record.brand_alias)} · ${escapeHtml(record.item_name)}</strong>
-            <span class="premium-rate">${formatPercent(record.premium_rate)}</span>
+            <div>
+              <span class="premium-rate">${formatPercent(record.premium_rate)}</span>
+              <span class="pill ${premiumBandPill(record.premium_band)}">${escapeHtml(valueLabel("premiumBand", record.premium_band))}</span>
+            </div>
           </header>
           <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(record.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(record.brand_weight)}</p>
           <p class="muted">${escapeHtml(t("qualityScore"))} ${escapeHtml(record.quality_score || 0)}</p>
           <p class="muted">${escapeHtml(t("retailPrice"))} ${formatMoney(record.retail_price, record.currency)} · ${escapeHtml(t("resalePrice"))} ${formatMoney(record.resale_price, record.currency)}</p>
           <p class="muted">${escapeHtml([record.condition, record.source, record.observed_at].filter(Boolean).join(" · "))}</p>
         </article>`).join("") : `<div class="row">${escapeHtml(t("noMarket"))}</div>`;
+      }
+
+      function syncPremiumRecordFilters(bands = []) {
+        const counts = Object.fromEntries((bands || []).map((row) => [row.band, row.count]));
+        document.querySelectorAll("[data-premium-filter]").forEach((button) => {
+          const filter = button.dataset.premiumFilter || "all";
+          const active = filter === activePremiumFilter;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+          const label = t(filter === "all" ? "premiumFilterAll" : premiumBandLabelKey(filter));
+          const count = filter === "all" ? Object.values(counts).reduce((sum, value) => sum + (Number(value) || 0), 0) : Number(counts[filter]) || 0;
+          button.textContent = `${label} ${count}`;
+        });
       }
 
       function renderEvidenceHealth(quality) {
@@ -2503,6 +2563,25 @@ INDEX_HTML = r"""<!doctype html>
         return t("sampleSignalNeutral");
       }
 
+      function premiumBand(premiumRate) {
+        const value = Number(premiumRate) || 0;
+        if (value >= 0.8) return "collector";
+        if (value >= 0.5) return "hot";
+        if (value >= 0.25) return "premium";
+        if (value >= -0.1) return "near_retail";
+        return "discount";
+      }
+
+      function premiumBandLabelKey(band) {
+        return {
+          collector: "premiumBandCollector",
+          hot: "premiumBandHot",
+          premium: "premiumBandPremium",
+          near_retail: "premiumBandNearRetail",
+          discount: "premiumBandDiscount",
+        }[band] || "premiumFilterAll";
+      }
+
       function tierLabel(tier) {
         if (tier === "core") return t("tierCore");
         if (tier === "watch") return t("tierWatch");
@@ -2518,6 +2597,13 @@ INDEX_HTML = r"""<!doctype html>
         if (band === "lead") return "rose";
         if (band === "collect_samples") return "gold";
         if (band === "cooldown") return "off";
+        return "";
+      }
+
+      function premiumBandPill(band) {
+        if (band === "collector" || band === "hot") return "rose";
+        if (band === "premium") return "gold";
+        if (band === "discount") return "off";
         return "";
       }
 
@@ -2602,6 +2688,12 @@ INDEX_HTML = r"""<!doctype html>
         if (!button) return;
         activeOpportunityFilter = button.dataset.opportunityFilter || "all";
         renderOpportunityRadar(currentState?.opportunity_radar || []);
+      });
+      $("premiumRecordFilters").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-premium-filter]");
+        if (!button) return;
+        activePremiumFilter = button.dataset.premiumFilter || "all";
+        renderMarketPremium(currentState?.market || {});
       });
       $("refreshBtn").addEventListener("click", () => loadState().then(() => toast(t("refreshed"))).catch((error) => toast(error.message)));
       $("sources").addEventListener("click", (event) => {
