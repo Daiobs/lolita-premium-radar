@@ -304,6 +304,7 @@ INDEX_HTML = r"""<!doctype html>
           linear-gradient(135deg, rgba(136,59,80,.92), rgba(32,21,29,.96) 50%, rgba(15,111,106,.86)),
           #241c21;
         --shadow: 0 18px 44px rgba(63, 39, 47, .13);
+        --paper-shadow: inset 0 0 0 3px rgba(255,255,255,.44), 0 14px 30px rgba(63,39,47,.09);
         --pearl-shadow: 0 1px 0 rgba(255,255,255,.88), 0 7px 18px rgba(97,27,49,.1);
         --ribbon-shadow: 0 11px 22px rgba(97,27,49,.16);
       }
@@ -840,6 +841,7 @@ INDEX_HTML = r"""<!doctype html>
       }
       .metric, .panel, .atelier {
         background:
+          radial-gradient(circle at 50% 0, rgba(255,255,255,.88) 0 5px, transparent 5px) 0 0 / 18px 10px repeat-x,
           radial-gradient(circle at 16px 16px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
           repeating-linear-gradient(90deg, rgba(180,87,111,.035) 0 1px, transparent 1px 18px),
           linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,253,251,.96)),
@@ -1634,7 +1636,7 @@ INDEX_HTML = r"""<!doctype html>
       .portfolio-board { margin: 0 20px 14px; }
       .portfolio-grid { display: grid; grid-template-columns: minmax(230px, .62fr) minmax(340px, 1.38fr); gap: 12px; padding: 12px; }
       .portfolio-brief, .portfolio-card {
-        border: 1px solid var(--line);
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, var(--line));
         border-radius: 8px;
         background: #fffaf8;
       }
@@ -1649,6 +1651,14 @@ INDEX_HTML = r"""<!doctype html>
           linear-gradient(135deg, rgba(248,251,250,.92), rgba(255,247,232,.78));
         box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
         overflow: hidden;
+      }
+      .portfolio-brief::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border: 1px double rgba(169,120,44,.24);
+        border-radius: 6px;
+        pointer-events: none;
       }
       .portfolio-brief::after, .portfolio-card::after {
         content: "";
@@ -1682,10 +1692,11 @@ INDEX_HTML = r"""<!doctype html>
         gap: 8px;
         padding: 12px 12px 14px;
         background:
+          radial-gradient(circle at 50% 0, rgba(255,255,255,.9) 0 5px, transparent 5px) 0 0 / 18px 10px repeat-x,
           radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
           radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 38%),
           linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 66%, #fff), rgba(248,251,250,.92));
-        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        box-shadow: var(--paper-shadow);
         overflow: hidden;
       }
       .portfolio-card::before {
@@ -2317,9 +2328,10 @@ INDEX_HTML = r"""<!doctype html>
         left: 0;
         right: 0;
         top: 0;
-        height: 8px;
+        height: 10px;
         background:
-          radial-gradient(circle at 8px 0, rgba(180,87,111,.16) 0 7px, transparent 7px) 0 0 / 16px 8px repeat-x,
+          radial-gradient(circle at 8px 0, rgba(255,255,255,.82) 0 6px, transparent 6px) 0 0 / 16px 8px repeat-x,
+          radial-gradient(circle at 8px 2px, rgba(180,87,111,.18) 0 7px, transparent 7px) 0 2px / 16px 8px repeat-x,
           linear-gradient(90deg, rgba(180,87,111,.18), rgba(169,120,44,.16), rgba(15,103,96,.13));
         pointer-events: none;
       }
@@ -2691,6 +2703,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="brandPortfolio">品牌组合总览</h2>
           <span class="muted" data-i18n="brandPortfolioHint">把证据覆盖、核心缺口、溢价热度和权重偏移合成总览</span>
         </div>
+        <button id="exportPortfolioCsvBtn" type="button" class="secondary" data-i18n="exportPortfolioCsv">导出组合 CSV</button>
       </div>
       <div id="brandPortfolio" class="portfolio-grid"></div>
     </section>
@@ -3194,6 +3207,9 @@ INDEX_HTML = r"""<!doctype html>
           portfolioDriftHint: "目标权重与当前权重偏离时，先审计再保存",
           portfolioReview: "查看",
           portfolioSample: "补样本",
+          exportPortfolioCsv: "导出组合 CSV",
+          exportedPortfolioCsv: "品牌组合总览已导出",
+          noPortfolioCsv: "暂无可导出的组合总览",
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
           saveWeights: "保存权重",
@@ -3886,6 +3902,9 @@ INDEX_HTML = r"""<!doctype html>
           portfolioDriftHint: "When target and current weights diverge, audit before saving",
           portfolioReview: "view",
           portfolioSample: "add sample",
+          exportPortfolioCsv: "export portfolio CSV",
+          exportedPortfolioCsv: "brand portfolio overview exported",
+          noPortfolioCsv: "no portfolio overview to export",
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
           saveWeights: "Save Weights",
@@ -6665,6 +6684,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedRunSheetCsv"));
       }
 
+      function exportPortfolioCsv() {
+        const rows = buildBrandRadarMatrix();
+        if (!rows.length) {
+          toast(t("noPortfolioCsv"));
+          return;
+        }
+        const csv = csvFromPortfolioRows(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-brand-portfolio.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedPortfolioCsv"));
+      }
+
       function premiumCsvFilename() {
         const brand = activePremiumBrandFilter === "all" ? "all-brands" : activePremiumBrandFilter.toLowerCase();
         const band = activePremiumFilter === "all" ? "all-bands" : activePremiumFilter;
@@ -6878,6 +6916,40 @@ INDEX_HTML = r"""<!doctype html>
             yahoo_url: searchLinkByLabel(links, t("actionYahoo"), "Yahoo", "雅虎"),
           };
         });
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromPortfolioRows(rows) {
+        const stats = brandPortfolioStats(rows);
+        const lanes = brandPortfolioLanes(rows, stats);
+        const fields = [
+          ["lane", "lane_label"],
+          ["count", "count"],
+          ["score", "score"],
+          ["detail", "detail"],
+          ["target", "target"],
+          ["sample_alias", "sample_alias"],
+          ["lead_alias", "lead_alias"],
+          ["health", "health"],
+          ["coverage", "coverage"],
+          ["core_gaps", "core_gaps"],
+          ["premium_heat", "hot_count"],
+          ["weight_drift", "drift_count"],
+        ];
+        const enriched = lanes.map((lane) => ({
+          ...lane,
+          lane_label: t(lane.label),
+          lead_alias: lane.lead_brand?.alias || "",
+          health: stats.health,
+          coverage: stats.coverage,
+          core_gaps: stats.core_gaps,
+          hot_count: stats.hot_count,
+          drift_count: stats.drift_count,
+        }));
         const lines = [
           fields.map(([header]) => csvCell(header)).join(","),
           ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
@@ -8791,6 +8863,7 @@ INDEX_HTML = r"""<!doctype html>
       $("exportGuardrailsCsvBtn").addEventListener("click", exportBrandWeightGuardrailsCsv);
       $("exportScenariosCsvBtn").addEventListener("click", exportWeightScenariosCsv);
       $("exportRunSheetCsvBtn").addEventListener("click", exportRunSheetCsv);
+      $("exportPortfolioCsvBtn").addEventListener("click", exportPortfolioCsv);
       $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);
       $("exportCoreWatchCsvBtn").addEventListener("click", exportCoreWatchCsv);
       $("exportMarketActionsCsvBtn").addEventListener("click", exportMarketActionsCsv);

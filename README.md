@@ -222,8 +222,9 @@ brand evidence gaps, top seed, and average seed score before export, and marks
 each seed as seed-sample, add-second, expand-samples, or keep-watching based on
 current sample count. A brand portfolio overview summarizes evidence coverage,
 core-brand gaps, premium heat, and weight drift into one health score with jump
-and sample actions, so the dashboard has a first-pass answer for whether today's
-work is sampling, price checking, or weight review. A brand-weight rubric splits
+and sample actions plus `lolita-brand-portfolio.csv` export, so the dashboard
+has a first-pass answer for whether today's work is sampling, price checking, or
+weight review. A brand-weight rubric splits
 the 0-100 scale into core
 release, priority watch, sample-seed, and archive lanes, showing each lane's
 brand count, average weight, average premium, sample gaps, lead label, and a
