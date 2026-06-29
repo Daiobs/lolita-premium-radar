@@ -139,7 +139,9 @@ scorecard set can be exported as `lolita-weight-scorecards.csv` for audit or
 spreadsheet review. A brand-weight guardrail panel flags mismatches such as
 core labels without price anchors, strong premium with low weight, or discounted
 resale with high weight, then offers direct sample-entry and target-weight draft
-actions. A brand-weight strategy panel converts the current saved or draft weights into calibration
+actions; the full guardrail queue can be exported as
+`lolita-weight-guardrails.csv` for a daily evidence/audit checklist. A
+brand-weight strategy panel converts the current saved or draft weights into calibration
 moves such as collecting evidence, raising premium-supported brands, or cooling
 discounted brands. A weight-trajectory panel then turns the same evidence into
 current-to-target paths with confidence, average shift, and direct actions to

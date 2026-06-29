@@ -2237,6 +2237,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="brandWeightGuardrails">品牌权重护栏</h2>
           <span class="muted" data-i18n="brandWeightGuardrailsHint">标记权重、溢价和样本证据不一致的品牌</span>
         </div>
+        <button id="exportGuardrailsCsvBtn" type="button" class="secondary" data-i18n="exportGuardrailsCsv">导出护栏 CSV</button>
       </div>
       <div id="brandWeightGuardrails" class="guardrail-grid"></div>
     </section>
@@ -2701,6 +2702,9 @@ INDEX_HTML = r"""<!doctype html>
           guardrailReasonArchiveHot: "低权重品牌出现正溢价，适合进入观察池",
           guardrailActionSample: "补样本",
           guardrailActionApply: "套用目标",
+          exportGuardrailsCsv: "导出护栏 CSV",
+          exportedGuardrailsCsv: "权重护栏已导出",
+          noGuardrailsCsv: "暂无可导出的权重护栏",
           brandRadarMatrix: "品牌雷达矩阵",
           matrixHint: "把权重、溢价、样本和动作放在一起看",
           matrixBrand: "品牌",
@@ -3284,6 +3288,9 @@ INDEX_HTML = r"""<!doctype html>
           guardrailReasonArchiveHot: "low-weight brand has positive premium and should enter the watch pool",
           guardrailActionSample: "add sample",
           guardrailActionApply: "apply target",
+          exportGuardrailsCsv: "export guardrails CSV",
+          exportedGuardrailsCsv: "weight guardrails exported",
+          noGuardrailsCsv: "no weight guardrails to export",
           brandRadarMatrix: "Brand Radar Matrix",
           matrixHint: "Weight, premium, samples, and action in one view",
           matrixBrand: "brand",
@@ -5722,6 +5729,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedScorecardsCsv"));
       }
 
+      function exportBrandWeightGuardrailsCsv() {
+        const rows = brandWeightGuardrailRows(buildBrandRadarMatrix(), Number.POSITIVE_INFINITY);
+        if (!rows.length) {
+          toast(t("noGuardrailsCsv"));
+          return;
+        }
+        const csv = csvFromBrandWeightGuardrails(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-weight-guardrails.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedGuardrailsCsv"));
+      }
+
       function exportDailyRadarCsv() {
         const rows = dailyRadarActions(buildBrandRadarMatrix());
         if (!rows.length) {
@@ -6044,6 +6070,45 @@ INDEX_HTML = r"""<!doctype html>
           part_watchability: row.parts?.watchability ?? "",
           market_keywords: (row.market_keywords || []).join(" | "),
           watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
+          radar_cue: row.visual?.radar_cue || "",
+        }));
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromBrandWeightGuardrails(rows) {
+        const fields = [
+          ["alias", "alias"],
+          ["name", "name"],
+          ["severity", "severity_label"],
+          ["guardrail", "guardrail_label"],
+          ["reason", "reason_label"],
+          ["risk_score", "risk_score"],
+          ["current_weight", "brand_weight"],
+          ["target_weight", "target_weight"],
+          ["confidence", "confidence"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["max_premium_rate", "max_premium_rate"],
+          ["sample_count", "sample_count"],
+          ["tier", "tier"],
+          ["style", "style"],
+          ["evidence_level", "evidence_level"],
+          ["market_keywords", "market_keywords"],
+          ["watch_urls", "watch_urls"],
+          ["next_action", "next_action"],
+          ["radar_cue", "radar_cue"],
+        ];
+        const enriched = (rows || []).map((row) => ({
+          ...row,
+          severity_label: t(row.severity === "critical" ? "guardrailCritical" : "guardrailWatch"),
+          guardrail_label: t(row.label),
+          reason_label: t(row.reason),
+          market_keywords: (row.market_keywords || []).join(" | "),
+          watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
+          next_action: Number(row.sample_count) < 2 ? t("guardrailActionSample") : Number(row.target_weight) !== Number(row.brand_weight) ? t("guardrailActionApply") : t("guardrailWatch"),
           radar_cue: row.visual?.radar_cue || "",
         }));
         const lines = [
@@ -7111,6 +7176,7 @@ INDEX_HTML = r"""<!doctype html>
       $("exportDailyCsvBtn").addEventListener("click", exportDailyRadarCsv);
       $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
       $("exportScorecardsCsvBtn").addEventListener("click", exportBrandWeightScorecardsCsv);
+      $("exportGuardrailsCsvBtn").addEventListener("click", exportBrandWeightGuardrailsCsv);
       $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);
       $("exportCoreWatchCsvBtn").addEventListener("click", exportCoreWatchCsv);
       $("exportSamplePlanCsvBtn").addEventListener("click", exportSamplePlanCsv);
