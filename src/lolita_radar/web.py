@@ -2616,7 +2616,7 @@ INDEX_HTML = r"""<!doctype html>
         const records = summary.records || [];
         syncPremiumBrandFilter(brands);
         const visibleRecords = filterPremiumRecords(records);
-        syncPremiumRecordFilters(summary.premium_bands || []);
+        syncPremiumRecordFilters(records);
         $("marketCount").textContent = `${summary.sample_count || 0} ${t("samples")}`;
         $("premiumBrands").innerHTML = brands.length ? brands.map((brand) => `<article class="market-card">
           <header>
@@ -2661,8 +2661,11 @@ INDEX_HTML = r"""<!doctype html>
         select.value = activePremiumBrandFilter;
       }
 
-      function syncPremiumRecordFilters(bands = []) {
-        const counts = Object.fromEntries((bands || []).map((row) => [row.band, row.count]));
+      function syncPremiumRecordFilters(records = []) {
+        const scopedRecords = activePremiumBrandFilter === "all"
+          ? (records || [])
+          : (records || []).filter((record) => normalizeAlias(record.brand_alias) === activePremiumBrandFilter);
+        const counts = countBy(scopedRecords, "premium_band");
         document.querySelectorAll("[data-premium-filter]").forEach((button) => {
           const filter = button.dataset.premiumFilter || "all";
           const active = filter === activePremiumFilter;
@@ -3309,7 +3312,7 @@ INDEX_HTML = r"""<!doctype html>
         renderMarketPremium(currentState?.market || {});
       });
       $("premiumBrandFilter").addEventListener("change", (event) => {
-        activePremiumBrandFilter = normalizeAlias(event.target.value) || "all";
+        activePremiumBrandFilter = event.target.value === "all" ? "all" : normalizeAlias(event.target.value);
         renderMarketPremium(currentState?.market || {});
       });
       $("refreshBtn").addEventListener("click", () => loadState().then(() => toast(t("refreshed"))).catch((error) => toast(error.message)));
