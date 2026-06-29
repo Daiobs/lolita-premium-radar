@@ -147,9 +147,11 @@ and IW/VM/MM/JetJ 65. The dashboard also builds a focus queue from those weights
 and the currently observed items/events. You can adjust existing brand weights
 from the web dashboard, preview how draft weights change opportunity radar
 scores and deltas, review unsaved changes, reset drafts, and save them back to
-the configured brand-weight file. A draft audit list shows the exact saved
-weight, draft weight, and delta for every unsaved brand before you persist
-changes. The current saved/draft brand-weight table can
+the configured brand-weight file. Scenario buttons can also draft a full weighting
+mode for release-first, premium-first, or evidence-first reviews without saving
+immediately. A draft audit list shows the exact saved weight, draft weight, and
+delta for every unsaved brand before you persist changes. The current saved/draft
+brand-weight table can
 also be exported as CSV with identity metadata, premium evidence, sample counts,
 market keywords, and an auditable formula target for spreadsheet review. The
 formula panel breaks each target into baseline tier weight, resale premium,

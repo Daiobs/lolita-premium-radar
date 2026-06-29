@@ -673,6 +673,16 @@ INDEX_HTML = r"""<!doctype html>
       .weight-insight strong { display: inline; color: var(--wine); }
       .brand-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
       .brand-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
+      .weight-scenarios {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 3px;
+        border: 1px solid rgba(97,27,49,.12);
+        border-radius: 8px;
+        background: rgba(255,253,251,.62);
+      }
+      .weight-scenarios button { min-height: 28px; padding: 0 9px; }
       .weight-draft-audit {
         display: grid;
         gap: 7px;
@@ -1416,6 +1426,11 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="brandWeights">品牌权重</h2>
           <div class="brand-actions">
             <span id="weightDirtyStatus" class="muted" data-i18n="weightsClean">已保存</span>
+            <div id="weightScenarios" class="weight-scenarios" role="group" aria-label="Weight scenarios">
+              <button type="button" class="secondary" data-weight-scenario="release" data-i18n="scenarioRelease">新品优先</button>
+              <button type="button" class="secondary" data-weight-scenario="premium" data-i18n="scenarioPremium">溢价优先</button>
+              <button type="button" class="secondary" data-weight-scenario="evidence" data-i18n="scenarioEvidence">补证据优先</button>
+            </div>
             <button id="exportWeightsCsvBtn" type="button" class="secondary" data-i18n="exportWeightsCsv">导出权重 CSV</button>
             <button id="resetWeightsBtn" type="button" class="secondary" data-i18n="resetWeights" data-disabled="true" disabled>重置</button>
             <button id="saveWeightsBtn" type="button" class="secondary" data-i18n="saveWeights" data-disabled="true" disabled>保存权重</button>
@@ -1745,6 +1760,10 @@ INDEX_HTML = r"""<!doctype html>
           noWeightsCsv: "暂无可导出的品牌权重",
           weightsClean: "已保存",
           weightsDirty: "项未保存",
+          scenarioRelease: "新品优先",
+          scenarioPremium: "溢价优先",
+          scenarioEvidence: "补证据优先",
+          scenarioApplied: "已生成权重情景草稿",
           weightDraftAudit: "草稿审计",
           weightDraftClean: "暂无权重草稿变更",
           weightDraftChanged: "项变更",
@@ -2160,6 +2179,10 @@ INDEX_HTML = r"""<!doctype html>
           noWeightsCsv: "no brand weights to export",
           weightsClean: "saved",
           weightsDirty: "unsaved",
+          scenarioRelease: "Release first",
+          scenarioPremium: "Premium first",
+          scenarioEvidence: "Evidence first",
+          scenarioApplied: "weight scenario draft applied",
           weightDraftAudit: "draft audit",
           weightDraftClean: "no unsaved weight changes",
           weightDraftChanged: "changed",
@@ -4215,6 +4238,62 @@ INDEX_HTML = r"""<!doctype html>
         toast(`${suggestions.length} ${t("tuningBatchApplied")}`);
       }
 
+      function applyWeightScenario(scenario) {
+        const rows = buildBrandRadarMatrix();
+        let changed = 0;
+        rows.forEach((entry) => {
+          const input = document.querySelector(`[data-brand-weight="${cssEscape(entry.alias)}"]`);
+          if (!input) return;
+          const targetWeight = scenarioTargetWeight(entry, scenario);
+          if (Number(input.value) !== targetWeight) changed += 1;
+          input.value = targetWeight;
+          updateWeightDraftInput(input);
+        });
+        updateWeightDirtyState();
+        renderBrandRadarViews();
+        renderOpportunityRadar(buildDraftOpportunityRadar());
+        toast(`${t(scenarioLabelKey(scenario))} · ${changed} ${t("scenarioApplied")}`);
+      }
+
+      function scenarioTargetWeight(entry, scenario) {
+        const savedWeight = Number(brandByAlias(entry.alias)?.weight ?? entry.brand_weight) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        const sampleCount = Number(entry.sample_count) || 0;
+        const isCore = entry.tier === "core" || savedWeight >= 90;
+        const isWatch = entry.tier === "watch" || (savedWeight >= 70 && savedWeight < 90);
+        let target = savedWeight;
+        if (scenario === "release") {
+          target = isCore ? 95 : isWatch ? 80 : 65;
+          if (premium >= 0.25 && sampleCount >= 2) target += 5;
+          if (sampleCount < 2 && isCore) target = Math.max(target, savedWeight);
+        } else if (scenario === "premium") {
+          if (sampleCount >= 2 && premium >= 0.5) target = 95;
+          else if (sampleCount >= 2 && premium >= 0.25) target = isCore ? 95 : 88;
+          else if (sampleCount >= 2 && premium >= 0.1) target = isCore ? 90 : 78;
+          else if (sampleCount >= 2 && premium < -0.05) target = Math.max(55, savedWeight - 12);
+          else target = isCore ? 88 : isWatch ? 72 : 60;
+        } else if (scenario === "evidence") {
+          if (sampleCount < 2 && isCore) target = 95;
+          else if (sampleCount < 2 && isWatch) target = 82;
+          else if (sampleCount < 2) target = 68;
+          else if (sampleCount >= 5 && premium < 0.1) target = Math.max(60, savedWeight - 5);
+          else target = savedWeight;
+        }
+        return roundWeightStep(target);
+      }
+
+      function roundWeightStep(value) {
+        return clampScore(Math.round((Number(value) || 0) / 5) * 5);
+      }
+
+      function scenarioLabelKey(scenario) {
+        return {
+          release: "scenarioRelease",
+          premium: "scenarioPremium",
+          evidence: "scenarioEvidence",
+        }[scenario] || "brandWeights";
+      }
+
       function prepareMarketSample(alias) {
         const select = $("marketBrand");
         if (Array.from(select.options).some((option) => option.value === alias)) {
@@ -4688,6 +4767,10 @@ INDEX_HTML = r"""<!doctype html>
         $(id).addEventListener("change", renderSamplePreview);
       });
       $("brandWeights").addEventListener("input", handleWeightInput);
+      $("weightScenarios").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-weight-scenario]");
+        if (button) applyWeightScenario(button.dataset.weightScenario);
+      });
       $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
       $("exportSamplePlanCsvBtn").addEventListener("click", exportSamplePlanCsv);
       $("saveWeightsBtn").addEventListener("click", saveBrandWeights);
