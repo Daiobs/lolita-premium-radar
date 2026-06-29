@@ -705,6 +705,88 @@ INDEX_HTML = r"""<!doctype html>
       .north-star-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .north-star-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
       .north-star-score { font: 650 28px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
+      .crown-board { margin: 0 20px 14px; }
+      .crown-grid { display: grid; grid-template-columns: minmax(220px, .55fr) minmax(420px, 1.45fr); gap: 12px; padding: 12px; }
+      .crown-brief, .crown-card {
+        border: 1px solid color-mix(in srgb, var(--gold) 24%, var(--line));
+        border-radius: 8px;
+        background: #fffaf8;
+        box-shadow: var(--paper-shadow);
+      }
+      .crown-brief {
+        position: relative;
+        display: grid;
+        gap: 10px;
+        align-content: start;
+        padding: 13px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 0, rgba(169,120,44,.16), transparent 36%),
+          radial-gradient(circle at 0 100%, rgba(var(--theme-rose-rgb), .12), transparent 38%),
+          linear-gradient(135deg, rgba(255,248,236,.9), rgba(248,251,250,.94));
+      }
+      .crown-brief::before, .crown-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 10px;
+        right: 10px;
+        height: 7px;
+        background:
+          radial-gradient(circle at 6px 0, rgba(169,120,44,.5) 0 5px, transparent 5px) 0 0 / 18px 7px repeat-x;
+        pointer-events: none;
+      }
+      .crown-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .crown-brief p, .crown-card p { margin: 0; color: var(--muted); }
+      .crown-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .crown-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 50px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.76);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .crown-stats strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .crown-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .crown-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        min-height: 184px;
+        padding: 14px 12px 12px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 14%, transparent), transparent 42%),
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 20px 20px,
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 68%, #fff), rgba(255,253,251,.94));
+      }
+      .crown-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .crown-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+      .crown-score { font: 650 30px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
+      .crown-meta, .crown-keywords { display: flex; flex-wrap: wrap; gap: 6px; }
+      .crown-meta span, .crown-keywords span {
+        padding: 4px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(97,27,49,.1);
+        background: rgba(255,255,255,.68);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .crown-actions { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+      .crown-actions button, .crown-actions a {
+        min-height: 30px;
+        padding: 0 9px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, var(--line));
+        background: rgba(255,255,255,.74);
+        color: var(--wine);
+        font-size: 12px;
+        text-decoration: none;
+      }
       .radar-nav {
         position: sticky;
         top: 0;
@@ -2765,7 +2847,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2833,6 +2915,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
       <div id="northStarRadar" class="north-star-grid"></div>
     </section>
+    <section class="panel crown-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandCrownQueue">品牌皇冠队列</h2>
+          <span class="muted" data-i18n="brandCrownHint">把核心品牌、贝壳等款式词、二手溢价和上新命中排成今日重点</span>
+        </div>
+      </div>
+      <div id="brandCrownQueue" class="crown-grid"></div>
+    </section>
     <section class="panel daily-board">
       <div class="toolbar">
         <div>
@@ -2845,6 +2936,7 @@ INDEX_HTML = r"""<!doctype html>
     </section>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="northStarRadar" data-i18n="navNorthStar">北极星</button>
+      <button type="button" data-radar-jump="brandCrownQueue" data-i18n="navCrown">皇冠</button>
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandPortfolio" data-i18n="navPortfolio">组合</button>
       <button type="button" data-radar-jump="releaseWatchQueue" data-i18n="navReleaseWatch">发售</button>
@@ -3317,6 +3409,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualPremium: "溢价热度",
           heroVisualEvidence: "样本证据",
           navNorthStar: "北极星",
+          navCrown: "皇冠",
           navDaily: "简报",
           navPortfolio: "组合",
           navReleaseWatch: "发售",
@@ -3364,6 +3457,23 @@ INDEX_HTML = r"""<!doctype html>
           northStarReleaseDetail: "上新/预约/再贩命中品牌权重",
           northStarPremiumDetail: "二级市场样本是否支持追踪",
           northStarExecutionDetail: "今日巡检任务的平均压力",
+          brandCrownQueue: "品牌皇冠队列",
+          brandCrownHint: "把核心品牌、贝壳等款式词、二手溢价和上新命中排成今日重点",
+          crownScore: "皇冠优先",
+          crownLead: "首位品牌",
+          crownCoreReady: "核心就绪",
+          crownKeywordTotal: "款式词",
+          crownReleaseSignals: "发售命中",
+          crownPremiumBacked: "溢价支撑",
+          crownAction: "今日动作",
+          crownActionAnchor: "补价格锚点",
+          crownActionRelease: "追发售窗口",
+          crownActionPremium: "看二手溢价",
+          crownActionHold: "维持巡航",
+          crownSample: "补样本",
+          crownKeywordSample: "补款式",
+          crownOpenRelease: "看发售",
+          crownNoRows: "暂无皇冠品牌",
           dailyRadarBrief: "今日雷达简报",
           dailyRadarBriefHint: "把核心盯盘、权重校准和采样缺口收成今天的行动队列",
           dailyLead: "主线",
@@ -4051,6 +4161,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualPremium: "premium heat",
           heroVisualEvidence: "sample evidence",
           navNorthStar: "North Star",
+          navCrown: "Crown",
           navDaily: "Brief",
           navPortfolio: "Portfolio",
           navReleaseWatch: "Release",
@@ -4098,6 +4209,23 @@ INDEX_HTML = r"""<!doctype html>
           northStarReleaseDetail: "Release, preorder, and restock items matched brand weights",
           northStarPremiumDetail: "Whether resale samples support active tracking",
           northStarExecutionDetail: "Average pressure across today's run sheet",
+          brandCrownQueue: "Brand Crown Queue",
+          brandCrownHint: "Rank core brands, shell-style terms, resale premium, and release hits into today's focus",
+          crownScore: "crown priority",
+          crownLead: "lead brand",
+          crownCoreReady: "core ready",
+          crownKeywordTotal: "style terms",
+          crownReleaseSignals: "release hits",
+          crownPremiumBacked: "premium-backed",
+          crownAction: "today's action",
+          crownActionAnchor: "add price anchor",
+          crownActionRelease: "track release window",
+          crownActionPremium: "check resale premium",
+          crownActionHold: "hold cruise",
+          crownSample: "add sample",
+          crownKeywordSample: "add term sample",
+          crownOpenRelease: "view release",
+          crownNoRows: "No crown brands yet",
           dailyRadarBrief: "Daily Radar Brief",
           dailyRadarBriefHint: "Turn core watch, weight tuning, and sample gaps into today's action queue",
           dailyLead: "lead",
@@ -8313,6 +8441,7 @@ INDEX_HTML = r"""<!doctype html>
         const rows = buildBrandRadarMatrix();
         renderStyleCompass(rows);
         renderNorthStarRadar(rows);
+        renderBrandCrownQueue(rows);
         renderDailyRadarBrief(rows);
         renderResaleRunSheet(rows);
         renderBrandPortfolio(rows);
@@ -8435,6 +8564,131 @@ INDEX_HTML = r"""<!doctype html>
             style: styleFamilyVisualStyle("gothic"),
           },
         ];
+      }
+
+      function renderBrandCrownQueue(rows) {
+        const target = $("brandCrownQueue");
+        if (!target) return;
+        const entries = brandCrownRows(rows);
+        if (!entries.length) {
+          target.innerHTML = `<div class="row">${escapeHtml(t("crownNoRows"))}</div>`;
+          return;
+        }
+        const stats = brandCrownStats(entries, rows);
+        target.innerHTML = `
+          <article class="crown-brief">
+            <strong>${escapeHtml(stats.top_score)}</strong>
+            <p>${escapeHtml(t("crownScore"))} · ${escapeHtml(t("brandCrownHint"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.top_score)}%"></span></div>
+            <div class="crown-stats">
+              <span><strong>${escapeHtml(stats.lead)}</strong>${escapeHtml(t("crownLead"))}</span>
+              <span><strong>${escapeHtml(stats.core_ready)}</strong>${escapeHtml(t("crownCoreReady"))}</span>
+              <span><strong>${escapeHtml(stats.release_signals)}</strong>${escapeHtml(t("crownReleaseSignals"))}</span>
+              <span><strong>${escapeHtml(stats.keyword_total)}</strong>${escapeHtml(t("crownKeywordTotal"))}</span>
+            </div>
+          </article>
+          <div class="crown-list">
+            ${entries.map(crownCardHtml).join("")}
+          </div>
+        `;
+      }
+
+      function crownCardHtml(entry) {
+        const links = marketSearchLinks({ ...entry, keyword: entry.primary_keyword || entry.keywords?.[0] || entry.alias }).slice(0, 2);
+        return `<article class="crown-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.alias)}</strong>
+              <p>${escapeHtml(entry.name || entry.alias)} · ${escapeHtml(t(entry.action_label))}</p>
+            </div>
+            <span class="crown-score">${escapeHtml(entry.crown_score)}</span>
+          </header>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.crown_score)}%"></span></div>
+          <div class="crown-meta">
+            <span>${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</span>
+            <span>${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</span>
+            <span>${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)}</span>
+            <span>${escapeHtml(t("crownReleaseSignals"))} ${escapeHtml(entry.release_score)}</span>
+          </div>
+          <div class="crown-keywords">
+            ${entry.keywords.length ? entry.keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(entry.alias)}</span>`}
+          </div>
+          <p>${escapeHtml(entry.visual?.radar_cue || entry.style || t("crownAction"))}</p>
+          <div class="crown-actions">
+            <button type="button" data-crown-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("crownSample"))}</button>
+            <button type="button" data-crown-keyword-sample="${escapeHtml(entry.alias)}" data-crown-keyword="${escapeHtml(entry.primary_keyword || entry.keywords?.[0] || entry.alias)}">${escapeHtml(t("crownKeywordSample"))}</button>
+            ${entry.release_score ? `<button type="button" data-crown-jump="releaseWatchQueue">${escapeHtml(t("crownOpenRelease"))}</button>` : ""}
+            ${links.map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
+          </div>
+        </article>`;
+      }
+
+      function brandCrownRows(rows) {
+        const releases = releaseWatchRows(rows);
+        const releaseByAlias = new Map();
+        releases.forEach((entry) => {
+          const current = releaseByAlias.get(entry.alias);
+          if (!current || Number(entry.release_score) > Number(current.release_score)) {
+            releaseByAlias.set(entry.alias, entry);
+          }
+        });
+        return (rows || []).map((entry) => {
+          const release = releaseByAlias.get(entry.alias) || {};
+          const weight = Number(entry.brand_weight) || 0;
+          const premium = Number(entry.avg_premium_rate) || 0;
+          const sampleCount = Number(entry.sample_count) || 0;
+          const targetSamples = sampleTarget(weight, entry.tier);
+          const releaseScore = Number(release.release_score) || 0;
+          const keywords = (entry.market_keywords || []).slice(0, 4);
+          const sampleGapBonus = sampleCount < 2 && weight >= 75 ? 9 : 0;
+          const keywordBonus = Math.min(8, keywords.length * 2);
+          const crownScore = clampScore(
+            weight * .42
+            + Math.max(0, premium) * 36
+            + releaseScore * .2
+            + evidenceScore(sampleCount) * .12
+            + sampleGapBonus
+            + keywordBonus
+          );
+          return {
+            ...entry,
+            target_samples: targetSamples,
+            release_score: releaseScore,
+            primary_keyword: release.primary_keyword || keywords[0] || entry.alias,
+            keywords,
+            crown_score: crownScore,
+            action_label: crownActionLabel({ ...entry, release_score: releaseScore, target_samples: targetSamples, crown_score: crownScore }),
+          };
+        }).filter((entry) => Number(entry.brand_weight) >= 75 || Number(entry.avg_premium_rate) >= 0.25 || Number(entry.release_score) >= 55)
+          .sort((a, b) => (
+            (Number(b.crown_score) || 0) - (Number(a.crown_score) || 0)
+            || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+            || String(a.alias).localeCompare(String(b.alias))
+          )).slice(0, 6);
+      }
+
+      function brandCrownStats(entries, rows) {
+        const coreRows = (rows || []).filter((entry) => entry.tier === "core" || Number(entry.brand_weight) >= 90);
+        const readyCore = coreRows.filter((entry) => Number(entry.sample_count) >= 2).length;
+        return {
+          top_score: entries.length ? Math.max(...entries.map((entry) => Number(entry.crown_score) || 0)) : 0,
+          lead: entries[0]?.alias || "-",
+          core_ready: `${readyCore}/${coreRows.length || 0}`,
+          release_signals: entries.filter((entry) => Number(entry.release_score) > 0).length,
+          keyword_total: entries.reduce((sum, entry) => sum + (entry.keywords?.length || 0), 0),
+          premium_backed: entries.filter((entry) => Number(entry.avg_premium_rate) >= 0.25).length,
+        };
+      }
+
+      function crownActionLabel(entry) {
+        const weight = Number(entry.brand_weight) || 0;
+        const samples = Number(entry.sample_count) || 0;
+        const releaseScore = Number(entry.release_score) || 0;
+        const premium = Number(entry.avg_premium_rate) || 0;
+        if (samples < 2 && weight >= 75) return "crownActionAnchor";
+        if (releaseScore >= 60) return "crownActionRelease";
+        if (premium >= 0.25) return "crownActionPremium";
+        return "crownActionHold";
       }
 
       function renderBrandPortfolio(rows) {
@@ -9412,6 +9666,20 @@ INDEX_HTML = r"""<!doctype html>
         const button = event.target.closest("[data-radar-jump]");
         if (!button) return;
         jumpToRadarSection(button.dataset.radarJump);
+      });
+      $("brandCrownQueue").addEventListener("click", (event) => {
+        const sampleButton = event.target.closest("[data-crown-sample]");
+        if (sampleButton) {
+          prepareMarketSample(sampleButton.dataset.crownSample);
+          return;
+        }
+        const keywordButton = event.target.closest("[data-crown-keyword-sample]");
+        if (keywordButton) {
+          prepareKeywordSample(keywordButton.dataset.crownKeywordSample, keywordButton.dataset.crownKeyword);
+          return;
+        }
+        const jumpButton = event.target.closest("[data-crown-jump]");
+        if (jumpButton) jumpToRadarSection(jumpButton.dataset.crownJump);
       });
       $("marketForm").addEventListener("submit", addMarketObservation);
       ["marketBrand", "marketRetail", "marketResale", "marketCurrency"].forEach((id) => {

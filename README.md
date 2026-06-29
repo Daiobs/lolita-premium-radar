@@ -100,7 +100,11 @@ feels closer to a Lolita market desk without depending on remote media. A
 North Star radar band combines brand portfolio health, weighted evidence
 coverage, release heat, run-sheet pressure, and premium-backed brands into one
 top-level maturity score, with four lane cards that explain whether today's work
-is evidence collection, release watching, premium confirmation, or execution.
+is evidence collection, release watching, premium confirmation, or execution. A
+brand crown queue sits underneath it and ranks the highest-priority labels by
+brand weight, release hits, resale premium, sample evidence, and signature style
+terms such as AP shell keywords, with direct actions for adding brand samples,
+prefilling pattern samples, or jumping to the release queue.
 Brand weights, scorecards, core watch gaps, and sample plans are also summarized
 into a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
 priority checks into a short action queue with jump, sample, and pattern-prefill
