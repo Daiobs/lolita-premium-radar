@@ -176,7 +176,11 @@ The whole watch desk can be exported as
 market action desk turns the highest-priority pattern rows into search links for
 Goofish, Taobao, Mercari JP, and Yahoo Japan Auctions plus one-click sample
 prefill, and exports the same search/sample tasks as
-`lolita-market-actions.csv` for a daily resale-check run sheet. A price-discipline
+`lolita-market-actions.csv` for a daily resale-check run sheet. A resale run
+sheet near the top of the dashboard merges the daily radar brief, market search
+tasks, and price-discipline anchor gaps into one execution surface, with direct
+jump/sample/pattern actions and `lolita-run-sheet.csv` export for daily checks.
+A price-discipline
 panel converts brand weight, average retail price, average resale price, and
 sample count into a chase ceiling, current resale average, and room/near/hot
 status so overheated secondhand prices are visible before sampling or buying;

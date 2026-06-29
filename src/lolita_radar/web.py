@@ -746,6 +746,98 @@ INDEX_HTML = r"""<!doctype html>
       .daily-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
       .daily-card-actions { display: flex; flex-wrap: wrap; gap: 7px; }
       .daily-card-actions button { min-height: 30px; padding-inline: 10px; }
+      .run-sheet-board { margin: 0 20px 14px; }
+      .run-sheet-grid { display: grid; grid-template-columns: minmax(230px, .62fr) minmax(330px, 1.38fr); gap: 12px; padding: 12px; }
+      .run-sheet-brief, .run-sheet-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .run-sheet-brief {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(180,87,111,.13), transparent 36%),
+          linear-gradient(135deg, rgba(255,243,246,.82), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+        overflow: hidden;
+      }
+      .run-sheet-brief::after, .run-sheet-card::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 8px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.34) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .run-sheet-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .run-sheet-brief p, .run-sheet-card p { margin: 0; color: var(--muted); }
+      .run-sheet-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .run-sheet-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 48px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .run-sheet-stats strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .run-sheet-list { display: grid; gap: 8px; }
+      .run-sheet-card {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        padding: 12px 12px 14px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 66%, #fff), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .run-sheet-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .run-sheet-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .run-sheet-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .run-sheet-meta, .run-sheet-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      .run-sheet-meta span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .run-sheet-actions a, .run-sheet-actions button {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 22%, var(--line));
+        border-radius: 999px;
+        background: #fffdfb;
+        color: color-mix(in srgb, var(--brand-accent, var(--rose)) 72%, var(--wine));
+        box-shadow: none;
+        font: inherit;
+        font-size: 12px;
+        text-decoration: none;
+      }
       .metric, .panel, .atelier {
         background:
           radial-gradient(circle at 16px 16px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
@@ -2271,7 +2363,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2344,6 +2436,7 @@ INDEX_HTML = r"""<!doctype html>
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
       <button type="button" data-radar-jump="weightScenarioCompare" data-i18n="navScenarios">情景</button>
+      <button type="button" data-radar-jump="resaleRunSheet" data-i18n="navRunSheet">巡检</button>
       <button type="button" data-radar-jump="brandLookbook" data-i18n="navLookbook">造型册</button>
       <button type="button" data-radar-jump="brandWeightScorecard" data-i18n="navScorecard">评分卡</button>
       <button type="button" data-radar-jump="brandWeightGuardrails" data-i18n="navGuardrails">护栏</button>
@@ -2358,6 +2451,16 @@ INDEX_HTML = r"""<!doctype html>
       <button type="button" data-radar-jump="samplePlan" data-i18n="navSampling">采样</button>
       <button type="button" data-radar-jump="sources" data-i18n="navSources">监控源</button>
     </nav>
+    <section class="panel run-sheet-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="resaleRunSheet">二级市场巡检清单</h2>
+          <span class="muted" data-i18n="resaleRunSheetHint">把今日行动、查价任务和补价格锚点收成一张执行表</span>
+        </div>
+        <button id="exportRunSheetCsvBtn" type="button" class="secondary" data-i18n="exportRunSheetCsv">导出巡检 CSV</button>
+      </div>
+      <div id="resaleRunSheet" class="run-sheet-grid"></div>
+    </section>
     <section class="atelier">
       <div class="signal-strip">
         <h2 data-i18n="marketSignal">溢价信号</h2>
@@ -2762,6 +2865,7 @@ INDEX_HTML = r"""<!doctype html>
           navDaily: "简报",
           navWeights: "权重",
           navScenarios: "情景",
+          navRunSheet: "巡检",
           navLookbook: "造型册",
           navScorecard: "评分卡",
           navGuardrails: "护栏",
@@ -2803,6 +2907,21 @@ INDEX_HTML = r"""<!doctype html>
           exportDailyCsv: "导出简报 CSV",
           exportedDailyCsv: "今日雷达简报已导出",
           noDailyCsv: "暂无可导出的今日简报",
+          resaleRunSheet: "二级市场巡检清单",
+          resaleRunSheetHint: "把今日行动、查价任务和补价格锚点收成一张执行表",
+          runSheetTasks: "巡检任务",
+          runSheetAnchorGaps: "待补锚点",
+          runSheetSearches: "查价搜索",
+          runSheetSamples: "补样本",
+          runSheetDaily: "今日行动",
+          runSheetMarket: "查价任务",
+          runSheetPrice: "价格锚点",
+          runSheetGo: "执行",
+          runSheetSample: "补样本",
+          runSheetNoRows: "暂无巡检任务",
+          exportRunSheetCsv: "导出巡检 CSV",
+          exportedRunSheetCsv: "巡检清单已导出",
+          noRunSheetCsv: "暂无可导出的巡检任务",
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
           saveWeights: "保存权重",
@@ -3378,6 +3497,7 @@ INDEX_HTML = r"""<!doctype html>
           navDaily: "Brief",
           navWeights: "Weights",
           navScenarios: "Scenarios",
+          navRunSheet: "Run Sheet",
           navLookbook: "Lookbook",
           navScorecard: "Scorecard",
           navGuardrails: "Guardrails",
@@ -3419,6 +3539,21 @@ INDEX_HTML = r"""<!doctype html>
           exportDailyCsv: "export brief CSV",
           exportedDailyCsv: "daily radar brief exported",
           noDailyCsv: "no daily brief to export",
+          resaleRunSheet: "Resale Run Sheet",
+          resaleRunSheetHint: "Merge daily actions, search tasks, and price-anchor gaps into one execution sheet",
+          runSheetTasks: "tasks",
+          runSheetAnchorGaps: "anchor gaps",
+          runSheetSearches: "search tasks",
+          runSheetSamples: "samples",
+          runSheetDaily: "daily action",
+          runSheetMarket: "market search",
+          runSheetPrice: "price anchor",
+          runSheetGo: "open",
+          runSheetSample: "add sample",
+          runSheetNoRows: "No run-sheet tasks yet",
+          exportRunSheetCsv: "export run sheet CSV",
+          exportedRunSheetCsv: "run sheet exported",
+          noRunSheetCsv: "no run-sheet tasks to export",
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
           saveWeights: "Save Weights",
@@ -6140,6 +6275,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedMarketActionsCsv"));
       }
 
+      function exportRunSheetCsv() {
+        const rows = resaleRunSheetRows(buildBrandRadarMatrix());
+        if (!rows.length) {
+          toast(t("noRunSheetCsv"));
+          return;
+        }
+        const csv = csvFromRunSheetRows(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-run-sheet.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedRunSheetCsv"));
+      }
+
       function premiumCsvFilename() {
         const brand = activePremiumBrandFilter === "all" ? "all-brands" : activePremiumBrandFilter.toLowerCase();
         const band = activePremiumFilter === "all" ? "all-bands" : activePremiumFilter;
@@ -6313,6 +6467,40 @@ INDEX_HTML = r"""<!doctype html>
             action_query: actionQuery(row),
             band_label: valueLabel("opportunityBand", row.band),
             next_action: Number(row.sample_count) < 2 ? t("patternSample") : t("actionSearch"),
+            goofish_url: searchLinkByLabel(links, t("actionGoofish"), "Goofish", "闲鱼"),
+            taobao_url: searchLinkByLabel(links, t("actionTaobao"), "Taobao", "淘宝"),
+            mercari_url: searchLinkByLabel(links, t("actionMercari"), "Mercari"),
+            yahoo_url: searchLinkByLabel(links, t("actionYahoo"), "Yahoo", "雅虎"),
+          };
+        });
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromRunSheetRows(rows) {
+        const fields = [
+          ["task_type", "kind_label"],
+          ["brand_alias", "alias"],
+          ["brand_name", "name"],
+          ["keyword", "keyword"],
+          ["label", "label"],
+          ["detail", "detail"],
+          ["priority_score", "priority_score"],
+          ["brand_weight", "brand_weight"],
+          ["sample_count", "sample_count"],
+          ["next_target", "jump_target"],
+          ["goofish_url", "goofish_url"],
+          ["taobao_url", "taobao_url"],
+          ["mercari_url", "mercari_url"],
+          ["yahoo_url", "yahoo_url"],
+        ];
+        const enriched = (rows || []).map((row) => {
+          const links = row.search_links || [];
+          return {
+            ...row,
             goofish_url: searchLinkByLabel(links, t("actionGoofish"), "Goofish", "闲鱼"),
             taobao_url: searchLinkByLabel(links, t("actionTaobao"), "Taobao", "淘宝"),
             mercari_url: searchLinkByLabel(links, t("actionMercari"), "Mercari"),
@@ -6638,6 +6826,134 @@ INDEX_HTML = r"""<!doctype html>
           { label: t("actionMercari"), href: `https://jp.mercari.com/search?keyword=${jpQuery}` },
           { label: t("actionYahoo"), href: `https://auctions.yahoo.co.jp/search/search?p=${jpQuery}` },
         ];
+      }
+
+      function renderResaleRunSheet(rows) {
+        const tasks = resaleRunSheetRows(rows);
+        const anchorGaps = tasks.filter((task) => task.kind === "price" && task.price_status === "sample").length;
+        const searches = tasks.filter((task) => (task.search_links || []).length).length;
+        const samples = tasks.filter((task) => task.sample_alias || task.sample_keyword).length;
+        $("resaleRunSheet").innerHTML = tasks.length ? `
+          <article class="run-sheet-brief">
+            <strong>${escapeHtml(tasks.length)}</strong>
+            <p>${escapeHtml(t("runSheetTasks"))} · ${escapeHtml(t("resaleRunSheetHint"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(runSheetHeat(tasks))}%"></span></div>
+            <div class="run-sheet-stats">
+              <span><strong>${escapeHtml(anchorGaps)}</strong>${escapeHtml(t("runSheetAnchorGaps"))}</span>
+              <span><strong>${escapeHtml(searches)}</strong>${escapeHtml(t("runSheetSearches"))}</span>
+              <span><strong>${escapeHtml(samples)}</strong>${escapeHtml(t("runSheetSamples"))}</span>
+              <span><strong>${escapeHtml(tasks[0]?.alias || "-")}</strong>${escapeHtml(t("dailyLead"))}</span>
+            </div>
+          </article>
+          <div class="run-sheet-list">
+            ${tasks.map(runSheetCardHtml).join("")}
+          </div>
+        ` : `<div class="row">${escapeHtml(t("runSheetNoRows"))}</div>`;
+      }
+
+      function runSheetCardHtml(task) {
+        const keyword = task.keyword ? ` · ${task.keyword}` : "";
+        const links = (task.search_links || []).slice(0, 4);
+        return `<article class="run-sheet-card" style="${escapeHtml(brandVisualStyle(task))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(task.alias)}${escapeHtml(keyword)}</strong>
+              <p>${escapeHtml(task.name || "")}</p>
+            </div>
+            <span class="pill ${escapeHtml(task.tone || "")}">${escapeHtml(task.kind_label)}</span>
+          </header>
+          <p>${escapeHtml(task.label)} · ${escapeHtml(task.detail || "")}</p>
+          <div class="run-sheet-meta">
+            <span>${escapeHtml(t("priorityScore"))} ${escapeHtml(task.priority_score || 0)}</span>
+            <span>${escapeHtml(t("weightLabel"))} ${escapeHtml(task.brand_weight || 0)}</span>
+            <span>${escapeHtml(t("samples"))} ${escapeHtml(task.sample_count || 0)}</span>
+          </div>
+          <div class="run-sheet-actions">
+            ${task.jump_target ? `<button type="button" data-run-sheet-jump="${escapeHtml(task.jump_target)}">${escapeHtml(t("runSheetGo"))}</button>` : ""}
+            ${task.sample_alias ? `<button type="button" data-run-sheet-sample="${escapeHtml(task.sample_alias)}">${escapeHtml(t("runSheetSample"))}</button>` : ""}
+            ${task.sample_keyword ? `<button type="button" data-run-sheet-keyword-brand="${escapeHtml(task.alias)}" data-run-sheet-keyword="${escapeHtml(task.sample_keyword)}">${escapeHtml(t("dailyKeyword"))}</button>` : ""}
+            ${links.map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
+          </div>
+        </article>`;
+      }
+
+      function resaleRunSheetRows(rows) {
+        const tasks = [];
+        dailyRadarActions(rows).slice(0, 4).forEach((entry) => {
+          const keyword = entry.daily_keyword || (entry.market_keywords || [])[0] || "";
+          tasks.push({
+            ...entry,
+            kind: "daily",
+            kind_rank: 3,
+            kind_label: t("runSheetDaily"),
+            label: t(entry.daily_label),
+            detail: entry.daily_detail,
+            priority_score: Number(entry.daily_score) || Number(entry.priority_score) || 0,
+            keyword,
+            sample_alias: entry.daily_sample || "",
+            sample_keyword: keyword,
+            jump_target: entry.daily_target,
+            search_links: keyword ? marketSearchLinks({ ...entry, keyword }) : [],
+            tone: entry.daily_tone || "",
+          });
+        });
+        marketActions(currentState?.market?.patterns || []).slice(0, 4).forEach((pattern) => {
+          tasks.push({
+            ...pattern,
+            kind: "market",
+            kind_rank: 4,
+            kind_label: t("runSheetMarket"),
+            label: t("actionQuery"),
+            detail: actionQuery(pattern),
+            priority_score: Number(pattern.priority_score) || 0,
+            sample_alias: "",
+            sample_keyword: pattern.keyword || "",
+            jump_target: "marketActionDesk",
+            search_links: marketSearchLinks(pattern),
+            tone: opportunityPill(pattern.band),
+          });
+        });
+        priceDisciplineRows(rows).slice(0, 4).forEach((entry) => {
+          const keyword = (entry.market_keywords || [])[0] || "";
+          tasks.push({
+            ...entry,
+            kind: "price",
+            kind_rank: entry.price_status === "sample" ? 5 : 2,
+            kind_label: t("runSheetPrice"),
+            label: t(priceDisciplineLabel(entry.price_status)),
+            detail: `${t("priceDisciplineCeiling")} ${priceDisciplineMoney(entry.price_ceiling, entry.currency)} · ${t("priceDisciplineObserved")} ${priceDisciplineMoney(entry.avg_resale_price, entry.currency)}`,
+            priority_score: Number(entry.price_score) || 0,
+            keyword,
+            sample_alias: entry.alias,
+            sample_keyword: keyword,
+            jump_target: "priceDiscipline",
+            search_links: keyword ? marketSearchLinks({ ...entry, keyword }) : [],
+            tone: priceDisciplinePill(entry.price_status),
+          });
+        });
+        return dedupeRunSheetTasks(tasks)
+          .sort((a, b) => (
+            (Number(b.kind_rank) || 0) - (Number(a.kind_rank) || 0)
+            || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+            || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+          ))
+          .slice(0, 8);
+      }
+
+      function dedupeRunSheetTasks(tasks) {
+        const seen = new Set();
+        return (tasks || []).filter((task) => {
+          const key = [task.kind, task.alias, task.keyword || task.label].join("|").toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+
+      function runSheetHeat(tasks) {
+        return tasks.length
+          ? Math.round(tasks.reduce((sum, task) => sum + (Number(task.priority_score) || 0), 0) / tasks.length)
+          : 0;
       }
 
       function renderPriceDiscipline(rows) {
@@ -7209,6 +7525,7 @@ INDEX_HTML = r"""<!doctype html>
         const rows = buildBrandRadarMatrix();
         renderStyleCompass(rows);
         renderDailyRadarBrief(rows);
+        renderResaleRunSheet(rows);
         renderWeightScenarioCompare(rows);
         renderBrandLookbook(rows);
         renderBrandWeightScorecard(rows);
@@ -7808,6 +8125,7 @@ INDEX_HTML = r"""<!doctype html>
       $("exportScorecardsCsvBtn").addEventListener("click", exportBrandWeightScorecardsCsv);
       $("exportGuardrailsCsvBtn").addEventListener("click", exportBrandWeightGuardrailsCsv);
       $("exportScenariosCsvBtn").addEventListener("click", exportWeightScenariosCsv);
+      $("exportRunSheetCsvBtn").addEventListener("click", exportRunSheetCsv);
       $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);
       $("exportCoreWatchCsvBtn").addEventListener("click", exportCoreWatchCsv);
       $("exportMarketActionsCsvBtn").addEventListener("click", exportMarketActionsCsv);
@@ -7876,6 +8194,20 @@ INDEX_HTML = r"""<!doctype html>
         }
         const sampleButton = event.target.closest("[data-daily-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.dailySample);
+      });
+      $("resaleRunSheet").addEventListener("click", (event) => {
+        const jumpButton = event.target.closest("[data-run-sheet-jump]");
+        if (jumpButton) {
+          jumpToRadarSection(jumpButton.dataset.runSheetJump);
+          return;
+        }
+        const keywordButton = event.target.closest("[data-run-sheet-keyword-brand]");
+        if (keywordButton) {
+          prepareKeywordSample(keywordButton.dataset.runSheetKeywordBrand, keywordButton.dataset.runSheetKeyword);
+          return;
+        }
+        const sampleButton = event.target.closest("[data-run-sheet-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.runSheetSample);
       });
       $("brandLookbook").addEventListener("click", (event) => {
         const keywordButton = event.target.closest("[data-lookbook-keyword-brand]");
