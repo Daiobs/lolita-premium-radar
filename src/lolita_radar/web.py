@@ -998,6 +998,8 @@ INDEX_HTML = r"""<!doctype html>
       .matrix-brand span { color: var(--muted); font-size: 12px; }
       .matrix-score { display: grid; gap: 5px; }
       .matrix-score strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .matrix-action { display: grid; gap: 4px; align-content: center; }
+      .matrix-action span.muted { font-size: 12px; overflow-wrap: anywhere; }
       .coverage-board { margin: 0 20px 14px; }
       .coverage-grid { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(260px, 1.2fr); gap: 12px; padding: 12px; }
       .coverage-meter { display: grid; gap: 9px; align-content: start; }
@@ -2505,9 +2507,18 @@ INDEX_HTML = r"""<!doctype html>
             <span>${escapeHtml(entry.brand_weight)}</span>
             <span>${escapeHtml(formatPercent(entry.avg_premium_rate))}</span>
             <span>${escapeHtml(entry.sample_count)}</span>
-            <span class="pill ${opportunityPill(entry.band)}">${escapeHtml(valueLabel("opportunityBand", entry.band))}</span>
+            <div class="matrix-action">
+              <span class="pill ${opportunityPill(entry.band)}">${escapeHtml(valueLabel("opportunityBand", entry.band))}</span>
+              <span class="muted">${escapeHtml(matrixActionReason(entry))}</span>
+            </div>
           </article>`),
         ].join("") : `<div class="row">${escapeHtml(t("noOpportunity"))}</div>`;
+      }
+
+      function matrixActionReason(entry) {
+        const labels = reasonLabels(entry.reason_codes || []).filter(Boolean);
+        if (labels.length) return labels.slice(0, 2).join(" · ");
+        return valueLabel("weightRole", entry.weight_role) || tierLabel(entry.tier);
       }
 
       function renderSampleCoverage(rows) {

@@ -110,6 +110,8 @@ sources:
         self.assertIn("matrixSort", INDEX_HTML)
         self.assertIn("sortMatrixRows", INDEX_HTML)
         self.assertIn("filterMatrixRows", INDEX_HTML)
+        self.assertIn("matrix-action", INDEX_HTML)
+        self.assertIn("matrixActionReason", INDEX_HTML)
         self.assertIn("opportunityRadar", INDEX_HTML)
         self.assertIn("opportunitySummary", INDEX_HTML)
         self.assertIn("data-opportunity-filter", INDEX_HTML)
