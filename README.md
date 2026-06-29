@@ -104,7 +104,9 @@ band counts, filters, and score breakdowns for scanning each action tier. A
 sample-coverage panel shows how much price evidence backs the radar and which
 high-weight brands need samples next. A weight-profile panel summarizes average
 weight, tier distribution, market-evidence coverage, and the highest-priority
-sample gaps so brand weights are easier to audit before saving. A hot-pattern
+sample gaps so brand weights are easier to audit before saving. A brand-weight
+composition panel explains each brand's configured weight, monitoring role,
+premium heat, evidence level, and pattern keywords in one card. A hot-pattern
 keyword radar turns item-level terms such as `AP` + `贝壳` into one-click sample
 entry seeds, and the pattern-premium radar groups recorded samples by those
 keywords to show item-level premium, sample count, and weighted priority. The
@@ -121,10 +123,12 @@ from the web dashboard, preview how draft weights change opportunity radar
 scores and deltas, review unsaved changes, reset drafts, and save them back to
 the configured brand-weight file. Each brand card also explains the current
 weight band, monitoring intent, and keyword coverage so the score is easier to
-audit before changing it. A weight-tuning queue turns current premium, sample
-count, and weight into concrete actions such as collecting price samples,
-considering an upgrade, holding, or cooling down; the action buttons can prefill
-the sample form or apply a suggested target weight as an unsaved draft.
+audit before changing it. The API also exposes `brand_weight_profile`, a
+full-brand view with weight band, weight role, evidence level, score breakdown,
+and market keywords. A weight-tuning queue turns current premium, sample count,
+and weight into concrete actions such as collecting price samples, considering
+an upgrade, holding, or cooling down; the action buttons can prefill the sample
+form or apply a suggested target weight as an unsaved draft.
 Use `market_keywords` on each brand for secondary-market search/sample seeds;
 these are kept separate from broad source-matching `keywords` to avoid noisy
 alerts from generic item names.

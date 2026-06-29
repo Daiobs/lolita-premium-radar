@@ -13,6 +13,7 @@ from .brands import build_focus_queue, default_brand_weights_path, load_brand_we
 from .config import load_sources
 from .market import (
     append_market_observation,
+    build_brand_weight_profile,
     build_opportunity_radar,
     build_pattern_radar,
     default_market_observations_path,
@@ -199,6 +200,7 @@ def get_dashboard_state(
             "enabled_sources": sum(1 for source in sources.values() if source.enabled),
         },
         "brand_weights": brand_weights,
+        "brand_weight_profile": build_brand_weight_profile(brand_weights, market_summary["brands"]),
         "focus_queue": build_focus_queue(brand_weights, items, events, market_summary["brands"]),
         "opportunity_radar": build_opportunity_radar(brand_weights, market_summary["brands"]),
         "market": {
@@ -484,6 +486,39 @@ INDEX_HTML = r"""<!doctype html>
       .weight-gap-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 10px; }
       .weight-gap-card strong { color: var(--wine); }
       .weight-gap-card button { min-height: 30px; padding-inline: 10px; }
+      .profile-board { margin: 0 20px 14px; }
+      .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; padding: 12px; }
+      .profile-card {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        min-height: 190px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 12px 16px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 24px 24px,
+          linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9)),
+          #fffaf8;
+      }
+      .profile-card::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 7px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.32) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .profile-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .profile-card strong { color: var(--wine); }
+      .profile-score { display: grid; grid-template-columns: 62px 1fr; gap: 10px; align-items: center; }
+      .profile-score strong { font: 650 28px/1 Georgia, "Times New Roman", serif; }
+      .profile-bars { display: grid; gap: 6px; }
+      .profile-row { display: grid; grid-template-columns: 68px 1fr 34px; gap: 7px; align-items: center; color: var(--muted); font-size: 12px; }
+      .profile-keywords { display: flex; flex-wrap: wrap; gap: 5px; }
+      .profile-keywords span { min-height: 23px; display: inline-flex; align-items: center; padding: 0 7px; border: 1px solid rgba(97,27,49,.12); border-radius: 999px; background: rgba(255,253,251,.74); color: var(--muted); font-size: 12px; }
       .keyword-board { margin: 0 20px 14px; }
       .keyword-radar { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; padding: 12px; }
       .keyword-card {
@@ -804,6 +839,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
       <div id="weightSnapshot" class="weight-snapshot"></div>
     </section>
+    <section class="panel profile-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandWeightProfile">品牌权重构成</h2>
+          <span class="muted" data-i18n="brandWeightProfileHint">解释每个品牌权重如何连接溢价、样本证据和下一步动作</span>
+        </div>
+      </div>
+      <div id="brandWeightProfile" class="profile-grid"></div>
+    </section>
     <section class="panel keyword-board">
       <div class="toolbar">
         <div>
@@ -1057,11 +1101,19 @@ INDEX_HTML = r"""<!doctype html>
           weightIntentArchive: "先补二手样本，异常溢价再上调",
           weightSnapshot: "权重画像",
           weightSnapshotHint: "把品牌档位、价格证据和样本缺口放在一起校准",
+          brandWeightProfile: "品牌权重构成",
+          brandWeightProfileHint: "解释每个品牌权重如何连接溢价、样本证据和下一步动作",
           weightAverage: "平均权重",
           weightCoreAverage: "核心均值",
           weightEvidenceCoverage: "证据覆盖",
           weightNeedsEvidence: "待补证据",
           weightDistribution: "权重分布",
+          profileWeight: "权重",
+          profileHeat: "热度",
+          profileEvidence: "证据",
+          profileKeywords: "款式词",
+          profileNoKeywords: "暂无款式词",
+          noBrandProfile: "暂无品牌权重画像",
           weightCoreCount: "核心档",
           weightWatchCount: "观察档",
           weightArchiveCount: "档案档",
@@ -1161,6 +1213,16 @@ INDEX_HTML = r"""<!doctype html>
             watch: "持续观察",
             collect_samples: "补价格样本",
             cooldown: "暂缓",
+          },
+          weightRole: {
+            release_priority: "新品/预约优先提醒",
+            premium_watch: "溢价变化重点观察",
+            evidence_sampling: "低频补样本",
+          },
+          evidenceLevel: {
+            ready: "证据充分",
+            thin: "证据偏薄",
+            missing: "缺价格样本",
           },
           reasonCode: {
             core_brand: "核心品牌",
@@ -1278,11 +1340,19 @@ INDEX_HTML = r"""<!doctype html>
           weightIntentArchive: "collect resale samples before raising weight",
           weightSnapshot: "Weight Profile",
           weightSnapshotHint: "Calibrate brand tiers, price evidence, and sample gaps together",
+          brandWeightProfile: "Brand Weight Composition",
+          brandWeightProfileHint: "Explain how each brand weight connects premium, evidence, and next action",
           weightAverage: "average weight",
           weightCoreAverage: "core average",
           weightEvidenceCoverage: "evidence coverage",
           weightNeedsEvidence: "needs evidence",
           weightDistribution: "weight distribution",
+          profileWeight: "weight",
+          profileHeat: "heat",
+          profileEvidence: "evidence",
+          profileKeywords: "pattern terms",
+          profileNoKeywords: "no pattern terms",
+          noBrandProfile: "No brand weight profile yet",
           weightCoreCount: "core tier",
           weightWatchCount: "watch tier",
           weightArchiveCount: "archive tier",
@@ -1382,6 +1452,16 @@ INDEX_HTML = r"""<!doctype html>
             watch: "watch",
             collect_samples: "collect samples",
             cooldown: "cooldown",
+          },
+          weightRole: {
+            release_priority: "release/preorder priority",
+            premium_watch: "premium-watch priority",
+            evidence_sampling: "low-frequency sampling",
+          },
+          evidenceLevel: {
+            ready: "evidence ready",
+            thin: "thin evidence",
+            missing: "missing samples",
           },
           reasonCode: {
             core_brand: "core brand",
@@ -1710,6 +1790,57 @@ INDEX_HTML = r"""<!doctype html>
             </div>
           </div>
         `;
+      }
+
+      function renderBrandWeightProfile(rows) {
+        const visible = [...rows]
+          .sort((a, b) => (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0) || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0))
+          .slice(0, 9);
+        $("brandWeightProfile").innerHTML = visible.length ? visible.map((entry) => {
+          const keywords = (entry.market_keywords || []).slice(0, 4);
+          return `<article class="profile-card">
+            <header>
+              <div>
+                <strong>${escapeHtml(entry.alias)}</strong>
+                <p class="muted">${escapeHtml(entry.name)}</p>
+              </div>
+              <span class="pill ${profilePill(entry)}">${escapeHtml(valueLabel("weightRole", entry.weight_role))}</span>
+            </header>
+            <div class="profile-score">
+              <strong>${escapeHtml(entry.brand_weight)}</strong>
+              <div>
+                <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)} · ${escapeHtml(valueLabel("evidenceLevel", entry.evidence_level))}</p>
+                <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.priority_score)}%"></span></div>
+              </div>
+            </div>
+            <div class="profile-bars">
+              ${profileBar(t("profileWeight"), entry.brand_weight, 100)}
+              ${profileBar(t("profileHeat"), entry.score_breakdown?.premium_points || 0, 55)}
+              ${profileBar(t("profileEvidence"), entry.evidence_score || 0, 100)}
+            </div>
+            <p class="muted">${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)} · ${escapeHtml(tierLabel(entry.tier))}</p>
+            <div class="profile-keywords" aria-label="${escapeHtml(t("profileKeywords"))}">
+              ${keywords.length ? keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("profileNoKeywords"))}</span>`}
+            </div>
+          </article>`;
+        }).join("") : `<div class="row">${escapeHtml(t("noBrandProfile"))}</div>`;
+      }
+
+      function profileBar(label, value, max) {
+        const number = Number(value) || 0;
+        const width = Math.min(100, Math.round(number / max * 100));
+        return `<div class="profile-row">
+          <span>${escapeHtml(label)}</span>
+          <div class="score-track" aria-hidden="true"><span style="--score: ${escapeHtml(width)}%"></span></div>
+          <span>${escapeHtml(number)}</span>
+        </div>`;
+      }
+
+      function profilePill(entry) {
+        if (entry.weight_role === "release_priority") return "rose";
+        if (entry.evidence_level === "missing") return "gold";
+        if (entry.evidence_level === "ready") return "";
+        return "off";
       }
 
       function weightSnapshotStats(rows) {
@@ -2191,6 +2322,7 @@ INDEX_HTML = r"""<!doctype html>
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
         renderWeightSnapshot(rows);
+        renderBrandWeightProfile(rows);
         renderBrandRadarMatrix(rows);
         renderSampleCoverage(rows);
         renderWeightTuning(rows);
@@ -2215,9 +2347,14 @@ INDEX_HTML = r"""<!doctype html>
             tier: brand.tier,
             style: brand.style,
             brand_weight: weight,
+            weight_band: weightBandKey(weight).replace("weightBand", "").toLowerCase(),
+            weight_role: weightRoleKey(weight),
+            market_keywords: brand.market_keywords || [],
             sample_count: sampleCount,
             avg_premium_rate: avgPremiumRate,
             max_premium_rate: maxPremiumRate,
+            evidence_level: evidenceLevel(sampleCount),
+            evidence_score: evidenceScore(sampleCount),
             priority_score: priorityScore,
             score_delta: priorityScore - savedPriorityScore,
             score_breakdown: breakdown,
@@ -2265,6 +2402,24 @@ INDEX_HTML = r"""<!doctype html>
         else if (avgPremiumRate >= 0.25) reasons.push("positive_premium");
         else if (avgPremiumRate < 0) reasons.push("discounted_resale");
         return reasons.length ? reasons : ["baseline"];
+      }
+
+      function weightRoleKey(weight) {
+        const value = clampScore(weight);
+        if (value >= 90) return "release_priority";
+        if (value >= 70) return "premium_watch";
+        return "evidence_sampling";
+      }
+
+      function evidenceLevel(sampleCount) {
+        const count = Number(sampleCount) || 0;
+        if (count >= 5) return "ready";
+        if (count >= 2) return "thin";
+        return "missing";
+      }
+
+      function evidenceScore(sampleCount) {
+        return Math.max(0, Math.min(100, Math.round((Number(sampleCount) || 0) * 20)));
       }
 
       function clampScore(value) {

@@ -160,6 +160,55 @@ def build_opportunity_radar(
     )[:limit]
 
 
+def build_brand_weight_profile(
+    brand_weights: list[dict[str, Any]],
+    market_brands: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    market_by_alias = {text(row.get("brand_alias")).upper(): row for row in market_brands}
+    profile = []
+    for brand in brand_weights:
+        alias = text(brand.get("alias"))
+        if not alias:
+            continue
+        market = market_by_alias.get(alias.upper(), {})
+        sample_count = clamp_int(market.get("sample_count"), default=0)
+        avg_premium_rate = float(market.get("avg_premium_rate") or 0)
+        max_premium_rate = float(market.get("max_premium_rate") or 0)
+        weight = clamp_int(brand.get("weight"), default=50)
+        score = premium_priority_score(avg_premium_rate, weight, sample_count)
+        profile.append(
+            {
+                "name": text(brand.get("name")) or alias,
+                "alias": alias,
+                "tier": text(brand.get("tier")) or "watch",
+                "style": text(brand.get("style")) or "general",
+                "brand_weight": weight,
+                "weight_band": weight_band(weight),
+                "weight_role": weight_role(weight),
+                "market_keywords": [text(keyword) for keyword in brand.get("market_keywords") or [] if text(keyword)],
+                "sample_count": sample_count,
+                "avg_premium_rate": round(avg_premium_rate, 4),
+                "max_premium_rate": round(max_premium_rate, 4),
+                "evidence_level": evidence_level(sample_count),
+                "evidence_score": evidence_score(sample_count),
+                "priority_score": score,
+                "score_breakdown": premium_score_breakdown(avg_premium_rate, weight, sample_count),
+                "band": opportunity_band(score, avg_premium_rate, sample_count, weight),
+                "reason_codes": opportunity_reasons(avg_premium_rate, sample_count, weight),
+            }
+        )
+    return sorted(
+        profile,
+        key=lambda row: (
+            int(row["brand_weight"]),
+            int(row["priority_score"]),
+            int(row["sample_count"]),
+            float(row["avg_premium_rate"]),
+        ),
+        reverse=True,
+    )
+
+
 def build_pattern_radar(
     brand_weights: list[dict[str, Any]],
     observations: list[dict[str, Any]],
@@ -318,6 +367,34 @@ def opportunity_reasons(avg_premium_rate: float, sample_count: int, brand_weight
     elif avg_premium_rate < 0:
         reasons.append("discounted_resale")
     return reasons or ["baseline"]
+
+
+def weight_band(weight: int) -> str:
+    if weight >= 90:
+        return "core"
+    if weight >= 70:
+        return "watch"
+    return "archive"
+
+
+def weight_role(weight: int) -> str:
+    if weight >= 90:
+        return "release_priority"
+    if weight >= 70:
+        return "premium_watch"
+    return "evidence_sampling"
+
+
+def evidence_level(sample_count: int) -> str:
+    if sample_count >= 5:
+        return "ready"
+    if sample_count >= 2:
+        return "thin"
+    return "missing"
+
+
+def evidence_score(sample_count: int) -> int:
+    return max(0, min(100, sample_count * 20))
 
 
 def positive_float(value: Any) -> float:

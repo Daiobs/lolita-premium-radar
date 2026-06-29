@@ -5,6 +5,7 @@ from pathlib import Path
 
 from lolita_radar.market import (
     append_market_observation,
+    build_brand_weight_profile,
     build_opportunity_radar,
     build_pattern_radar,
     load_market_observations,
@@ -117,6 +118,34 @@ class MarketTests(unittest.TestCase):
         self.assertIn("score_breakdown", opportunities[0])
         self.assertIn("strong_premium", opportunities[0]["reason_codes"])
         self.assertEqual(opportunities[1]["band"], "watch")
+
+    def test_build_brand_weight_profile_explains_weight_and_evidence(self) -> None:
+        profile = build_brand_weight_profile(
+            brand_weights=[
+                {
+                    "alias": "AP",
+                    "name": "Angelic Pretty",
+                    "weight": 100,
+                    "tier": "core",
+                    "style": "sweet print",
+                    "market_keywords": ["贝壳", "Holy Lantern"],
+                },
+                {"alias": "Meta", "name": "Metamorphose", "weight": 80, "tier": "watch"},
+            ],
+            market_brands=[
+                {"brand_alias": "AP", "sample_count": 5, "avg_premium_rate": 0.5, "max_premium_rate": 0.9},
+            ],
+        )
+
+        ap = next(row for row in profile if row["alias"] == "AP")
+        meta = next(row for row in profile if row["alias"] == "Meta")
+        self.assertEqual(ap["weight_band"], "core")
+        self.assertEqual(ap["weight_role"], "release_priority")
+        self.assertEqual(ap["evidence_level"], "ready")
+        self.assertEqual(ap["evidence_score"], 100)
+        self.assertEqual(ap["market_keywords"], ["贝壳", "Holy Lantern"])
+        self.assertIn("score_breakdown", ap)
+        self.assertEqual(meta["evidence_level"], "missing")
 
     def test_build_pattern_radar_matches_market_keywords(self) -> None:
         patterns = build_pattern_radar(
