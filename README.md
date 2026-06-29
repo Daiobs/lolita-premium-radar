@@ -118,7 +118,10 @@ sample gaps so brand weights are easier to audit before saving. A brand-weight
 strategy panel converts the current saved or draft weights into calibration
 moves such as collecting evidence, raising premium-supported brands, or cooling
 discounted brands. A brand-weight composition panel explains each brand's
-configured weight, monitoring role, premium heat, evidence level, and pattern keywords in one card. A hot-pattern
+configured weight, monitoring role, premium heat, evidence level, and pattern
+keywords in one card. A brand identity matrix compares each label's palette,
+motif, radar cue, weight, premium rate, and sample evidence in one scan-friendly
+view. A hot-pattern
 keyword radar turns item-level terms such as `AP` + `贝壳` into one-click sample
 entry seeds, and the pattern-premium radar groups recorded samples by those
 keywords to show item-level premium, sample count, and weighted priority. The

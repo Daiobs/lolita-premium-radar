@@ -726,6 +726,69 @@ INDEX_HTML = r"""<!doctype html>
       .profile-row { display: grid; grid-template-columns: 68px 1fr 34px; gap: 7px; align-items: center; color: var(--muted); font-size: 12px; }
       .profile-keywords { display: flex; flex-wrap: wrap; gap: 5px; }
       .profile-keywords span { min-height: 23px; display: inline-flex; align-items: center; padding: 0 7px; border: 1px solid rgba(97,27,49,.12); border-radius: 999px; background: rgba(255,253,251,.74); color: var(--muted); font-size: 12px; }
+      .identity-board { margin: 0 20px 14px; }
+      .identity-grid { display: grid; grid-template-columns: minmax(220px, .72fr) minmax(320px, 1.28fr); gap: 12px; padding: 12px; }
+      .identity-brief, .identity-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .identity-brief {
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(180,87,111,.12), transparent 36%),
+          linear-gradient(135deg, rgba(255,247,232,.78), rgba(248,251,250,.9));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+      }
+      .identity-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .identity-brief p, .identity-card p { margin: 0; color: var(--muted); }
+      .identity-counts { display: flex; flex-wrap: wrap; gap: 6px; }
+      .identity-counts span { display: inline-flex; align-items: center; min-height: 26px; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,253,251,.74); color: var(--muted); font-size: 12px; }
+      .identity-counts strong { margin-right: 5px; color: var(--wine); font: 650 15px/1 Georgia, "Times New Roman", serif; }
+      .identity-stack { display: grid; gap: 8px; }
+      .identity-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 11px 12px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 14%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 72%, #fff), rgba(248,251,250,.92));
+      }
+      .identity-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .identity-swatch {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 35%, var(--line));
+        border-radius: 999px;
+        background:
+          radial-gradient(circle at 35% 25%, rgba(255,255,255,.86), transparent 38%),
+          var(--brand-paper, #fff3f6);
+        color: var(--brand-accent, var(--rose));
+        font: 650 15px/1 Georgia, "Times New Roman", serif;
+        box-shadow: var(--pearl-shadow);
+      }
+      .identity-main { display: grid; gap: 5px; min-width: 0; }
+      .identity-main strong { color: var(--wine); }
+      .identity-main p { overflow-wrap: anywhere; }
+      .identity-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+      .identity-tags span { display: inline-flex; align-items: center; min-height: 23px; padding: 0 7px; border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 24%, var(--line)); border-radius: 999px; background: rgba(255,253,251,.72); color: var(--muted); font-size: 12px; }
+      .identity-score { display: grid; gap: 4px; min-width: 92px; text-align: right; }
+      .identity-score strong { color: var(--wine); font: 650 22px/1 Georgia, "Times New Roman", serif; }
       .keyword-board { margin: 0 20px 14px; }
       .keyword-radar { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; padding: 12px; }
       .keyword-card {
@@ -995,12 +1058,14 @@ INDEX_HTML = r"""<!doctype html>
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .weight-snapshot, .strategy-grid, .action-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
+        .identity-card { grid-template-columns: 48px 1fr; }
+        .identity-score { grid-column: 1 / -1; text-align: left; }
         .brand-tools { align-items: flex-start; flex-direction: column; }
         .metrics, .watch-grid, .event-list, .item-list, .market-form { grid-template-columns: 1fr; }
         .market-form .wide { grid-column: span 1; }
@@ -1098,6 +1163,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="brandWeightProfile" class="profile-grid"></div>
+    </section>
+    <section class="panel identity-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandIdentityMatrix">品牌身份矩阵</h2>
+          <span class="muted" data-i18n="brandIdentityHint">把品牌色、视觉母题、溢价证据和关注线索放在一起校准</span>
+        </div>
+      </div>
+      <div id="brandIdentityMatrix" class="identity-grid"></div>
     </section>
     <section class="panel keyword-board">
       <div class="toolbar">
@@ -1412,6 +1486,15 @@ INDEX_HTML = r"""<!doctype html>
           weightSnapshotHint: "把品牌档位、价格证据和样本缺口放在一起校准",
           brandWeightProfile: "品牌权重构成",
           brandWeightProfileHint: "解释每个品牌权重如何连接溢价、样本证据和下一步动作",
+          brandIdentityMatrix: "品牌身份矩阵",
+          brandIdentityHint: "把品牌色、视觉母题、溢价证据和关注线索放在一起校准",
+          identityCoverage: "身份覆盖",
+          identityCoreCount: "核心身份",
+          identityWatchCount: "观察身份",
+          identityArchiveCount: "档案身份",
+          identityPalette: "色系",
+          identityEvidence: "证据",
+          identityPremium: "溢价",
           weightAverage: "平均权重",
           weightCoreAverage: "核心均值",
           weightEvidenceCoverage: "证据覆盖",
@@ -1742,6 +1825,15 @@ INDEX_HTML = r"""<!doctype html>
           weightSnapshotHint: "Calibrate brand tiers, price evidence, and sample gaps together",
           brandWeightProfile: "Brand Weight Composition",
           brandWeightProfileHint: "Explain how each brand weight connects premium, evidence, and next action",
+          brandIdentityMatrix: "Brand Identity Matrix",
+          brandIdentityHint: "Calibrate palette, motif, premium evidence, and attention cues together",
+          identityCoverage: "identity coverage",
+          identityCoreCount: "core identities",
+          identityWatchCount: "watch identities",
+          identityArchiveCount: "archive identities",
+          identityPalette: "palette",
+          identityEvidence: "evidence",
+          identityPremium: "premium",
           weightAverage: "average weight",
           weightCoreAverage: "core average",
           weightEvidenceCoverage: "evidence coverage",
@@ -3175,9 +3267,67 @@ INDEX_HTML = r"""<!doctype html>
         renderWeightSnapshot(rows);
         renderBrandWeightStrategy(rows);
         renderBrandWeightProfile(rows);
+        renderBrandIdentityMatrix(rows);
         renderBrandRadarMatrix(rows);
         renderSampleCoverage(rows);
         renderWeightTuning(rows);
+      }
+
+      function renderBrandIdentityMatrix(rows) {
+        const stats = brandIdentityStats(rows);
+        const visible = [...rows]
+          .sort((a, b) => (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0) || (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0))
+          .slice(0, 9);
+        $("brandIdentityMatrix").innerHTML = `
+          <article class="identity-brief">
+            <strong>${escapeHtml(stats.coverage)}%</strong>
+            <p>${escapeHtml(t("identityCoverage"))} · ${escapeHtml(stats.total)} ${escapeHtml(t("brandWeights"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.coverage)}%"></span></div>
+            <div class="identity-counts">
+              <span><strong>${escapeHtml(stats.core)}</strong>${escapeHtml(t("identityCoreCount"))}</span>
+              <span><strong>${escapeHtml(stats.watch)}</strong>${escapeHtml(t("identityWatchCount"))}</span>
+              <span><strong>${escapeHtml(stats.archive)}</strong>${escapeHtml(t("identityArchiveCount"))}</span>
+            </div>
+          </article>
+          <div class="identity-stack">
+            ${visible.length ? visible.map((entry) => brandIdentityCardHtml(entry)).join("") : `<div class="row">${escapeHtml(t("noBrandProfile"))}</div>`}
+          </div>
+        `;
+      }
+
+      function brandIdentityStats(rows) {
+        const total = rows.length || 0;
+        const complete = rows.filter((entry) => entry.visual?.accent && entry.visual?.motif && entry.visual?.radar_cue).length;
+        return {
+          total,
+          coverage: total ? Math.round(complete / total * 100) : 0,
+          core: rows.filter((entry) => entry.tier === "core" || Number(entry.brand_weight) >= 90).length,
+          watch: rows.filter((entry) => entry.tier === "watch" || (Number(entry.brand_weight) >= 70 && Number(entry.brand_weight) < 90)).length,
+          archive: rows.filter((entry) => entry.tier === "archive" || Number(entry.brand_weight) < 70).length,
+        };
+      }
+
+      function brandIdentityCardHtml(entry) {
+        const keywords = (entry.market_keywords || []).slice(0, 3);
+        const motif = entry.visual?.motif || styleLabel(entry.style);
+        const cue = entry.visual?.radar_cue || "";
+        const palette = entry.visual?.palette || styleLabel(entry.style);
+        return `<article class="identity-card" style="${escapeHtml(brandVisualStyle(entry))}">
+          <div class="identity-swatch" aria-hidden="true">${escapeHtml(entry.alias)}</div>
+          <div class="identity-main">
+            <strong>${escapeHtml(entry.name)}</strong>
+            <p>${escapeHtml(t("identityPalette"))} · ${escapeHtml(palette)} · ${escapeHtml(t("visualMotif"))} · ${escapeHtml(motif)}</p>
+            ${cue ? `<p>${escapeHtml(cue)}</p>` : ""}
+            <div class="identity-tags">
+              ${keywords.length ? keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("") : `<span>${escapeHtml(t("profileNoKeywords"))}</span>`}
+            </div>
+          </div>
+          <div class="identity-score">
+            <strong>${escapeHtml(entry.brand_weight)}</strong>
+            <span class="muted">${escapeHtml(t("identityPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</span>
+            <span class="muted">${escapeHtml(t("identityEvidence"))} ${escapeHtml(entry.sample_count)}</span>
+          </div>
+        </article>`;
       }
 
       function buildOpportunityRows() {
