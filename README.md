@@ -109,7 +109,9 @@ palette, motif, and radar cue, while keeping the weight sliders and saved draft
 state visible for fast tuning. A brand-weight scenario comparison panel previews
 release-first, premium-first, and evidence-first target weights side by side,
 including average target, up/down counts, top moves, and one-click draft apply
-buttons. A sticky radar navigation strip jumps between
+buttons; the expanded scenario table can be exported as
+`lolita-weight-scenarios.csv` for comparing all three weighting modes in a
+spreadsheet before saving. A sticky radar navigation strip jumps between
 weights, brand identity, matrix, premium, evidence, and source sections so the
 long dashboard stays usable. The brand radar matrix
 puts weight, average resale premium, sample count, radar score, and next action

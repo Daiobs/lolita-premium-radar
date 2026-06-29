@@ -2335,6 +2335,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="weightScenarioCompare">品牌权重情景对比</h2>
           <span class="muted" data-i18n="weightScenarioCompareHint">保存前预览新品、溢价和补证据三种权重草稿</span>
         </div>
+        <button id="exportScenariosCsvBtn" type="button" class="secondary" data-i18n="exportScenariosCsv">导出情景 CSV</button>
       </div>
       <div id="weightScenarioCompare" class="scenario-grid"></div>
     </section>
@@ -2747,6 +2748,9 @@ INDEX_HTML = r"""<!doctype html>
           scenarioPremium: "溢价优先",
           scenarioEvidence: "补证据优先",
           scenarioApplied: "已生成权重情景草稿",
+          exportScenariosCsv: "导出情景 CSV",
+          exportedScenariosCsv: "权重情景已导出",
+          noScenariosCsv: "暂无可导出的权重情景",
           weightScenarioCompare: "品牌权重情景对比",
           weightScenarioCompareHint: "保存前预览新品、溢价和补证据三种权重草稿",
           scenarioAvgTarget: "均值目标",
@@ -3343,6 +3347,9 @@ INDEX_HTML = r"""<!doctype html>
           scenarioPremium: "Premium first",
           scenarioEvidence: "Evidence first",
           scenarioApplied: "weight scenario draft applied",
+          exportScenariosCsv: "export scenarios CSV",
+          exportedScenariosCsv: "weight scenarios exported",
+          noScenariosCsv: "no weight scenarios to export",
           weightScenarioCompare: "Brand Weight Scenario Compare",
           weightScenarioCompareHint: "Preview release, premium, and evidence-first drafts before saving",
           scenarioAvgTarget: "avg target",
@@ -5917,6 +5924,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedGuardrailsCsv"));
       }
 
+      function exportWeightScenariosCsv() {
+        const rows = weightScenarioCsvRows(buildBrandRadarMatrix());
+        if (!rows.length) {
+          toast(t("noScenariosCsv"));
+          return;
+        }
+        const csv = csvFromWeightScenarios(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-weight-scenarios.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedScenariosCsv"));
+      }
+
       function exportDailyRadarCsv() {
         const rows = dailyRadarActions(buildBrandRadarMatrix());
         if (!rows.length) {
@@ -6283,6 +6309,63 @@ INDEX_HTML = r"""<!doctype html>
         const lines = [
           fields.map(([header]) => csvCell(header)).join(","),
           ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function weightScenarioCsvRows(rows) {
+        const scenarios = ["release", "premium", "evidence"];
+        const formulaByAlias = new Map(buildBrandWeightFormula(rows, Number.POSITIVE_INFINITY).map((row) => [row.alias, row]));
+        return (rows || []).flatMap((entry) => {
+          const savedWeight = Number(brandByAlias(entry.alias)?.weight ?? entry.brand_weight) || 0;
+          const formula = formulaByAlias.get(entry.alias) || {};
+          return scenarios.map((scenario) => {
+            const targetWeight = scenarioTargetWeight(entry, scenario);
+            return {
+              ...entry,
+              scenario,
+              scenario_label: t(scenarioLabelKey(scenario)),
+              saved_weight: savedWeight,
+              target_weight: targetWeight,
+              delta: targetWeight - savedWeight,
+              formula_target: formula.target_weight ?? "",
+              formula_delta: formula.delta ?? "",
+              formula_confidence: formula.confidence ?? "",
+              market_keywords: (entry.market_keywords || []).join(" | "),
+              watch_urls: (entry.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
+              radar_cue: entry.visual?.radar_cue || "",
+            };
+          });
+        });
+      }
+
+      function csvFromWeightScenarios(rows) {
+        const fields = [
+          ["scenario", "scenario"],
+          ["scenario_label", "scenario_label"],
+          ["alias", "alias"],
+          ["name", "name"],
+          ["saved_weight", "saved_weight"],
+          ["target_weight", "target_weight"],
+          ["delta", "delta"],
+          ["formula_target", "formula_target"],
+          ["formula_delta", "formula_delta"],
+          ["formula_confidence", "formula_confidence"],
+          ["current_draft_weight", "brand_weight"],
+          ["tier", "tier"],
+          ["style", "style"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["max_premium_rate", "max_premium_rate"],
+          ["sample_count", "sample_count"],
+          ["evidence_level", "evidence_level"],
+          ["priority_score", "priority_score"],
+          ["market_keywords", "market_keywords"],
+          ["watch_urls", "watch_urls"],
+          ["radar_cue", "radar_cue"],
+        ];
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...(rows || []).map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
         ];
         return lines.join("\n");
       }
@@ -7424,6 +7507,7 @@ INDEX_HTML = r"""<!doctype html>
       $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
       $("exportScorecardsCsvBtn").addEventListener("click", exportBrandWeightScorecardsCsv);
       $("exportGuardrailsCsvBtn").addEventListener("click", exportBrandWeightGuardrailsCsv);
+      $("exportScenariosCsvBtn").addEventListener("click", exportWeightScenariosCsv);
       $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);
       $("exportCoreWatchCsvBtn").addEventListener("click", exportCoreWatchCsv);
       $("exportSamplePlanCsvBtn").addEventListener("click", exportSamplePlanCsv);
