@@ -2079,6 +2079,7 @@ INDEX_HTML = r"""<!doctype html>
           <h2 data-i18n="dailyRadarBrief">今日雷达简报</h2>
           <span class="muted" data-i18n="dailyRadarBriefHint">把核心盯盘、权重校准和采样缺口收成今天的行动队列</span>
         </div>
+        <button id="exportDailyCsvBtn" type="button" class="secondary" data-i18n="exportDailyCsv">导出简报 CSV</button>
       </div>
       <div id="dailyRadarBrief" class="daily-grid"></div>
     </section>
@@ -2503,6 +2504,9 @@ INDEX_HTML = r"""<!doctype html>
           dailyKindCore: "核心盯盘",
           dailyKindScorecard: "权重评分",
           dailyKindSampling: "采样计划",
+          exportDailyCsv: "导出简报 CSV",
+          exportedDailyCsv: "今日雷达简报已导出",
+          noDailyCsv: "暂无可导出的今日简报",
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
           saveWeights: "保存权重",
@@ -3058,6 +3062,9 @@ INDEX_HTML = r"""<!doctype html>
           dailyKindCore: "core watch",
           dailyKindScorecard: "weight score",
           dailyKindSampling: "sampling plan",
+          exportDailyCsv: "export brief CSV",
+          exportedDailyCsv: "daily radar brief exported",
+          noDailyCsv: "no daily brief to export",
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
           saveWeights: "Save Weights",
@@ -5418,6 +5425,25 @@ INDEX_HTML = r"""<!doctype html>
         toast(t("exportedScorecardsCsv"));
       }
 
+      function exportDailyRadarCsv() {
+        const rows = dailyRadarActions(buildBrandRadarMatrix());
+        if (!rows.length) {
+          toast(t("noDailyCsv"));
+          return;
+        }
+        const csv = csvFromDailyRadarActions(rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "lolita-daily-radar.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        toast(t("exportedDailyCsv"));
+      }
+
       function exportSamplePlanCsv() {
         const rows = buildSamplePlanRows(buildBrandRadarMatrix());
         if (!rows.length) {
@@ -5721,6 +5747,37 @@ INDEX_HTML = r"""<!doctype html>
           part_watchability: row.parts?.watchability ?? "",
           market_keywords: (row.market_keywords || []).join(" | "),
           watch_urls: (row.watch_urls || []).map((link) => `${link.label}: ${link.url}`).join(" | "),
+          radar_cue: row.visual?.radar_cue || "",
+        }));
+        const lines = [
+          fields.map(([header]) => csvCell(header)).join(","),
+          ...enriched.map((row) => fields.map(([, key]) => csvCell(row[key])).join(",")),
+        ];
+        return lines.join("\n");
+      }
+
+      function csvFromDailyRadarActions(rows) {
+        const fields = [
+          ["rank", "rank"],
+          ["brand_alias", "alias"],
+          ["brand_name", "name"],
+          ["action_kind", "action_kind"],
+          ["action_label", "action_label"],
+          ["daily_score", "daily_score"],
+          ["brand_weight", "brand_weight"],
+          ["sample_count", "sample_count"],
+          ["avg_premium_rate", "avg_premium_rate"],
+          ["detail", "daily_detail"],
+          ["jump_target", "daily_target"],
+          ["sample_alias", "daily_sample"],
+          ["keyword", "daily_keyword"],
+          ["radar_cue", "radar_cue"],
+        ];
+        const enriched = (rows || []).map((row, index) => ({
+          ...row,
+          rank: index + 1,
+          action_kind: t(row.daily_kind),
+          action_label: t(row.daily_label),
           radar_cue: row.visual?.radar_cue || "",
         }));
         const lines = [
@@ -6753,6 +6810,7 @@ INDEX_HTML = r"""<!doctype html>
         const button = event.target.closest("[data-weight-scenario]");
         if (button) applyWeightScenario(button.dataset.weightScenario);
       });
+      $("exportDailyCsvBtn").addEventListener("click", exportDailyRadarCsv);
       $("exportWeightsCsvBtn").addEventListener("click", exportBrandWeightsCsv);
       $("exportScorecardsCsvBtn").addEventListener("click", exportBrandWeightScorecardsCsv);
       $("exportPremiumSeedsCsvBtn").addEventListener("click", exportPremiumSeedsCsv);

@@ -100,7 +100,8 @@ feels closer to a Lolita market desk without depending on remote media. Brand
 weights, scorecards, core watch gaps, and sample plans are also summarized into
 a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
 priority checks into a short action queue with jump, sample, and pattern-prefill
-buttons. Brand
+buttons; the same brief can be exported as `lolita-daily-radar.csv` for a daily
+watch checklist. Brand
 weight cards use Lolita-style visual cues such as themed brand cameos, tier
 ribbons, market-keyword pearls, and per-brand visual identity metadata for
 palette, motif, and radar cue, while keeping the weight sliders and saved draft
