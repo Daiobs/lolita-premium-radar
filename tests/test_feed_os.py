@@ -1,0 +1,84 @@
+import unittest
+
+from lolita_radar.crawler import enrich_source_runs
+from lolita_radar.feed import build_home_feed
+from lolita_radar.trend import build_trend_feed
+
+
+class FeedOsTests(unittest.TestCase):
+    def test_home_feed_builds_four_streams(self) -> None:
+        events = [
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Shell Garden JSK",
+                "url": "https://example.com/ap",
+                "created_at": "2026-06-30T10:00:00+00:00",
+            },
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "status": "shop_news",
+                "title": "Proxy JSK 预约",
+                "url": "https://example.com/shop",
+                "created_at": "2026-06-30T10:01:00+00:00",
+            },
+        ]
+        market_summary = {
+            "brands": [
+                {"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.45, "max_premium_rate": 0.7}
+            ]
+        }
+        market_alerts = {"alerts": [{"kind": "sample_gap", "alias": "BABY", "reason": "core_needs_samples"}]}
+
+        feed = build_home_feed(events, [], market_summary, market_alerts, [], [])
+
+        self.assertEqual(feed["summary"]["drops"], 1)
+        self.assertEqual(feed["summary"]["shops"], 1)
+        self.assertEqual(feed["summary"]["trends"], 1)
+        self.assertGreaterEqual(feed["summary"]["alerts"], 2)
+        self.assertEqual(feed["streams"]["release"][0]["brand"], "AP")
+        self.assertEqual(feed["streams"]["drop"][0]["feed_type"], "drop")
+        self.assertEqual(feed["streams"]["trend"][0]["kind"], "rising")
+
+    def test_trend_engine_outputs_direction_confidence_and_reasons(self) -> None:
+        trends = build_trend_feed(
+            {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]},
+            [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
+            [{"source": "angelic_pretty"}],
+        )
+
+        self.assertEqual(trends[0]["kind"], "rising")
+        self.assertGreaterEqual(trends[0]["confidence"], 60)
+        self.assertIn("sample_supported", trends[0]["reason_codes"])
+        self.assertIn("premium_rising", trends[0]["reason_codes"])
+
+    def test_trend_engine_outputs_sample_gap_for_weighted_brand_without_samples(self) -> None:
+        trends = build_trend_feed(
+            {"brands": []},
+            [],
+            [],
+            brand_weights=[{"alias": "AP", "weight": 100}],
+        )
+
+        self.assertEqual(trends[0]["brand"], "AP")
+        self.assertEqual(trends[0]["kind"], "stable")
+        self.assertIn("sample_gap", trends[0]["reason_codes"])
+
+    def test_crawler_health_marks_failed_and_degraded(self) -> None:
+        rows = enrich_source_runs(
+            [
+                {"source": "ap", "ok": True, "item_count": 0, "event_count": 0},
+                {"source": "baby", "ok": False, "item_count": 0, "event_count": 0},
+            ]
+        )
+
+        by_source = {row["source"]: row for row in rows}
+        self.assertEqual(by_source["ap"]["status"], "degraded")
+        self.assertEqual(by_source["baby"]["status"], "failed")
+        self.assertEqual(by_source["baby"]["error_rate"], 1.0)
+
+
+if __name__ == "__main__":
+    unittest.main()

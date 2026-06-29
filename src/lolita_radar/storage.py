@@ -54,6 +54,8 @@ def initialize(connection: sqlite3.Connection) -> None:
             source TEXT NOT NULL,
             checked_at TEXT NOT NULL,
             ok INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT '',
+            error_rate REAL NOT NULL DEFAULT 0,
             item_count INTEGER NOT NULL DEFAULT 0,
             event_count INTEGER NOT NULL DEFAULT 0,
             error_message TEXT NOT NULL DEFAULT ''
@@ -63,6 +65,8 @@ def initialize(connection: sqlite3.Connection) -> None:
     ensure_column(connection, "items", "content_hash", "TEXT NOT NULL DEFAULT ''")
     ensure_column(connection, "events", "content_hash", "TEXT")
     ensure_column(connection, "events", "previous_content_hash", "TEXT")
+    ensure_column(connection, "source_runs", "status", "TEXT NOT NULL DEFAULT ''")
+    ensure_column(connection, "source_runs", "error_rate", "REAL NOT NULL DEFAULT 0")
     connection.commit()
 
 
@@ -72,7 +76,11 @@ def ensure_column(connection: sqlite3.Connection, table: str, column: str, defin
         for row in connection.execute(f"PRAGMA table_info({table})")
     }
     if column not in columns:
-        connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        try:
+            connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        except sqlite3.OperationalError as exc:
+            if "duplicate column name" not in str(exc).lower():
+                raise
 
 
 def diff_and_store(
@@ -257,18 +265,22 @@ def record_source_run(
     event_count: int = 0,
     error_message: str = "",
     checked_at: str | None = None,
+    status: str = "",
+    error_rate: float = 0.0,
 ) -> None:
     connection.execute(
         """
         INSERT INTO source_runs (
-            source, checked_at, ok, item_count, event_count, error_message
+            source, checked_at, ok, status, error_rate, item_count, event_count, error_message
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             source,
             checked_at or utc_now_iso(),
             1 if ok else 0,
+            status or ("ok" if ok else "failed"),
+            float(error_rate),
             int(item_count),
             int(event_count),
             str(error_message or ""),
@@ -279,7 +291,7 @@ def record_source_run(
 def list_source_runs(connection: sqlite3.Connection, limit: int = 50) -> list[dict[str, Any]]:
     rows = connection.execute(
         """
-        SELECT source, checked_at, ok, item_count, event_count, error_message
+        SELECT source, checked_at, ok, status, error_rate, item_count, event_count, error_message
         FROM source_runs
         ORDER BY checked_at DESC, id DESC
         LIMIT ?
@@ -298,7 +310,7 @@ def list_source_runs(connection: sqlite3.Connection, limit: int = 50) -> list[di
 def list_latest_source_runs(connection: sqlite3.Connection) -> list[dict[str, Any]]:
     rows = connection.execute(
         """
-        SELECT source, checked_at, ok, item_count, event_count, error_message
+        SELECT source, checked_at, ok, status, error_rate, item_count, event_count, error_message
         FROM source_runs
         WHERE id IN (
             SELECT MAX(id)

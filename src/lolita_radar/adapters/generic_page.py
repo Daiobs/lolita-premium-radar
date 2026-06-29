@@ -9,13 +9,25 @@ from ..rules import keyword_matches
 from .base import SourceAdapter
 
 
+DEFAULT_IGNORE_PATTERNS = [
+    r"updated at[:：]?\s*[0-9: /.-]+",
+    r"last updated[:：]?\s*[0-9: /.-]+",
+    r"\d{4}[./-]\d{1,2}[./-]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?",
+]
+NAVIGATION_PATTERNS = [
+    r"\b(login|account|cart|privacy|contact|company|shop list)\b",
+    r"(登录|登入|购物车|隐私|联系|会社概要|カート|ログイン|お問い合わせ)",
+]
+
+
 class GenericPageAdapter(SourceAdapter):
     def fetch_items(self) -> list[RadarItem]:
         html_text = fetch_text(
             self.config.url,
             timeout_seconds=int(self.config.options.get("timeout_seconds", 20)),
         )
-        text = apply_ignore_patterns(parse_generic_text(html_text), self.config.options.get("ignore_patterns") or [])
+        patterns = DEFAULT_IGNORE_PATTERNS + NAVIGATION_PATTERNS + list(self.config.options.get("ignore_patterns") or [])
+        text = suppress_duplicate_segments(apply_ignore_patterns(parse_generic_text(html_text), patterns))
         max_content_chars = int(self.config.options.get("max_content_chars", 12000))
         if max_content_chars > 0:
             text = text[:max_content_chars]
@@ -68,3 +80,18 @@ def build_title(template: str, fallback: str, source: str, url: str, matches: li
         return template.format(source=source, url=url, matches=match_text, matched_keywords=match_text)
     except (KeyError, ValueError):
         return fallback
+
+
+def suppress_duplicate_segments(text: str) -> str:
+    seen = set()
+    kept = []
+    for segment in re.split(r"(?<=[。.!?])\s+|\s{2,}", text):
+        cleaned = segment.strip()
+        if not cleaned:
+            continue
+        key = cleaned.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        kept.append(cleaned)
+    return " ".join(kept)

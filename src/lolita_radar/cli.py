@@ -48,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     health_parser.add_argument("--config", type=Path, default=default_config_path())
     health_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
 
-    web_parser = subparsers.add_parser("web", help="start the local web dashboard")
+    web_parser = subparsers.add_parser("web", help="start the local feed app")
     web_parser.add_argument("--config", type=Path, default=default_config_path())
     web_parser.add_argument("--brands", type=Path, default=default_brand_weights_path())
     web_parser.add_argument("--market", type=Path, default=default_market_observations_path())
@@ -124,7 +124,7 @@ def format_inspect_results(results: list[InspectResult], limit: int) -> str:
 
 
 def format_health_rows(rows: list[dict[str, object]]) -> str:
-    lines = ["source | ok | item_count | event_count | checked_at | error_message"]
+    lines = ["source | status | ok | error_rate | item_count | event_count | checked_at | error_message"]
     for row in rows:
         ok = row["ok"]
         ok_text = "ok" if ok is True else "failed" if ok is False else "no_run"
@@ -132,7 +132,9 @@ def format_health_rows(rows: list[dict[str, object]]) -> str:
             " | ".join(
                 [
                     str(row["source"]),
+                    str(row.get("status") or ok_text),
                     ok_text,
+                    str(row.get("error_rate", 0)),
                     str(row["item_count"]),
                     str(row["event_count"]),
                     str(row["checked_at"] or "-"),

@@ -78,6 +78,39 @@ class GenericPageNoiseTests(unittest.TestCase):
             self.assertEqual([event.event_type for event in first_events], [EventType.NEW_ITEM])
             self.assertEqual(second_events, [])
 
+    def test_timestamp_only_change_is_ignored_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "radar.sqlite")
+            config = SourceConfig(
+                name="proxy",
+                type="generic_page",
+                url="https://example.com/proxy",
+                keywords=["JSK"],
+                options={"title_template": "{source} page"},
+            )
+            original_fetch = generic_page.fetch_text
+            try:
+                generic_page.fetch_text = lambda *_args, **_kwargs: (
+                    "<html><body>Login Cart updated at: 2026-06-30 10:00 JSK Shell Garden JSK.</body></html>"
+                )
+                first = generic_page.GenericPageAdapter(config).fetch_items()[0]
+                generic_page.fetch_text = lambda *_args, **_kwargs: (
+                    "<html><body>Login Cart updated at: 2026-06-30 11:00 JSK Shell Garden JSK.</body></html>"
+                )
+                second = generic_page.GenericPageAdapter(config).fetch_items()[0]
+
+                first_events = diff_and_store(connection, [first])
+                second_events = diff_and_store(connection, [second])
+            finally:
+                generic_page.fetch_text = original_fetch
+                connection.close()
+
+            self.assertNotIn("Login", first.content)
+            self.assertNotIn("Cart", first.content)
+            self.assertEqual(first.content_hash, second.content_hash)
+            self.assertEqual([event.event_type for event in first_events], [EventType.NEW_ITEM])
+            self.assertEqual(second_events, [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -68,12 +68,21 @@ def check_sources(
                 items = adapter.fetch_items()
                 events = diff_and_store(connection, items, write_events=not baseline_only)
             except Exception as exc:
-                record_source_run(connection, source.name, ok=False, error_message=str(exc))
+                record_source_run(connection, source.name, ok=False, status="failed", error_rate=1.0, error_message=str(exc))
                 connection.commit()
                 if source_name:
                     raise
                 continue
-            record_source_run(connection, source.name, ok=True, item_count=len(items), event_count=len(events))
+            status = "ok" if items else "degraded"
+            record_source_run(
+                connection,
+                source.name,
+                ok=True,
+                status=status,
+                error_rate=0.0,
+                item_count=len(items),
+                event_count=len(events),
+            )
             connection.commit()
             all_events.extend(events)
     finally:
@@ -153,6 +162,8 @@ def latest_source_health(config_path: Path, db_path: Path) -> list[dict[str, obj
                 "source": source.name,
                 "enabled": source.enabled,
                 "ok": run["ok"] if run else None,
+                "status": run["status"] if run else "no_run",
+                "error_rate": run["error_rate"] if run else 0,
                 "item_count": run["item_count"] if run else 0,
                 "event_count": run["event_count"] if run else 0,
                 "checked_at": run["checked_at"] if run else "",
