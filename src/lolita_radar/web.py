@@ -297,6 +297,9 @@ INDEX_HTML = r"""<!doctype html>
         --theme-rose-rgb: 180,87,111;
         --theme-wine-rgb: 97,27,49;
         --button-top: #93415b;
+        --lace-dot: radial-gradient(circle, rgba(169,120,44,.34) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        --lace-scallop: radial-gradient(circle at 8px 0, rgba(255,255,255,.84) 0 6px, transparent 6px) 0 0 / 16px 8px repeat-x;
+        --ribbon-edge: linear-gradient(90deg, var(--rose), var(--gold), var(--teal));
         --topbar-bg:
           radial-gradient(circle at 92% 28%, rgba(246,216,223,.22) 0 2px, transparent 2px),
           radial-gradient(circle at 18% 16%, rgba(255,255,255,.14) 0 1px, transparent 2px),
@@ -466,6 +469,19 @@ INDEX_HTML = r"""<!doctype html>
         opacity: .7;
       }
       .eyebrow { margin: 0 0 5px; color: #f1dad7; font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
+      .eyebrow::before, .eyebrow::after {
+        content: "";
+        display: inline-block;
+        width: 22px;
+        height: 5px;
+        margin: 0 8px 2px 0;
+        background: var(--lace-scallop);
+        opacity: .78;
+      }
+      .eyebrow::after {
+        margin: 0 0 2px 8px;
+        transform: scaleX(-1);
+      }
       .topbar h1 {
         position: relative;
         display: inline-block;
@@ -514,6 +530,20 @@ INDEX_HTML = r"""<!doctype html>
         border: 1px solid rgba(255,255,255,.34);
         border-radius: 6px;
         pointer-events: none;
+      }
+      .hero-visual .hero-pearls::before {
+        content: "";
+        align-self: center;
+        width: 28px;
+        height: 14px;
+        flex: 0 0 auto;
+        border: 1px solid rgba(255,255,255,.54);
+        border-radius: 3px;
+        background:
+          linear-gradient(45deg, transparent 0 35%, rgba(255,255,255,.76) 35% 65%, transparent 65%),
+          linear-gradient(-45deg, transparent 0 35%, rgba(255,255,255,.76) 35% 65%, transparent 65%),
+          color-mix(in srgb, var(--satin) 78%, #fff);
+        box-shadow: var(--pearl-shadow);
       }
       .hero-visual::after {
         content: "";
@@ -693,14 +723,26 @@ INDEX_HTML = r"""<!doctype html>
       .language-switch button.active, .theme-switch button.active { background: #fff; color: #14242d; }
       .theme-switch button { display: inline-flex; align-items: center; gap: 6px; }
       .theme-swatch {
-        width: 10px;
+        position: relative;
+        width: 17px;
         height: 10px;
         flex: 0 0 auto;
-        border-radius: 999px;
+        border-radius: 3px;
         border: 1px solid rgba(255,255,255,.72);
         background: var(--swatch, var(--rose));
         box-shadow: var(--pearl-shadow);
       }
+      .theme-swatch::before, .theme-swatch::after {
+        content: "";
+        position: absolute;
+        top: 1px;
+        width: 7px;
+        height: 6px;
+        border-radius: 999px 999px 4px 999px;
+        background: color-mix(in srgb, var(--swatch, var(--rose)) 58%, #fff);
+      }
+      .theme-swatch::before { left: 1px; transform: rotate(-28deg); }
+      .theme-swatch::after { right: 1px; transform: rotate(28deg) scaleX(-1); }
       .theme-swatch.sweet { --swatch: #c45f82; }
       .theme-swatch.classic { --swatch: #a9782c; }
       .theme-swatch.gothic { --swatch: #421127; }
@@ -1105,7 +1147,7 @@ INDEX_HTML = r"""<!doctype html>
         right: 12px;
         bottom: 8px;
         height: 4px;
-        background: radial-gradient(circle, rgba(169,120,44,.36) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        background: var(--lace-dot);
         pointer-events: none;
       }
       .daily-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
@@ -1168,6 +1210,17 @@ INDEX_HTML = r"""<!doctype html>
         inset: 0 auto 0 0;
         width: 5px;
         background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .daily-card::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 7px;
+        height: 4px;
+        background: var(--lace-dot);
+        opacity: .78;
+        pointer-events: none;
       }
       .daily-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
       .daily-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
@@ -1353,7 +1406,7 @@ INDEX_HTML = r"""<!doctype html>
         position: absolute;
         inset: auto 9px 6px;
         height: 4px;
-        background: radial-gradient(circle, color-mix(in srgb, var(--brand-accent, var(--rose)) 34%, transparent) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        background: var(--lace-dot);
         pointer-events: none;
       }
       .brand-chip.theme-sweet { --brand-accent: #b4576f; --brand-paper: #fff3f6; }
@@ -5670,6 +5723,7 @@ INDEX_HTML = r"""<!doctype html>
           });
         });
         brandWeightScorecardRows(rows, Number.POSITIVE_INFINITY).slice(0, 4).forEach((entry) => {
+          const keyword = (entry.market_keywords || [])[0] || "";
           actions.push({
             ...entry,
             daily_kind: "dailyKindScorecard",
@@ -5678,6 +5732,8 @@ INDEX_HTML = r"""<!doctype html>
             daily_score: Math.max(Number(entry.confidence) || 0, Number(entry.brand_weight) || 0),
             daily_target: "brandWeightScorecard",
             daily_sample: Number(entry.sample_count) < 2 ? entry.alias : "",
+            daily_keyword: keyword,
+            daily_audit: scorecardLedgerBrief(entry),
             daily_tone: scorecardVerdictPill(entry.scorecard_verdict),
             daily_rank: scorecardRank(entry.scorecard_verdict),
           });
@@ -5748,6 +5804,7 @@ INDEX_HTML = r"""<!doctype html>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(Math.round(Number(entry.daily_score) || 0))}%"></span></div>
           <p>${escapeHtml(entry.daily_detail || "")}</p>
+          ${entry.daily_audit ? `<p class="muted">${escapeHtml(entry.daily_audit)}</p>` : ""}
           <div class="daily-card-actions">
             <button type="button" class="secondary" data-daily-jump="${escapeHtml(entry.daily_target)}">${escapeHtml(t("dailyJump"))}</button>
             ${entry.daily_sample ? `<button type="button" class="secondary" data-daily-sample="${escapeHtml(entry.daily_sample)}">${escapeHtml(t("dailySample"))}</button>` : ""}
@@ -6165,6 +6222,13 @@ INDEX_HTML = r"""<!doctype html>
 
       function scorecardLedgerCsvText(row) {
         return row ? `${t(row.label)}: ${row.value} · ${row.detail}` : "";
+      }
+
+      function scorecardLedgerBrief(entry) {
+        return scorecardLedgerRows(entry)
+          .slice(1, 4)
+          .map((row) => `${t(row.label)} ${row.value}`)
+          .join(" · ");
       }
 
       function scorecardVerdict(entry) {
@@ -8618,6 +8682,7 @@ INDEX_HTML = r"""<!doctype html>
           ["sample_count", "sample_count"],
           ["avg_premium_rate", "avg_premium_rate"],
           ["detail", "daily_detail"],
+          ["audit_basis", "daily_audit"],
           ["jump_target", "daily_target"],
           ["sample_alias", "daily_sample"],
           ["keyword", "daily_keyword"],

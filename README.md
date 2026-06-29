@@ -124,7 +124,10 @@ Brand weights, scorecards, core watch gaps, and sample plans are also summarized
 into a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
 priority checks into a short action queue with jump, sample, and pattern-prefill
 buttons, plus grouped action lanes that can be clicked to filter the brief by
-price anchors, evidence collection, tuning, or sampling; the same brief can be
+price anchors, evidence collection, tuning, or sampling. Scorecard actions carry
+their premium/evidence/style-term basis into both the card and the exported
+`audit_basis` field, so a daily checklist still explains why a weight action was
+queued; the same brief can be
 exported as `lolita-daily-radar.csv` for a daily watch checklist. A release
 watch queue matches tracked release, preorder, restock, and shop-news items
 against each brand's alias, official keywords, and market pattern terms, then
@@ -229,10 +232,12 @@ be exported as CSV for spreadsheet review or sharing.
 The web dashboard includes a Lolita theme switcher with Sweet, Classic, and
 Gothic palettes. The setting is saved locally in the browser, so visual review
 can move between a sweeter AP-like mood, a calmer classic archive desk, and a
-darker gothic radar without changing market data or brand weights. The hero area
-also renders a style compass from the active brand weights, so Sweet, Classic,
-Gothic, Release, and Art Print lanes are visible immediately and update while
-you tune draft weights.
+darker gothic radar without changing market data or brand weights. The UI leans
+into Lolita-specific visual language with wardrobe tickets, lace dividers, bow
+theme swatches, pearl chips, and ribbon-edged action cards while keeping the
+market numbers scan-friendly. The hero area also renders a style compass from
+the active brand weights, so Sweet, Classic, Gothic, Release, and Art Print lanes
+are visible immediately and update while you tune draft weights.
 
 Brand weights live in [config/brand_weights.json](./config/brand_weights.json).
 The default first-pass priority is AP 100, BABY 95, AATP 90, Meta 80, MMM 75,
