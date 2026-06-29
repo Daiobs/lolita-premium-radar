@@ -1631,6 +1631,80 @@ INDEX_HTML = r"""<!doctype html>
         font-size: 12px;
         text-decoration: none;
       }
+      .portfolio-board { margin: 0 20px 14px; }
+      .portfolio-grid { display: grid; grid-template-columns: minmax(230px, .62fr) minmax(340px, 1.38fr); gap: 12px; padding: 12px; }
+      .portfolio-brief, .portfolio-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .portfolio-brief {
+        position: relative;
+        display: grid;
+        gap: 9px;
+        align-content: start;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(15,103,96,.12), transparent 36%),
+          linear-gradient(135deg, rgba(248,251,250,.92), rgba(255,247,232,.78));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+        overflow: hidden;
+      }
+      .portfolio-brief::after, .portfolio-card::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 8px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.34) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .portfolio-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .portfolio-brief p, .portfolio-card p { margin: 0; color: var(--muted); }
+      .portfolio-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .portfolio-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 50px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .portfolio-stats strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .portfolio-list { display: grid; gap: 8px; }
+      .portfolio-card {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        padding: 12px 12px 14px;
+        background:
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 66%, #fff), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+        overflow: hidden;
+      }
+      .portfolio-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .portfolio-card header { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+      .portfolio-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .portfolio-meter { display: grid; grid-template-columns: 58px 1fr; gap: 8px; align-items: center; }
+      .portfolio-meter strong { font: 650 26px/1 Georgia, "Times New Roman", serif; }
+      .portfolio-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      .portfolio-actions button {
+        min-height: 29px;
+        padding: 0 9px;
+        border-radius: 999px;
+      }
       .guardrail-board { margin: 0 20px 14px; }
       .guardrail-grid { display: grid; grid-template-columns: minmax(220px, .62fr) minmax(340px, 1.38fr); gap: 12px; padding: 12px; }
       .guardrail-brief, .guardrail-card, .guardrail-lane {
@@ -2510,7 +2584,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .portfolio-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2581,6 +2655,7 @@ INDEX_HTML = r"""<!doctype html>
     </section>
     <nav class="radar-nav" aria-label="Radar navigation">
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
+      <button type="button" data-radar-jump="brandPortfolio" data-i18n="navPortfolio">组合</button>
       <button type="button" data-radar-jump="brandWeights" data-i18n="navWeights">权重</button>
       <button type="button" data-radar-jump="brandWeightRubric" data-i18n="navRubric">标尺</button>
       <button type="button" data-radar-jump="brandPlaybook" data-i18n="navPlaybook">作战卡</button>
@@ -2609,6 +2684,15 @@ INDEX_HTML = r"""<!doctype html>
         <button id="exportRunSheetCsvBtn" type="button" class="secondary" data-i18n="exportRunSheetCsv">导出巡检 CSV</button>
       </div>
       <div id="resaleRunSheet" class="run-sheet-grid"></div>
+    </section>
+    <section class="panel portfolio-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="brandPortfolio">品牌组合总览</h2>
+          <span class="muted" data-i18n="brandPortfolioHint">把证据覆盖、核心缺口、溢价热度和权重偏移合成总览</span>
+        </div>
+      </div>
+      <div id="brandPortfolio" class="portfolio-grid"></div>
     </section>
     <section class="atelier">
       <div class="signal-strip">
@@ -3030,6 +3114,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualPremium: "溢价热度",
           heroVisualEvidence: "样本证据",
           navDaily: "简报",
+          navPortfolio: "组合",
           navWeights: "权重",
           navRubric: "标尺",
           navPlaybook: "作战卡",
@@ -3091,6 +3176,24 @@ INDEX_HTML = r"""<!doctype html>
           exportRunSheetCsv: "导出巡检 CSV",
           exportedRunSheetCsv: "巡检清单已导出",
           noRunSheetCsv: "暂无可导出的巡检任务",
+          brandPortfolio: "品牌组合总览",
+          brandPortfolioHint: "把证据覆盖、核心缺口、溢价热度和权重偏移合成总览",
+          portfolioHealth: "组合健康",
+          portfolioCoverage: "证据覆盖",
+          portfolioCoreGaps: "核心缺口",
+          portfolioHeat: "溢价热度",
+          portfolioDrift: "权重偏移",
+          portfolioActions: "待处理",
+          portfolioEvidenceLane: "证据覆盖",
+          portfolioCoreLane: "核心缺口",
+          portfolioPremiumLane: "溢价热度",
+          portfolioDriftLane: "权重偏移",
+          portfolioEvidenceHint: "样本不足会让溢价和权重判断不稳",
+          portfolioCoreHint: "核心品牌缺价格锚点时，先补原价/二手价",
+          portfolioPremiumHint: "强溢价品牌需要持续查价和确认款式词",
+          portfolioDriftHint: "目标权重与当前权重偏离时，先审计再保存",
+          portfolioReview: "查看",
+          portfolioSample: "补样本",
           marketSignal: "溢价信号",
           brandWeights: "品牌权重",
           saveWeights: "保存权重",
@@ -3703,6 +3806,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualPremium: "premium heat",
           heroVisualEvidence: "sample evidence",
           navDaily: "Brief",
+          navPortfolio: "Portfolio",
           navWeights: "Weights",
           navRubric: "Rubric",
           navPlaybook: "Playbook",
@@ -3764,6 +3868,24 @@ INDEX_HTML = r"""<!doctype html>
           exportRunSheetCsv: "export run sheet CSV",
           exportedRunSheetCsv: "run sheet exported",
           noRunSheetCsv: "no run-sheet tasks to export",
+          brandPortfolio: "Brand Portfolio Overview",
+          brandPortfolioHint: "Summarize evidence coverage, core gaps, premium heat, and weight drift",
+          portfolioHealth: "portfolio health",
+          portfolioCoverage: "evidence coverage",
+          portfolioCoreGaps: "core gaps",
+          portfolioHeat: "premium heat",
+          portfolioDrift: "weight drift",
+          portfolioActions: "open actions",
+          portfolioEvidenceLane: "evidence coverage",
+          portfolioCoreLane: "core gaps",
+          portfolioPremiumLane: "premium heat",
+          portfolioDriftLane: "weight drift",
+          portfolioEvidenceHint: "Thin samples make premium and weight calls unstable",
+          portfolioCoreHint: "When core brands lack anchors, collect paired retail/resale prices first",
+          portfolioPremiumHint: "Hot-premium brands need continued checks and term confirmation",
+          portfolioDriftHint: "When target and current weights diverge, audit before saving",
+          portfolioReview: "view",
+          portfolioSample: "add sample",
           marketSignal: "Premium Signal",
           brandWeights: "Brand Weights",
           saveWeights: "Save Weights",
@@ -7775,6 +7897,7 @@ INDEX_HTML = r"""<!doctype html>
         renderStyleCompass(rows);
         renderDailyRadarBrief(rows);
         renderResaleRunSheet(rows);
+        renderBrandPortfolio(rows);
         renderBrandWeightRubric(rows);
         renderBrandPlaybook(rows);
         renderWeightScenarioCompare(rows);
@@ -7794,6 +7917,111 @@ INDEX_HTML = r"""<!doctype html>
         renderSamplePlan(rows);
         renderWeightTuning(rows);
         renderPriceDiscipline(rows);
+      }
+
+      function renderBrandPortfolio(rows) {
+        const stats = brandPortfolioStats(rows);
+        const lanes = brandPortfolioLanes(rows, stats);
+        $("brandPortfolio").innerHTML = `
+          <article class="portfolio-brief">
+            <strong>${escapeHtml(stats.health)}</strong>
+            <p>${escapeHtml(t("portfolioHealth"))} · ${escapeHtml(t("brandPortfolioHint"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.health)}%"></span></div>
+            <div class="portfolio-stats">
+              <span><strong>${escapeHtml(stats.coverage)}%</strong>${escapeHtml(t("portfolioCoverage"))}</span>
+              <span><strong>${escapeHtml(stats.core_gaps)}</strong>${escapeHtml(t("portfolioCoreGaps"))}</span>
+              <span><strong>${escapeHtml(stats.hot_count)}</strong>${escapeHtml(t("portfolioHeat"))}</span>
+              <span><strong>${escapeHtml(stats.drift_count)}</strong>${escapeHtml(t("portfolioDrift"))}</span>
+            </div>
+          </article>
+          <div class="portfolio-list">
+            ${lanes.map((lane) => `<article class="portfolio-card" style="${escapeHtml(brandVisualStyle(lane.lead_brand || {}))}">
+              <header>
+                <div>
+                  <strong>${escapeHtml(t(lane.label))}</strong>
+                  <p>${escapeHtml(t(lane.hint))}</p>
+                </div>
+                <span class="pill ${escapeHtml(lane.tone)}">${escapeHtml(lane.count)}</span>
+              </header>
+              <div class="portfolio-meter">
+                <strong>${escapeHtml(lane.score)}</strong>
+                <div>
+                  <p>${escapeHtml(lane.detail)}</p>
+                  <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lane.score)}%"></span></div>
+                </div>
+              </div>
+              <div class="portfolio-actions">
+                <button type="button" class="secondary" data-portfolio-jump="${escapeHtml(lane.target)}">${escapeHtml(t("portfolioReview"))}</button>
+                ${lane.sample_alias ? `<button type="button" class="secondary" data-portfolio-sample="${escapeHtml(lane.sample_alias)}">${escapeHtml(t("portfolioSample"))}</button>` : ""}
+              </div>
+            </article>`).join("")}
+          </div>
+        `;
+      }
+
+      function brandPortfolioStats(rows) {
+        const total = (rows || []).length;
+        const ready = (rows || []).filter((entry) => Number(entry.sample_count) >= 2).length;
+        const coverage = total ? Math.round(ready / total * 100) : 0;
+        const coreGaps = (rows || []).filter((entry) => Number(entry.brand_weight) >= 90 && Number(entry.sample_count) < 2).length;
+        const hotCount = (rows || []).filter((entry) => Number(entry.sample_count) >= 2 && Number(entry.avg_premium_rate) >= 0.25).length;
+        const formulas = buildBrandWeightFormula(rows, Array.isArray(rows) ? rows.length : 0);
+        const driftCount = formulas.filter((entry) => Math.abs(Number(entry.delta) || 0) >= 5).length;
+        const health = clampScore(Math.round(coverage * .45 + Math.max(0, 100 - coreGaps * 18) * .3 + Math.max(0, 100 - driftCount * 10) * .25));
+        return { total, coverage, core_gaps: coreGaps, hot_count: hotCount, drift_count: driftCount, health, formulas };
+      }
+
+      function brandPortfolioLanes(rows, stats) {
+        const sortedGaps = [...(rows || [])].filter((entry) => Number(entry.sample_count) < 2).sort((a, b) => (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0));
+        const coreGaps = sortedGaps.filter((entry) => Number(entry.brand_weight) >= 90);
+        const hotRows = [...(rows || [])].filter((entry) => Number(entry.sample_count) >= 2 && Number(entry.avg_premium_rate) >= 0.25).sort((a, b) => (Number(b.avg_premium_rate) || 0) - (Number(a.avg_premium_rate) || 0));
+        const driftRows = [...(stats.formulas || [])].filter((entry) => Math.abs(Number(entry.delta) || 0) >= 5).sort((a, b) => Math.abs(Number(b.delta) || 0) - Math.abs(Number(a.delta) || 0));
+        return [
+          {
+            label: "portfolioEvidenceLane",
+            hint: "portfolioEvidenceHint",
+            count: sortedGaps.length,
+            score: stats.coverage,
+            detail: `${t("coverageProgress")} ${stats.coverage}% · ${t("portfolioActions")} ${sortedGaps.length}`,
+            tone: stats.coverage < 50 ? "gold" : "",
+            target: "samplePlan",
+            sample_alias: sortedGaps[0]?.alias || "",
+            lead_brand: sortedGaps[0] || null,
+          },
+          {
+            label: "portfolioCoreLane",
+            hint: "portfolioCoreHint",
+            count: coreGaps.length,
+            score: clampScore(100 - coreGaps.length * 22),
+            detail: `${t("portfolioCoreGaps")} ${coreGaps.length} · ${t("dailyLead")} ${coreGaps[0]?.alias || "-"}`,
+            tone: coreGaps.length ? "gold" : "off",
+            target: "coreMarketWatch",
+            sample_alias: coreGaps[0]?.alias || "",
+            lead_brand: coreGaps[0] || null,
+          },
+          {
+            label: "portfolioPremiumLane",
+            hint: "portfolioPremiumHint",
+            count: hotRows.length,
+            score: hotRows.length ? clampScore(Math.round((Number(hotRows[0].avg_premium_rate) || 0) * 100)) : 0,
+            detail: `${t("portfolioHeat")} ${hotRows.length} · ${t("dailyLead")} ${hotRows[0]?.alias || "-"}`,
+            tone: hotRows.length ? "rose" : "off",
+            target: "brandRadarMatrix",
+            sample_alias: "",
+            lead_brand: hotRows[0] || null,
+          },
+          {
+            label: "portfolioDriftLane",
+            hint: "portfolioDriftHint",
+            count: driftRows.length,
+            score: driftRows.length ? clampScore(100 - Math.min(80, Math.abs(Number(driftRows[0].delta) || 0) * 5)) : 100,
+            detail: `${t("portfolioDrift")} ${driftRows.length} · ${t("dailyLead")} ${driftRows[0]?.alias || "-"}`,
+            tone: driftRows.length ? "warn" : "off",
+            target: "brandWeightFormula",
+            sample_alias: "",
+            lead_brand: driftRows[0] || null,
+          },
+        ];
       }
 
       function renderBrandPlaybook(rows) {
@@ -8529,6 +8757,15 @@ INDEX_HTML = r"""<!doctype html>
         }
         const sampleButton = event.target.closest("[data-rubric-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.rubricSample);
+      });
+      $("brandPortfolio").addEventListener("click", (event) => {
+        const jumpButton = event.target.closest("[data-portfolio-jump]");
+        if (jumpButton) {
+          jumpToRadarSection(jumpButton.dataset.portfolioJump);
+          return;
+        }
+        const sampleButton = event.target.closest("[data-portfolio-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.portfolioSample);
       });
       $("brandPlaybook").addEventListener("click", (event) => {
         const applyButton = event.target.closest("[data-playbook-apply]");
