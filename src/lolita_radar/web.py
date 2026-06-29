@@ -629,6 +629,7 @@ INDEX_HTML = r"""<!doctype html>
           resetWeights: "重置",
           weightsClean: "已保存",
           weightsDirty: "项未保存",
+          draftPreview: "草稿预览",
           weightsReset: "品牌权重已重置",
           weightsSaved: "品牌权重已保存",
           opportunityRadar: "机会雷达",
@@ -742,6 +743,7 @@ INDEX_HTML = r"""<!doctype html>
           resetWeights: "Reset",
           weightsClean: "saved",
           weightsDirty: "unsaved",
+          draftPreview: "draft preview",
           weightsReset: "brand weights reset",
           weightsSaved: "brand weights saved",
           opportunityRadar: "Opportunity Radar",
@@ -845,6 +847,7 @@ INDEX_HTML = r"""<!doctype html>
       let currentState = null;
       let currentLanguage = localStorage.getItem("radarLanguage") || "zh";
       let activeOpportunityFilter = "all";
+      let previewingDraftWeights = false;
       if (!translations[currentLanguage]) currentLanguage = "zh";
 
       async function api(path, options = {}) {
@@ -930,7 +933,7 @@ INDEX_HTML = r"""<!doctype html>
             <span class="pill ${opportunityPill(entry.band)}">${escapeHtml(valueLabel("opportunityBand", entry.band))}</span>
           </header>
           <div class="signal-bar" aria-hidden="true"><span style="--score: ${Number(entry.priority_score) || 0}%"></span></div>
-          <p class="muted">${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</p>
+          <p class="muted">${previewingDraftWeights ? `<span class="pill gold">${escapeHtml(t("draftPreview"))}</span> · ` : ""}${escapeHtml(t("priorityScore"))} ${escapeHtml(entry.priority_score)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</p>
           ${renderScoreBreakdown(entry.score_breakdown)}
           <p class="muted">${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}</p>
           <p class="muted">${escapeHtml(reasonLabels(entry.reason_codes).join(" · "))}</p>
@@ -1098,6 +1101,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function resetBrandWeightDraft() {
         renderBrandWeights(currentState?.brand_weights || []);
+        renderOpportunityRadar(currentState?.opportunity_radar || []);
         toast(t("weightsReset"));
       }
 
@@ -1111,11 +1115,13 @@ INDEX_HTML = r"""<!doctype html>
         if (bar) bar.style.setProperty("--score", `${input.value}%`);
         if (card) card.classList.toggle("dirty", input.value !== input.dataset.originalWeight);
         updateWeightDirtyState();
+        renderOpportunityRadar(buildDraftOpportunityRadar());
       }
 
       function updateWeightDirtyState() {
         const dirtyCount = Array.from(document.querySelectorAll("[data-brand-weight]")).filter((input) => input.value !== input.dataset.originalWeight).length;
         const dirty = dirtyCount > 0;
+        previewingDraftWeights = dirty;
         const saveButton = $("saveWeightsBtn");
         const resetButton = $("resetWeightsBtn");
         [saveButton, resetButton].forEach((button) => {
@@ -1126,6 +1132,70 @@ INDEX_HTML = r"""<!doctype html>
         if (status) {
           status.textContent = dirty ? `${dirtyCount} ${t("weightsDirty")}` : t("weightsClean");
         }
+      }
+
+      function buildDraftOpportunityRadar() {
+        const draftWeights = new Map(Array.from(document.querySelectorAll("[data-brand-weight]")).map((input) => [input.dataset.brandWeight, Number(input.value) || 0]));
+        const marketRows = new Map((currentState?.market?.summary?.brands || []).map((row) => [row.brand_alias, row]));
+        return (currentState?.brand_weights || []).map((brand) => {
+          const market = marketRows.get(brand.alias) || {};
+          const sampleCount = Number(market.sample_count) || 0;
+          const avgPremiumRate = Number(market.avg_premium_rate) || 0;
+          const maxPremiumRate = Number(market.max_premium_rate) || 0;
+          const weight = clampScore(draftWeights.get(brand.alias) ?? brand.weight);
+          const breakdown = premiumScoreBreakdown(avgPremiumRate, weight, sampleCount);
+          const priorityScore = Math.max(0, Math.min(100, Math.round(breakdown.premium_points + breakdown.brand_points + breakdown.sample_points)));
+          return {
+            name: brand.name,
+            alias: brand.alias,
+            tier: brand.tier,
+            style: brand.style,
+            brand_weight: weight,
+            sample_count: sampleCount,
+            avg_premium_rate: avgPremiumRate,
+            max_premium_rate: maxPremiumRate,
+            priority_score: priorityScore,
+            score_breakdown: breakdown,
+            band: opportunityBand(priorityScore, avgPremiumRate, sampleCount, weight),
+            reason_codes: opportunityReasons(avgPremiumRate, sampleCount, weight),
+          };
+        }).sort((a, b) => (
+          (b.priority_score - a.priority_score)
+          || (b.brand_weight - a.brand_weight)
+          || (b.sample_count - a.sample_count)
+          || (b.avg_premium_rate - a.avg_premium_rate)
+        )).slice(0, 8);
+      }
+
+      function premiumScoreBreakdown(premiumRate, brandWeight, sampleCount) {
+        return {
+          premium_points: Math.round(Math.max(0, Number(premiumRate) || 0) * 55),
+          brand_points: Math.round(clampScore(brandWeight) * 0.4),
+          sample_points: Math.round(Math.min(10, Math.max(0, Number(sampleCount) || 0) * 2)),
+        };
+      }
+
+      function opportunityBand(score, avgPremiumRate, sampleCount, brandWeight) {
+        if (sampleCount < 2 && brandWeight >= 85) return "collect_samples";
+        if (score >= 78 && avgPremiumRate >= 0.25 && sampleCount >= 2) return "lead";
+        if (score >= 62 || brandWeight >= 85) return "watch";
+        return "cooldown";
+      }
+
+      function opportunityReasons(avgPremiumRate, sampleCount, brandWeight) {
+        const reasons = [];
+        if (brandWeight >= 90) reasons.push("core_brand");
+        else if (brandWeight >= 70) reasons.push("watch_brand");
+        if (sampleCount < 2) reasons.push("needs_samples");
+        else if (sampleCount >= 5) reasons.push("sample_supported");
+        if (avgPremiumRate >= 0.5) reasons.push("strong_premium");
+        else if (avgPremiumRate >= 0.25) reasons.push("positive_premium");
+        else if (avgPremiumRate < 0) reasons.push("discounted_resale");
+        return reasons.length ? reasons : ["baseline"];
+      }
+
+      function clampScore(value) {
+        return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
       }
 
       function setBusy(busy) {
