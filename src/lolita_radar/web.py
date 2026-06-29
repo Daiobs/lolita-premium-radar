@@ -453,6 +453,25 @@ INDEX_HTML = r"""<!doctype html>
       .matrix-brand span { color: var(--muted); font-size: 12px; }
       .matrix-score { display: grid; gap: 5px; }
       .matrix-score strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .coverage-board { margin: 0 20px 14px; }
+      .coverage-grid { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(260px, 1.2fr); gap: 12px; padding: 12px; }
+      .coverage-meter { display: grid; gap: 9px; align-content: start; }
+      .coverage-stats { display: grid; grid-template-columns: repeat(3, minmax(80px, 1fr)); gap: 8px; }
+      .coverage-stat { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fffaf8; }
+      .coverage-stat strong { display: block; color: var(--wine); font: 650 22px/1 Georgia, "Times New Roman", serif; }
+      .coverage-list { display: grid; gap: 8px; }
+      .coverage-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fffaf8;
+      }
+      .coverage-card strong { color: var(--wine); }
+      .coverage-card button { min-height: 30px; padding-inline: 10px; }
       .tuning-board { margin: 0 20px 14px; }
       .tuning-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 12px; }
       .tuning-card {
@@ -523,8 +542,9 @@ INDEX_HTML = r"""<!doctype html>
       @media (max-width: 860px) {
         .topbar, .atelier, .workspace, .market-grid { grid-template-columns: 1fr; }
         .actions { justify-content: flex-start; }
-        .opportunity-toolbar, .matrix-toolbar { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
+        .coverage-card { grid-template-columns: 1fr; }
         .matrix-row { grid-template-columns: 1fr 1fr; }
         .matrix-row.header { display: none; }
         .brand-tools { align-items: flex-start; flex-direction: column; }
@@ -598,6 +618,15 @@ INDEX_HTML = r"""<!doctype html>
         </div>
       </div>
       <div id="brandRadarMatrix" class="radar-matrix"></div>
+    </section>
+    <section class="panel coverage-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="sampleCoverage">样本覆盖</h2>
+          <span class="muted" data-i18n="sampleCoverageHint">判断雷达分背后的价格证据厚度</span>
+        </div>
+      </div>
+      <div id="sampleCoverage" class="coverage-grid"></div>
     </section>
     <section class="panel tuning-board">
       <div class="toolbar">
@@ -788,6 +817,14 @@ INDEX_HTML = r"""<!doctype html>
           tuningApplyDraft: "套用为草稿",
           tuningDraftApplied: "已套用建议权重",
           tuningSampleReady: "已选中品牌，可补价格样本",
+          sampleCoverage: "样本覆盖",
+          sampleCoverageHint: "判断雷达分背后的价格证据厚度",
+          coverageReady: "充分",
+          coverageThin: "偏薄",
+          coverageMissing: "缺样本",
+          coverageProgress: "覆盖率",
+          coveragePriority: "优先补样本",
+          coverageGoal: "目标 2 个样本起步，5 个样本更稳",
           radarScore: "雷达分",
           observed: "已捕捉",
           noFocusQueue: "暂无关注队列",
@@ -949,6 +986,14 @@ INDEX_HTML = r"""<!doctype html>
           tuningApplyDraft: "apply draft",
           tuningDraftApplied: "draft weight applied",
           tuningSampleReady: "brand selected for price sample",
+          sampleCoverage: "Sample Coverage",
+          sampleCoverageHint: "Show how much price evidence sits behind radar scores",
+          coverageReady: "ready",
+          coverageThin: "thin",
+          coverageMissing: "missing",
+          coverageProgress: "coverage",
+          coveragePriority: "sample next",
+          coverageGoal: "2 samples to start, 5 samples for steadier signals",
           radarScore: "radar score",
           observed: "observed",
           noFocusQueue: "No focus queue yet",
@@ -1177,6 +1222,47 @@ INDEX_HTML = r"""<!doctype html>
             <span class="pill ${opportunityPill(entry.band)}">${escapeHtml(valueLabel("opportunityBand", entry.band))}</span>
           </article>`),
         ].join("") : `<div class="row">${escapeHtml(t("noOpportunity"))}</div>`;
+      }
+
+      function renderSampleCoverage(rows) {
+        const coverage = sampleCoverage(rows);
+        const priority = rows
+          .filter((entry) => Number(entry.sample_count) < 2)
+          .sort((a, b) => (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0))
+          .slice(0, 5);
+        $("sampleCoverage").innerHTML = `
+          <div class="coverage-meter">
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${coverage.percent}%"></span></div>
+            <p class="muted">${escapeHtml(t("coverageProgress"))} ${escapeHtml(coverage.percent)}% · ${escapeHtml(t("coverageGoal"))}</p>
+            <div class="coverage-stats">
+              <article class="coverage-stat"><strong>${escapeHtml(coverage.ready)}</strong><span class="muted">${escapeHtml(t("coverageReady"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(coverage.thin)}</strong><span class="muted">${escapeHtml(t("coverageThin"))}</span></article>
+              <article class="coverage-stat"><strong>${escapeHtml(coverage.missing)}</strong><span class="muted">${escapeHtml(t("coverageMissing"))}</span></article>
+            </div>
+          </div>
+          <div class="coverage-list">
+            ${priority.length ? priority.map((entry) => `<article class="coverage-card">
+              <div>
+                <strong>${escapeHtml(entry.alias)}</strong>
+                <p class="muted">${escapeHtml(entry.name)} · ${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)} · ${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</p>
+              </div>
+              <button type="button" class="secondary" data-coverage-sample="${escapeHtml(entry.alias)}">${escapeHtml(t("tuningAddSample"))}</button>
+            </article>`).join("") : `<div class="row">${escapeHtml(t("noOpportunity"))}</div>`}
+          </div>
+        `;
+      }
+
+      function sampleCoverage(rows) {
+        const total = rows.length || 1;
+        const ready = rows.filter((entry) => Number(entry.sample_count) >= 5).length;
+        const thin = rows.filter((entry) => Number(entry.sample_count) >= 2 && Number(entry.sample_count) < 5).length;
+        const missing = rows.filter((entry) => Number(entry.sample_count) < 2).length;
+        return {
+          ready,
+          thin,
+          missing,
+          percent: Math.round(((ready + thin) / total) * 100),
+        };
       }
 
       function renderWeightTuning(rows) {
@@ -1512,6 +1598,7 @@ INDEX_HTML = r"""<!doctype html>
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
         renderBrandRadarMatrix(rows);
+        renderSampleCoverage(rows);
         renderWeightTuning(rows);
       }
 
@@ -1718,6 +1805,10 @@ INDEX_HTML = r"""<!doctype html>
         }
         const sampleButton = event.target.closest("[data-tuning-sample]");
         if (sampleButton) prepareMarketSample(sampleButton.dataset.tuningSample);
+      });
+      $("sampleCoverage").addEventListener("click", (event) => {
+        const sampleButton = event.target.closest("[data-coverage-sample]");
+        if (sampleButton) prepareMarketSample(sampleButton.dataset.coverageSample);
       });
       $("matrixFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-matrix-filter]");
