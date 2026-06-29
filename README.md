@@ -96,9 +96,13 @@ The UI defaults to Chinese and includes a `中文 / EN` language switch. It also
 includes a Lolita secondary-market view with brand weights, status mix, and a
 simple premium-signal score for prioritizing attention. The first screen pairs
 the operational controls with a local lace-and-radar visual asset so the app
-feels closer to a Lolita market desk without depending on remote media. Brand
-weights, scorecards, core watch gaps, and sample plans are also summarized into
-a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
+feels closer to a Lolita market desk without depending on remote media. A
+North Star radar band combines brand portfolio health, weighted evidence
+coverage, release heat, run-sheet pressure, and premium-backed brands into one
+top-level maturity score, with four lane cards that explain whether today's work
+is evidence collection, release watching, premium confirmation, or execution.
+Brand weights, scorecards, core watch gaps, and sample plans are also summarized
+into a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
 priority checks into a short action queue with jump, sample, and pattern-prefill
 buttons, plus grouped action lanes that can be clicked to filter the brief by
 price anchors, evidence collection, tuning, or sampling; the same brief can be

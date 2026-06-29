@@ -627,6 +627,84 @@ INDEX_HTML = r"""<!doctype html>
       .theme-swatch.classic { --swatch: #a9782c; }
       .theme-swatch.gothic { --swatch: #421127; }
       .metrics { display: grid; grid-template-columns: repeat(5, minmax(132px, 1fr)); gap: 12px; padding: 22px 20px 12px; }
+      .north-star-board { margin: 0 20px 14px; }
+      .north-star-grid { display: grid; grid-template-columns: minmax(240px, .72fr) minmax(360px, 1.28fr); gap: 12px; padding: 12px; }
+      .north-star-brief, .north-star-card {
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, var(--line));
+        border-radius: 8px;
+        background: #fffaf8;
+      }
+      .north-star-brief {
+        position: relative;
+        display: grid;
+        gap: 10px;
+        align-content: start;
+        padding: 13px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(180,87,111,.13), transparent 36%),
+          radial-gradient(circle at 0 100%, rgba(15,103,96,.1), transparent 38%),
+          linear-gradient(135deg, rgba(255,247,232,.82), rgba(248,251,250,.94));
+        box-shadow: inset 0 0 0 4px rgba(255,255,255,.48);
+        overflow: hidden;
+      }
+      .north-star-brief::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border: 1px double rgba(169,120,44,.24);
+        border-radius: 6px;
+        pointer-events: none;
+      }
+      .north-star-brief::after, .north-star-card::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 8px;
+        height: 4px;
+        background: radial-gradient(circle, rgba(169,120,44,.34) 0 2px, transparent 2px) 0 0 / 12px 4px repeat-x;
+        pointer-events: none;
+      }
+      .north-star-brief strong { color: var(--wine); font: 650 38px/1 Georgia, "Times New Roman", serif; }
+      .north-star-brief p, .north-star-card p { margin: 0; color: var(--muted); }
+      .north-star-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .north-star-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 50px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .north-star-stats strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .north-star-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .north-star-card {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        min-height: 124px;
+        padding: 12px 12px 15px;
+        background:
+          radial-gradient(circle at 50% 0, rgba(255,255,255,.9) 0 5px, transparent 5px) 0 0 / 18px 10px repeat-x,
+          radial-gradient(circle at 18px 18px, rgba(255,255,255,.9) 0 2px, transparent 2px) 0 0 / 22px 22px,
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 13%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 66%, #fff), rgba(248,251,250,.92));
+        box-shadow: var(--paper-shadow);
+        overflow: hidden;
+      }
+      .north-star-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: linear-gradient(180deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .north-star-card header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+      .north-star-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; }
+      .north-star-score { font: 650 28px/1 Georgia, "Times New Roman", serif; color: var(--wine); white-space: nowrap; }
       .radar-nav {
         position: sticky;
         top: 0;
@@ -2687,7 +2765,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-snapshot, .strategy-grid, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -2746,6 +2824,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
     </header>
     <section class="metrics" id="metrics"></section>
+    <section class="panel north-star-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="northStarRadar">北极星雷达</h2>
+          <span class="muted" data-i18n="northStarHint">用品牌权重、证据覆盖、发售热度和巡检压力判断今日雷达成熟度</span>
+        </div>
+      </div>
+      <div id="northStarRadar" class="north-star-grid"></div>
+    </section>
     <section class="panel daily-board">
       <div class="toolbar">
         <div>
@@ -2757,6 +2844,7 @@ INDEX_HTML = r"""<!doctype html>
       <div id="dailyRadarBrief" class="daily-grid"></div>
     </section>
     <nav class="radar-nav" aria-label="Radar navigation">
+      <button type="button" data-radar-jump="northStarRadar" data-i18n="navNorthStar">北极星</button>
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandPortfolio" data-i18n="navPortfolio">组合</button>
       <button type="button" data-radar-jump="releaseWatchQueue" data-i18n="navReleaseWatch">发售</button>
@@ -3228,6 +3316,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualWeight: "品牌权重",
           heroVisualPremium: "溢价热度",
           heroVisualEvidence: "样本证据",
+          navNorthStar: "北极星",
           navDaily: "简报",
           navPortfolio: "组合",
           navReleaseWatch: "发售",
@@ -3258,6 +3347,23 @@ INDEX_HTML = r"""<!doctype html>
           sourcesHeading: "监控源",
           recentEvents: "上新动态",
           trackedItemsHeading: "雷达条目",
+          northStarRadar: "北极星雷达",
+          northStarHint: "用品牌权重、证据覆盖、发售热度和巡检压力判断今日雷达成熟度",
+          northStarScore: "北极星分",
+          northStarLead: "今日主线",
+          northStarMaturity: "雷达成熟度",
+          northStarWeightedCoverage: "加权证据覆盖",
+          northStarReleaseHeat: "发售热度",
+          northStarRunSheetHeat: "巡检压力",
+          northStarPremiumHeat: "溢价支撑",
+          northStarEvidenceLane: "证据底座",
+          northStarReleaseLane: "发售窗口",
+          northStarPremiumLane: "溢价确认",
+          northStarExecutionLane: "执行压力",
+          northStarEvidenceDetail: "高权重品牌需要至少两条价格样本",
+          northStarReleaseDetail: "上新/预约/再贩命中品牌权重",
+          northStarPremiumDetail: "二级市场样本是否支持追踪",
+          northStarExecutionDetail: "今日巡检任务的平均压力",
           dailyRadarBrief: "今日雷达简报",
           dailyRadarBriefHint: "把核心盯盘、权重校准和采样缺口收成今天的行动队列",
           dailyLead: "主线",
@@ -3944,6 +4050,7 @@ INDEX_HTML = r"""<!doctype html>
           heroVisualWeight: "brand weight",
           heroVisualPremium: "premium heat",
           heroVisualEvidence: "sample evidence",
+          navNorthStar: "North Star",
           navDaily: "Brief",
           navPortfolio: "Portfolio",
           navReleaseWatch: "Release",
@@ -3974,6 +4081,23 @@ INDEX_HTML = r"""<!doctype html>
           sourcesHeading: "Watch Sources",
           recentEvents: "Release Feed",
           trackedItemsHeading: "Radar Items",
+          northStarRadar: "North Star Radar",
+          northStarHint: "Judge today's radar maturity from brand weights, evidence coverage, release heat, and run-sheet pressure",
+          northStarScore: "north-star score",
+          northStarLead: "today's lead",
+          northStarMaturity: "radar maturity",
+          northStarWeightedCoverage: "weighted evidence",
+          northStarReleaseHeat: "release heat",
+          northStarRunSheetHeat: "run-sheet pressure",
+          northStarPremiumHeat: "premium-backed",
+          northStarEvidenceLane: "evidence base",
+          northStarReleaseLane: "release window",
+          northStarPremiumLane: "premium check",
+          northStarExecutionLane: "execution pressure",
+          northStarEvidenceDetail: "High-weight brands need at least two price samples",
+          northStarReleaseDetail: "Release, preorder, and restock items matched brand weights",
+          northStarPremiumDetail: "Whether resale samples support active tracking",
+          northStarExecutionDetail: "Average pressure across today's run sheet",
           dailyRadarBrief: "Daily Radar Brief",
           dailyRadarBriefHint: "Turn core watch, weight tuning, and sample gaps into today's action queue",
           dailyLead: "lead",
@@ -8188,6 +8312,7 @@ INDEX_HTML = r"""<!doctype html>
       function renderBrandRadarViews() {
         const rows = buildBrandRadarMatrix();
         renderStyleCompass(rows);
+        renderNorthStarRadar(rows);
         renderDailyRadarBrief(rows);
         renderResaleRunSheet(rows);
         renderBrandPortfolio(rows);
@@ -8211,6 +8336,105 @@ INDEX_HTML = r"""<!doctype html>
         renderSamplePlan(rows);
         renderWeightTuning(rows);
         renderPriceDiscipline(rows);
+      }
+
+      function renderNorthStarRadar(rows) {
+        const target = $("northStarRadar");
+        if (!target) return;
+        const stats = northStarStats(rows);
+        target.innerHTML = `
+          <article class="north-star-brief">
+            <strong>${escapeHtml(stats.score)}</strong>
+            <p>${escapeHtml(t("northStarScore"))} · ${escapeHtml(t("northStarHint"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.score)}%"></span></div>
+            <div class="north-star-stats">
+              <span><strong>${escapeHtml(stats.lead)}</strong>${escapeHtml(t("northStarLead"))}</span>
+              <span><strong>${escapeHtml(stats.weighted_coverage)}%</strong>${escapeHtml(t("northStarWeightedCoverage"))}</span>
+              <span><strong>${escapeHtml(stats.release_heat)}</strong>${escapeHtml(t("northStarReleaseHeat"))}</span>
+              <span><strong>${escapeHtml(stats.run_sheet_heat)}</strong>${escapeHtml(t("northStarRunSheetHeat"))}</span>
+            </div>
+          </article>
+          <div class="north-star-list">
+            ${northStarLanes(stats).map((lane) => `<article class="north-star-card" style="${escapeHtml(lane.style)}">
+              <header>
+                <div>
+                  <strong>${escapeHtml(t(lane.label))}</strong>
+                  <p>${escapeHtml(t(lane.detail))}</p>
+                </div>
+                <span class="north-star-score">${escapeHtml(lane.score)}</span>
+              </header>
+              <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(lane.score)}%"></span></div>
+              <p>${escapeHtml(lane.summary)}</p>
+            </article>`).join("")}
+          </div>
+        `;
+      }
+
+      function northStarStats(rows) {
+        const portfolio = brandPortfolioStats(rows);
+        const releases = releaseWatchRows(rows);
+        const runSheet = resaleRunSheetRows(rows);
+        const totalWeight = (rows || []).reduce((sum, row) => sum + (Number(row.brand_weight) || 0), 0) || 1;
+        const readyWeight = (rows || []).filter((row) => Number(row.sample_count) >= 2).reduce((sum, row) => sum + (Number(row.brand_weight) || 0), 0);
+        const weightedCoverage = Math.round(readyWeight / totalWeight * 100);
+        const releaseHeat = releases.length ? Math.max(...releases.map((row) => Number(row.release_score) || 0)) : 0;
+        const runSheetHeatScore = runSheetHeat(runSheet);
+        const hotPremium = (rows || []).filter((row) => Number(row.sample_count) >= 2 && Number(row.avg_premium_rate) >= 0.25);
+        const premiumHeat = rows?.length ? Math.round(hotPremium.length / rows.length * 100) : 0;
+        const score = clampScore(Math.round(
+          (Number(portfolio.health) || 0) * .3
+          + weightedCoverage * .25
+          + releaseHeat * .2
+          + runSheetHeatScore * .15
+          + premiumHeat * .1
+        ));
+        const lead = runSheet[0]?.alias || releases[0]?.alias || rows?.[0]?.alias || "-";
+        return {
+          score,
+          lead,
+          portfolio_health: portfolio.health,
+          weighted_coverage: weightedCoverage,
+          release_heat: releaseHeat,
+          run_sheet_heat: runSheetHeatScore,
+          premium_heat: premiumHeat,
+          release_count: releases.length,
+          run_sheet_count: runSheet.length,
+          hot_premium_count: hotPremium.length,
+          core_gaps: portfolio.core_gaps,
+        };
+      }
+
+      function northStarLanes(stats) {
+        return [
+          {
+            label: "northStarEvidenceLane",
+            detail: "northStarEvidenceDetail",
+            score: stats.weighted_coverage,
+            summary: `${t("portfolioCoreGaps")} ${stats.core_gaps} · ${t("northStarWeightedCoverage")} ${stats.weighted_coverage}%`,
+            style: styleFamilyVisualStyle("classic"),
+          },
+          {
+            label: "northStarReleaseLane",
+            detail: "northStarReleaseDetail",
+            score: stats.release_heat,
+            summary: `${t("releaseWatchSignals")} ${stats.release_count} · ${t("northStarReleaseHeat")} ${stats.release_heat}`,
+            style: styleFamilyVisualStyle("release"),
+          },
+          {
+            label: "northStarPremiumLane",
+            detail: "northStarPremiumDetail",
+            score: stats.premium_heat,
+            summary: `${t("portfolioHeat")} ${stats.hot_premium_count} · ${t("northStarPremiumHeat")} ${stats.premium_heat}%`,
+            style: styleFamilyVisualStyle("sweet"),
+          },
+          {
+            label: "northStarExecutionLane",
+            detail: "northStarExecutionDetail",
+            score: stats.run_sheet_heat,
+            summary: `${t("runSheetTasks")} ${stats.run_sheet_count} · ${t("northStarRunSheetHeat")} ${stats.run_sheet_heat}`,
+            style: styleFamilyVisualStyle("gothic"),
+          },
+        ];
       }
 
       function renderBrandPortfolio(rows) {
