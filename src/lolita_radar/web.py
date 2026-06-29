@@ -194,6 +194,9 @@ INDEX_HTML = r"""<!doctype html>
       .topbar h1 { margin: 0; font-size: 23px; }
       .topbar p { margin: 3px 0 0; color: #b7c7cf; word-break: break-all; }
       .actions { display: flex; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
+      .language-switch { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid rgba(255,255,255,.18); border-radius: 7px; background: rgba(255,255,255,.08); }
+      .language-switch button { min-height: 32px; padding: 0 10px; border-radius: 5px; background: transparent; color: #c9d6dc; }
+      .language-switch button.active { background: #fff; color: #14242d; }
       .metrics { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 10px; padding: 14px 18px; }
       .metric, .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
       .metric { min-height: 76px; display: grid; align-content: center; gap: 3px; padding: 10px 13px; }
@@ -229,27 +232,31 @@ INDEX_HTML = r"""<!doctype html>
         <p id="paths">Loading...</p>
       </div>
       <div class="actions">
-        <button id="checkAllBtn">检查全部</button>
-        <button id="refreshBtn" class="secondary">刷新</button>
+        <div class="language-switch" role="group" aria-label="Language">
+          <button type="button" data-language="zh">中文</button>
+          <button type="button" data-language="en">EN</button>
+        </div>
+        <button id="checkAllBtn" data-i18n="checkAll">检查全部</button>
+        <button id="refreshBtn" class="secondary" data-i18n="refresh">刷新</button>
       </div>
     </header>
     <section class="metrics" id="metrics"></section>
     <main class="workspace">
       <section class="panel">
-        <h2>数据源</h2>
+        <h2 data-i18n="sourcesHeading">数据源</h2>
         <div id="sources" class="source-list"></div>
       </section>
       <div class="main-stack">
         <section class="panel">
           <div class="toolbar">
-            <h2>最近事件</h2>
+            <h2 data-i18n="recentEvents">最近事件</h2>
             <span id="eventCount" class="muted"></span>
           </div>
           <div id="events" class="event-list"></div>
         </section>
         <section class="panel">
           <div class="toolbar">
-            <h2>跟踪条目</h2>
+            <h2 data-i18n="trackedItemsHeading">跟踪条目</h2>
             <span id="itemCount" class="muted"></span>
           </div>
           <div id="items" class="item-list"></div>
@@ -259,7 +266,89 @@ INDEX_HTML = r"""<!doctype html>
     <div id="toast" class="toast"></div>
     <script>
       const $ = (id) => document.getElementById(id);
+      const translations = {
+        zh: {
+          checkAll: "检查全部",
+          refresh: "刷新",
+          sourcesHeading: "数据源",
+          recentEvents: "最近事件",
+          trackedItemsHeading: "跟踪条目",
+          metricSources: "数据源",
+          metricTrackedItems: "跟踪条目",
+          metricEvents: "事件",
+          metricLatestEvent: "最新事件",
+          metricLatestSource: "最新来源",
+          noSources: "暂无配置数据源。",
+          noEvents: "暂无事件。运行检查后会先建立基线。",
+          noItems: "暂无跟踪条目。",
+          noKeywords: "未设置关键词",
+          enabled: "启用",
+          disabled: "停用",
+          checkSource: "检查此源",
+          disabledButton: "已停用",
+          allSources: "全部源",
+          checked: "已检查",
+          refreshed: "已刷新",
+          undated: "无日期",
+          seen: "最后看到",
+          eventType: {
+            new_item: "新条目",
+            update: "更新",
+          },
+          status: {
+            new_arrival: "新品上新",
+            preorder: "预约",
+            restock: "再贩/补货",
+            shop_news: "店铺消息",
+          },
+          sourceType: {
+            metamorphose: "Metamorphose 官方新闻",
+            generic_page: "通用页面",
+          },
+        },
+        en: {
+          checkAll: "Check All",
+          refresh: "Refresh",
+          sourcesHeading: "Sources",
+          recentEvents: "Recent Events",
+          trackedItemsHeading: "Tracked Items",
+          metricSources: "Sources",
+          metricTrackedItems: "Tracked Items",
+          metricEvents: "Events",
+          metricLatestEvent: "Latest Event",
+          metricLatestSource: "Latest Source",
+          noSources: "No sources configured.",
+          noEvents: "No events yet. Run a check to build the baseline.",
+          noItems: "No tracked items yet.",
+          noKeywords: "no keywords",
+          enabled: "enabled",
+          disabled: "disabled",
+          checkSource: "Check Source",
+          disabledButton: "Disabled",
+          allSources: "all sources",
+          checked: "checked",
+          refreshed: "refreshed",
+          undated: "undated",
+          seen: "last seen",
+          eventType: {
+            new_item: "new item",
+            update: "update",
+          },
+          status: {
+            new_arrival: "new arrival",
+            preorder: "preorder",
+            restock: "restock",
+            shop_news: "shop news",
+          },
+          sourceType: {
+            metamorphose: "Metamorphose news",
+            generic_page: "Generic page",
+          },
+        },
+      };
       let currentState = null;
+      let currentLanguage = localStorage.getItem("radarLanguage") || "zh";
+      if (!translations[currentLanguage]) currentLanguage = "zh";
 
       async function api(path, options = {}) {
         const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
@@ -277,29 +366,29 @@ INDEX_HTML = r"""<!doctype html>
         $("paths").textContent = `${state.config_path} · ${state.db_path}`;
         const counts = state.counts || {};
         $("metrics").innerHTML = [
-          ["Sources", `${counts.enabled_sources || 0}/${counts.sources || 0}`],
-          ["Tracked Items", counts.items || 0],
-          ["Events", counts.events || 0],
-          ["Latest Event", state.events?.[0]?.event_type || "-"],
-          ["Latest Source", state.events?.[0]?.source || "-"],
+          [t("metricSources"), `${counts.enabled_sources || 0}/${counts.sources || 0}`],
+          [t("metricTrackedItems"), counts.items || 0],
+          [t("metricEvents"), counts.events || 0],
+          [t("metricLatestEvent"), valueLabel("eventType", state.events?.[0]?.event_type) || "-"],
+          [t("metricLatestSource"), state.events?.[0]?.source || "-"],
         ].map(([label, value]) => `<article class="metric"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></article>`).join("");
-        $("sources").innerHTML = state.sources.length ? state.sources.map(renderSource).join("") : `<div class="row">No sources configured.</div>`;
-        $("eventCount").textContent = `${state.events.length} shown`;
-        $("events").innerHTML = state.events.length ? state.events.map(renderEvent).join("") : `<div class="row">No events yet. Run a check to build the baseline.</div>`;
-        $("itemCount").textContent = `${state.items.length} shown`;
-        $("items").innerHTML = state.items.length ? state.items.map(renderItem).join("") : `<div class="row">No tracked items yet.</div>`;
+        $("sources").innerHTML = state.sources.length ? state.sources.map(renderSource).join("") : `<div class="row">${escapeHtml(t("noSources"))}</div>`;
+        $("eventCount").textContent = shownText(state.events.length);
+        $("events").innerHTML = state.events.length ? state.events.map(renderEvent).join("") : `<div class="row">${escapeHtml(t("noEvents"))}</div>`;
+        $("itemCount").textContent = shownText(state.items.length);
+        $("items").innerHTML = state.items.length ? state.items.map(renderItem).join("") : `<div class="row">${escapeHtml(t("noItems"))}</div>`;
       }
 
       function renderSource(source) {
-        const keywords = source.keywords.length ? source.keywords.join(", ") : "no keywords";
+        const keywords = source.keywords.length ? source.keywords.join(", ") : t("noKeywords");
         return `<article class="source-card">
           <header>
             <strong>${escapeHtml(source.name)}</strong>
-            <span class="pill ${source.enabled ? "" : "off"}">${source.enabled ? "enabled" : "disabled"}</span>
+            <span class="pill ${source.enabled ? "" : "off"}">${source.enabled ? t("enabled") : t("disabled")}</span>
           </header>
-          <p>${escapeHtml(source.type)} · ${escapeHtml(keywords)}</p>
+          <p>${escapeHtml(valueLabel("sourceType", source.type))} · ${escapeHtml(keywords)}</p>
           <p><a href="${escapeHtml(source.url)}" target="_blank" rel="noreferrer">${escapeHtml(source.url)}</a></p>
-          <button data-source="${escapeHtml(source.name)}" ${source.enabled ? "" : "disabled"}>${source.enabled ? "检查此源" : "已停用"}</button>
+          <button data-source="${escapeHtml(source.name)}" data-disabled="${source.enabled ? "false" : "true"}" ${source.enabled ? "" : "disabled"}>${source.enabled ? t("checkSource") : t("disabledButton")}</button>
         </article>`;
       }
 
@@ -307,19 +396,20 @@ INDEX_HTML = r"""<!doctype html>
         return `<article class="row">
           <header>
             <strong><a href="${escapeHtml(event.url)}" target="_blank" rel="noreferrer">${escapeHtml(event.title)}</a></strong>
-            <span class="pill ${event.event_type === "update" ? "warn" : ""}">${escapeHtml(event.event_type)}</span>
+            <span class="pill ${event.event_type === "update" ? "warn" : ""}">${escapeHtml(valueLabel("eventType", event.event_type))}</span>
           </header>
-          <p>${escapeHtml(event.source)} · ${escapeHtml(event.status)} · ${escapeHtml(event.created_at || "")}</p>
+          <p>${escapeHtml(event.source)} · ${escapeHtml(valueLabel("status", event.status))} · ${escapeHtml(event.created_at || "")}</p>
         </article>`;
       }
 
       function renderItem(item) {
+        const lastSeen = item.last_seen_at ? `${t("seen")} ${item.last_seen_at}` : "";
         return `<article class="row">
           <header>
             <strong><a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.title)}</a></strong>
-            <span class="pill">${escapeHtml(item.status)}</span>
+            <span class="pill">${escapeHtml(valueLabel("status", item.status))}</span>
           </header>
-          <p>${escapeHtml(item.source)} · ${escapeHtml(item.published_at || "undated")} · seen ${escapeHtml(item.last_seen_at || "")}</p>
+          <p>${escapeHtml(item.source)} · ${escapeHtml(item.published_at || t("undated"))}${lastSeen ? ` · ${escapeHtml(lastSeen)}` : ""}</p>
         </article>`;
       }
 
@@ -329,7 +419,7 @@ INDEX_HTML = r"""<!doctype html>
           const payload = await api("/api/check", { method: "POST", body: JSON.stringify({ source, notify: false }) });
           currentState = payload;
           render(payload);
-          toast(`${source || "all"} checked: ${payload.new_event_count || 0} new events`);
+          toast(`${source || t("allSources")} ${t("checked")}: ${newEventText(payload.new_event_count || 0)}`);
         } catch (error) {
           toast(error.message);
         } finally {
@@ -338,7 +428,9 @@ INDEX_HTML = r"""<!doctype html>
       }
 
       function setBusy(busy) {
-        document.querySelectorAll("button").forEach((button) => button.disabled = busy);
+        document.querySelectorAll("button").forEach((button) => {
+          button.disabled = busy || button.dataset.disabled === "true";
+        });
       }
 
       function toast(message) {
@@ -353,12 +445,50 @@ INDEX_HTML = r"""<!doctype html>
         return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
       }
 
+      function t(key) {
+        return translations[currentLanguage]?.[key] ?? translations.en[key] ?? key;
+      }
+
+      function valueLabel(group, value) {
+        if (!value) return "";
+        return translations[currentLanguage]?.[group]?.[value] ?? translations.en[group]?.[value] ?? value;
+      }
+
+      function shownText(count) {
+        return currentLanguage === "zh" ? `${count} 条展示` : `${count} shown`;
+      }
+
+      function newEventText(count) {
+        return currentLanguage === "zh" ? `${count} 条新事件` : `${count} new events`;
+      }
+
+      function applyLanguage() {
+        document.documentElement.lang = currentLanguage === "zh" ? "zh-CN" : "en";
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          node.textContent = t(node.dataset.i18n);
+        });
+        document.querySelectorAll("[data-language]").forEach((button) => {
+          const active = button.dataset.language === currentLanguage;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+        if (currentState) render(currentState);
+      }
+
       $("checkAllBtn").addEventListener("click", () => runCheck(null));
-      $("refreshBtn").addEventListener("click", () => loadState().then(() => toast("refreshed")).catch((error) => toast(error.message)));
+      $("refreshBtn").addEventListener("click", () => loadState().then(() => toast(t("refreshed"))).catch((error) => toast(error.message)));
       $("sources").addEventListener("click", (event) => {
         const button = event.target.closest("button[data-source]");
         if (button) runCheck(button.dataset.source);
       });
+      document.querySelectorAll("[data-language]").forEach((button) => {
+        button.addEventListener("click", () => {
+          currentLanguage = button.dataset.language;
+          localStorage.setItem("radarLanguage", currentLanguage);
+          applyLanguage();
+        });
+      });
+      applyLanguage();
       loadState().catch((error) => toast(error.message));
     </script>
   </body>

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from lolita_radar.models import ItemStatus, RadarItem
 from lolita_radar.storage import connect, diff_and_store
-from lolita_radar.web import get_dashboard_state
+from lolita_radar.web import INDEX_HTML, get_dashboard_state
 
 
 class WebTests(unittest.TestCase):
@@ -52,6 +52,12 @@ sources:
             self.assertEqual(state["sources"][0]["name"], "metamorphose")
             self.assertEqual(state["items"][0]["title"], "New Arrival: Rose JSK")
             self.assertEqual(state["events"][0]["event_type"], "new_item")
+
+    def test_index_html_includes_language_switch(self) -> None:
+        self.assertIn('data-language="zh"', INDEX_HTML)
+        self.assertIn('data-language="en"', INDEX_HTML)
+        self.assertIn("中文", INDEX_HTML)
+        self.assertIn("Check All", INDEX_HTML)
 
 
 if __name__ == "__main__":

@@ -92,6 +92,7 @@ python -m lolita_radar.cli web
 
 Then open [http://127.0.0.1:8766](http://127.0.0.1:8766). The dashboard shows
 configured sources, stored events, tracked items, and buttons for manual checks.
+The UI defaults to Chinese and includes a `中文 / EN` language switch.
 
 Use a custom database path:
 
