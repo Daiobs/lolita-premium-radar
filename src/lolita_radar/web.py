@@ -898,6 +898,83 @@ INDEX_HTML = r"""<!doctype html>
         color: var(--muted);
         font-size: 12px;
       }
+      .pattern-queue-board { margin: 0 20px 14px; }
+      .pattern-queue-grid { display: grid; grid-template-columns: minmax(220px, .54fr) minmax(360px, 1.46fr); gap: 12px; padding: 12px; }
+      .pattern-queue-brief, .pattern-queue-card {
+        position: relative;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 20%, var(--line));
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand-accent, var(--rose)) 14%, transparent), transparent 38%),
+          linear-gradient(135deg, color-mix(in srgb, var(--brand-paper, #fff3f6) 72%, #fff), rgba(255,253,251,.94));
+        box-shadow: var(--paper-shadow);
+        overflow: hidden;
+      }
+      .pattern-queue-brief {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+        padding: 12px;
+      }
+      .pattern-queue-brief::before, .pattern-queue-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 5px;
+        background:
+          radial-gradient(circle at 8px 0, rgba(255,255,255,.82) 0 5px, transparent 5px) 0 0 / 16px 5px repeat-x,
+          linear-gradient(90deg, var(--brand-accent, var(--rose)), var(--gold));
+      }
+      .pattern-queue-brief strong { color: var(--wine); font: 650 34px/1 Georgia, "Times New Roman", serif; }
+      .pattern-queue-brief p, .pattern-queue-card p { margin: 0; color: var(--muted); }
+      .pattern-queue-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+      }
+      .pattern-queue-stats span {
+        display: grid;
+        gap: 3px;
+        min-height: 50px;
+        padding: 8px;
+        border: 1px solid rgba(97,27,49,.1);
+        border-radius: 7px;
+        background: rgba(255,253,251,.74);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .pattern-queue-stats strong { color: var(--wine); font: 650 18px/1 Georgia, "Times New Roman", serif; }
+      .pattern-queue-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+      .pattern-queue-card {
+        display: grid;
+        gap: 8px;
+        min-height: 172px;
+        padding: 12px;
+      }
+      .pattern-queue-card header { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
+      .pattern-queue-card strong { color: var(--wine); font-family: Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+      .pattern-queue-meta, .pattern-queue-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      .pattern-queue-meta span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 7px;
+        border: 1px dashed color-mix(in srgb, var(--brand-accent, var(--rose)) 28%, var(--line));
+        border-radius: 999px;
+        background: rgba(255,253,251,.72);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .pattern-queue-actions button, .pattern-queue-actions a {
+        min-height: 30px;
+        padding: 0 9px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--brand-accent, var(--rose)) 18%, var(--line));
+        background: rgba(255,255,255,.74);
+        color: var(--wine);
+        font-size: 12px;
+        text-decoration: none;
+      }
       .radar-nav {
         position: sticky;
         top: 0;
@@ -3073,7 +3150,7 @@ INDEX_HTML = r"""<!doctype html>
         .hero-visual { min-height: 160px; }
         .actions { justify-content: flex-start; }
         .preference-stack { justify-items: start; }
-        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .style-premium-grid, .style-premium-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-salon, .weight-salon-list, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
+        .opportunity-toolbar, .matrix-toolbar, .coverage-grid, .north-star-grid, .north-star-list, .crown-grid, .crown-list, .draft-risk-grid, .draft-risk-card, .style-premium-grid, .style-premium-list, .pattern-queue-grid, .pattern-queue-list, .daily-grid, .run-sheet-grid, .portfolio-grid, .release-grid, .rubric-grid, .playbook-grid, .lookbook-grid, .scorecard-grid, .guardrail-grid, .scenario-grid, .weight-salon, .weight-salon-list, .weight-snapshot, .strategy-grid, .formula-summary, .action-grid, .price-grid, .quality-grid, .alert-grid, .momentum-grid, .identity-grid, .core-watch-grid { grid-template-columns: 1fr; }
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
@@ -3169,6 +3246,15 @@ INDEX_HTML = r"""<!doctype html>
       </div>
       <div id="stylePremiumTape" class="style-premium-grid"></div>
     </section>
+    <section class="panel pattern-queue-board">
+      <div class="toolbar">
+        <div>
+          <h2 data-i18n="patternWatchQueue">款式词追踪队列</h2>
+          <span class="muted" data-i18n="patternWatchHint">把贝壳、熊包、吸血鬼等代表款式词转成今天的二级市场搜索和采样任务</span>
+        </div>
+      </div>
+      <div id="patternWatchQueue" class="pattern-queue-grid"></div>
+    </section>
     <section class="panel daily-board">
       <div class="toolbar">
         <div>
@@ -3183,6 +3269,7 @@ INDEX_HTML = r"""<!doctype html>
       <button type="button" data-radar-jump="northStarRadar" data-i18n="navNorthStar">北极星</button>
       <button type="button" data-radar-jump="brandCrownQueue" data-i18n="navCrown">皇冠</button>
       <button type="button" data-radar-jump="stylePremiumTape" data-i18n="navStylePremium">行情</button>
+      <button type="button" data-radar-jump="patternWatchQueue" data-i18n="navPatternWatch">款式</button>
       <button type="button" data-radar-jump="dailyRadarBrief" data-i18n="navDaily">简报</button>
       <button type="button" data-radar-jump="brandPortfolio" data-i18n="navPortfolio">组合</button>
       <button type="button" data-radar-jump="releaseWatchQueue" data-i18n="navReleaseWatch">发售</button>
@@ -3658,6 +3745,7 @@ INDEX_HTML = r"""<!doctype html>
           navNorthStar: "北极星",
           navCrown: "皇冠",
           navStylePremium: "行情",
+          navPatternWatch: "款式",
           navDaily: "简报",
           navPortfolio: "组合",
           navReleaseWatch: "发售",
@@ -3756,6 +3844,17 @@ INDEX_HTML = r"""<!doctype html>
           stylePremiumWatch: "持续盯价",
           stylePremiumReview: "折价复核",
           stylePremiumHold: "等待信号",
+          patternWatchQueue: "款式词追踪队列",
+          patternWatchHint: "把贝壳、熊包、吸血鬼等代表款式词转成今天的二级市场搜索和采样任务",
+          patternWatchScore: "款式优先",
+          patternWatchLead: "领跑款式",
+          patternWatchTasks: "追踪任务",
+          patternWatchCore: "核心品牌",
+          patternWatchSampleGaps: "待补样本",
+          patternWatchEvidence: "已有证据",
+          patternWatchSearch: "搜索",
+          patternWatchSample: "补样本",
+          patternWatchNoRows: "暂无可追踪款式词",
           dailyRadarBrief: "今日雷达简报",
           dailyRadarBriefHint: "把核心盯盘、权重校准和采样缺口收成今天的行动队列",
           dailyLead: "主线",
@@ -4464,6 +4563,7 @@ INDEX_HTML = r"""<!doctype html>
           navNorthStar: "North Star",
           navCrown: "Crown",
           navStylePremium: "Tape",
+          navPatternWatch: "Patterns",
           navDaily: "Brief",
           navPortfolio: "Portfolio",
           navReleaseWatch: "Release",
@@ -4562,6 +4662,17 @@ INDEX_HTML = r"""<!doctype html>
           stylePremiumWatch: "keep watching",
           stylePremiumReview: "review discount",
           stylePremiumHold: "wait signal",
+          patternWatchQueue: "Pattern Watch Queue",
+          patternWatchHint: "Turn shell, kumya, vampire, and other signature terms into today's resale search and sampling tasks",
+          patternWatchScore: "pattern priority",
+          patternWatchLead: "lead pattern",
+          patternWatchTasks: "watch tasks",
+          patternWatchCore: "core brands",
+          patternWatchSampleGaps: "sample gaps",
+          patternWatchEvidence: "evidence",
+          patternWatchSearch: "search",
+          patternWatchSample: "add sample",
+          patternWatchNoRows: "no pattern terms to watch yet",
           dailyRadarBrief: "Daily Radar Brief",
           dailyRadarBriefHint: "Turn core watch, weight tuning, and sample gaps into today's action queue",
           dailyLead: "lead",
@@ -9163,6 +9274,111 @@ INDEX_HTML = r"""<!doctype html>
         return "off";
       }
 
+      function renderPatternWatchQueue(rows = buildBrandRadarMatrix()) {
+        const target = $("patternWatchQueue");
+        if (!target) return;
+        const entries = patternWatchRows(rows);
+        if (!entries.length) {
+          target.innerHTML = `<div class="row">${escapeHtml(t("patternWatchNoRows"))}</div>`;
+          return;
+        }
+        const stats = patternWatchStats(entries);
+        target.innerHTML = `
+          <article class="pattern-queue-brief" style="${escapeHtml(brandVisualStyle(entries[0]))}">
+            <strong>${escapeHtml(stats.topScore)}</strong>
+            <p>${escapeHtml(t("patternWatchScore"))} · ${escapeHtml(t("patternWatchHint"))}</p>
+            <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(stats.topScore)}%"></span></div>
+            <div class="pattern-queue-stats">
+              <span><strong>${escapeHtml(stats.lead)}</strong>${escapeHtml(t("patternWatchLead"))}</span>
+              <span><strong>${escapeHtml(stats.tasks)}</strong>${escapeHtml(t("patternWatchTasks"))}</span>
+              <span><strong>${escapeHtml(stats.core)}</strong>${escapeHtml(t("patternWatchCore"))}</span>
+              <span><strong>${escapeHtml(stats.sampleGaps)}</strong>${escapeHtml(t("patternWatchSampleGaps"))}</span>
+            </div>
+          </article>
+          <div class="pattern-queue-list">
+            ${entries.map(patternWatchCardHtml).join("")}
+          </div>
+        `;
+      }
+
+      function patternWatchCardHtml(entry) {
+        const links = marketSearchLinks({ ...entry, keyword: entry.keyword }).slice(0, 2);
+        return `<article class="pattern-queue-card" data-pattern-watch="${escapeHtml(entry.alias)}:${escapeHtml(entry.keyword)}" style="${escapeHtml(brandVisualStyle(entry))}">
+          <header>
+            <div>
+              <strong>${escapeHtml(entry.keyword)}</strong>
+              <p>${escapeHtml(entry.alias)} · ${escapeHtml(entry.name || entry.alias)}</p>
+            </div>
+            <span class="pill ${escapeHtml(opportunityPill(entry.band))}">${escapeHtml(entry.pattern_score)}</span>
+          </header>
+          <div class="signal-bar" aria-hidden="true"><span style="--score: ${escapeHtml(entry.pattern_score)}%"></span></div>
+          <div class="pattern-queue-meta">
+            <span>${escapeHtml(t("weightLabel"))} ${escapeHtml(entry.brand_weight)}</span>
+            <span>${escapeHtml(t("avgPremium"))} ${escapeHtml(formatPercent(entry.avg_premium_rate))}</span>
+            <span>${escapeHtml(t("samples"))} ${escapeHtml(entry.sample_count)}/${escapeHtml(entry.target_samples)}</span>
+            <span>${escapeHtml(t("patternWatchEvidence"))} ${escapeHtml(entry.pattern_samples)}</span>
+          </div>
+          <div class="pattern-queue-actions">
+            <button type="button" data-pattern-watch-brand="${escapeHtml(entry.alias)}" data-pattern-watch-keyword="${escapeHtml(entry.keyword)}">${escapeHtml(t("patternWatchSample"))}</button>
+            ${links.map((link) => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`).join("")}
+          </div>
+        </article>`;
+      }
+
+      function patternWatchRows(rows, limit = 8) {
+        const patternMap = new Map((currentState?.market?.patterns || []).map((pattern) => [
+          patternKey(pattern.alias, pattern.keyword),
+          pattern,
+        ]));
+        return (rows || []).flatMap((entry) => {
+          const terms = (entry.market_keywords || []).slice(0, 5);
+          const target = sampleTarget(entry.brand_weight, entry.tier);
+          const sampleGap = Math.max(0, target - (Number(entry.sample_count) || 0));
+          return terms.map((keyword, index) => {
+            const pattern = patternMap.get(patternKey(entry.alias, keyword)) || {};
+            const patternSamples = Number(pattern.sample_count) || 0;
+            const avgPremium = Number(pattern.avg_premium_rate ?? entry.avg_premium_rate) || 0;
+            const score = clampScore(
+              (Number(entry.brand_weight) || 0) * .48
+              + Math.max(0, avgPremium) * 42
+              + Math.min(14, sampleGap * 4)
+              + Math.max(0, 10 - index * 2)
+              + Math.min(10, patternSamples * 4)
+            );
+            return {
+              ...entry,
+              keyword,
+              pattern_score: score,
+              pattern_samples: patternSamples,
+              avg_premium_rate: avgPremium,
+              max_premium_rate: Number(pattern.max_premium_rate ?? entry.max_premium_rate) || 0,
+              sample_count: Number(entry.sample_count) || 0,
+              target_samples: target,
+              band: pattern.band || opportunityBand(score, avgPremium, patternSamples || entry.sample_count, entry.brand_weight),
+            };
+          });
+        }).sort((a, b) => (
+          (Number(b.pattern_score) || 0) - (Number(a.pattern_score) || 0)
+          || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0)
+          || (Number(b.pattern_samples) || 0) - (Number(a.pattern_samples) || 0)
+          || String(a.keyword).localeCompare(String(b.keyword))
+        )).slice(0, limit);
+      }
+
+      function patternWatchStats(entries) {
+        return {
+          topScore: entries[0]?.pattern_score || 0,
+          lead: entries[0] ? `${entries[0].alias} · ${entries[0].keyword}` : "-",
+          tasks: entries.length,
+          core: entries.filter((entry) => entry.tier === "core" || Number(entry.brand_weight) >= 90).length,
+          sampleGaps: entries.filter((entry) => Number(entry.sample_count) < Number(entry.target_samples)).length,
+        };
+      }
+
+      function patternKey(alias, keyword) {
+        return `${normalizeAlias(alias)}::${String(keyword || "").trim().toLowerCase()}`;
+      }
+
       function buildDraftOpportunityRadar() {
         return buildOpportunityRows().slice(0, 8);
       }
@@ -9179,6 +9395,7 @@ INDEX_HTML = r"""<!doctype html>
         renderBrandCrownQueue(rows);
         renderDraftRiskRadar();
         renderStylePremiumTape(rows);
+        renderPatternWatchQueue(rows);
         renderDailyRadarBrief(rows);
         renderResaleRunSheet(rows);
         renderBrandPortfolio(rows);
@@ -10465,6 +10682,10 @@ INDEX_HTML = r"""<!doctype html>
       $("draftRiskRadar").addEventListener("click", (event) => {
         const reviewButton = event.target.closest("[data-draft-risk-review]");
         if (reviewButton) jumpToRadarSection("brandWeightsPanel");
+      });
+      $("patternWatchQueue").addEventListener("click", (event) => {
+        const patternButton = event.target.closest("[data-pattern-watch-brand]");
+        if (patternButton) prepareKeywordSample(patternButton.dataset.patternWatchBrand, patternButton.dataset.patternWatchKeyword);
       });
       $("marketForm").addEventListener("submit", addMarketObservation);
       ["marketBrand", "marketRetail", "marketResale", "marketCurrency"].forEach((id) => {

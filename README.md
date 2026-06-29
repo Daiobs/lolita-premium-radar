@@ -113,7 +113,10 @@ radar mirrors the full draft audit by showing unsaved change count, risk count,
 largest move, and the top save-before-review warnings as soon as weights are
 tuned. A style-premium tape then rolls Sweet, Classic, Gothic, Release, and Art
 Print lanes into one resale-market readout with average premium, weighted heat,
-sample coverage, average spread, and the next line-level action.
+sample coverage, average spread, and the next line-level action. A first-screen
+pattern watch queue expands signature market keywords such as AP `贝壳`, BABY
+`Usakumya`, and AATP `Vampire Requiem` into scored search/sample tasks with
+direct resale-search links and one-click price-sample prefills.
 Brand weights, scorecards, core watch gaps, and sample plans are also summarized
 into a daily radar brief near the top of the dashboard, turning AP/BABY/AATP-style
 priority checks into a short action queue with jump, sample, and pattern-prefill
