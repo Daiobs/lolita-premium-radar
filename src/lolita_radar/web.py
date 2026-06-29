@@ -1228,6 +1228,26 @@ INDEX_HTML = r"""<!doctype html>
       .keyword-chips { display: flex; flex-wrap: wrap; gap: 6px; }
       .keyword-chips button { min-height: 28px; padding: 0 8px; border-color: rgba(15,103,96,.18); background: #f8fbfa; box-shadow: none; color: var(--teal); }
       .seed-board { margin: 0 20px 14px; }
+      .seed-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 8px;
+        padding: 12px 12px 0;
+      }
+      .seed-summary-card {
+        display: grid;
+        gap: 4px;
+        min-height: 70px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 100% 0, rgba(180,87,111,.1), transparent 36%),
+          linear-gradient(135deg, rgba(255,247,232,.72), rgba(248,251,250,.92));
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,.38);
+      }
+      .seed-summary-card strong { color: var(--wine); font: 650 24px/1 Georgia, "Times New Roman", serif; }
+      .seed-summary-card span { color: var(--muted); font-size: 12px; }
       .seed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; padding: 12px; }
       .seed-card {
         position: relative;
@@ -1606,6 +1626,7 @@ INDEX_HTML = r"""<!doctype html>
         .matrix-tools { justify-content: flex-start; }
         .market-heading, .premium-tools { align-items: flex-start; flex-direction: column; }
         .coverage-card, .sample-preview { grid-template-columns: 1fr; }
+        .seed-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .weight-draft-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .weight-draft-warning { grid-template-columns: 1fr; }
         .sample-plan-summary, .sample-plan-stats { grid-template-columns: 1fr; }
@@ -1784,6 +1805,7 @@ INDEX_HTML = r"""<!doctype html>
           <button id="exportPremiumSeedsCsvBtn" type="button" class="secondary" data-i18n="exportPremiumSeedsCsv">导出种子 CSV</button>
         </div>
       </div>
+      <div id="premiumSeedSummary" class="seed-summary"></div>
       <div id="premiumSeedRadar" class="seed-grid"></div>
     </section>
     <section class="panel action-board">
@@ -2251,6 +2273,10 @@ INDEX_HTML = r"""<!doctype html>
           exportPremiumSeedsCsv: "导出种子 CSV",
           exportedPremiumSeedsCsv: "溢价种子已导出",
           noPremiumSeedsCsv: "暂无可导出的溢价种子",
+          premiumSeedTaskCount: "种子任务",
+          premiumSeedCoreGaps: "核心缺口",
+          premiumSeedTopSeed: "第一优先",
+          premiumSeedAvgScore: "平均种子分",
           marketKeywords: "二级市场词",
           noMarketKeywords: "暂无热门款式词",
           keywordSampleReady: "已填入款式词，可补价格样本",
@@ -2710,6 +2736,10 @@ INDEX_HTML = r"""<!doctype html>
           exportPremiumSeedsCsv: "export seed CSV",
           exportedPremiumSeedsCsv: "premium seeds exported",
           noPremiumSeedsCsv: "no premium seeds to export",
+          premiumSeedTaskCount: "seed tasks",
+          premiumSeedCoreGaps: "core gaps",
+          premiumSeedTopSeed: "top seed",
+          premiumSeedAvgScore: "avg seed score",
           marketKeywords: "market terms",
           noMarketKeywords: "No hot pattern keywords yet",
           keywordSampleReady: "keyword filled for price sample",
@@ -3171,6 +3201,7 @@ INDEX_HTML = r"""<!doctype html>
 
       function renderPremiumSeedRadar(rows) {
         const seeds = premiumSeedRows(rows);
+        renderPremiumSeedSummary(seeds);
         $("premiumSeedRadar").innerHTML = seeds.length ? seeds.map((entry) => `<article class="seed-card" style="${escapeHtml(brandVisualStyle(entry))}">
           <header>
             <div>
@@ -3194,6 +3225,29 @@ INDEX_HTML = r"""<!doctype html>
             ${(entry.watch_urls || []).slice(0, 3).map((link) => safeUrl(link.url) ? `<a href="${escapeHtml(safeUrl(link.url))}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>` : "").join("")}
           </div>
         </article>`).join("") : `<div class="row">${escapeHtml(t("premiumSeedEmpty"))}</div>`;
+      }
+
+      function renderPremiumSeedSummary(seeds) {
+        const stats = premiumSeedStats(seeds);
+        $("premiumSeedSummary").innerHTML = [
+          [stats.taskCount, "premiumSeedTaskCount"],
+          [stats.coreGaps, "premiumSeedCoreGaps"],
+          [stats.topSeed, "premiumSeedTopSeed"],
+          [stats.avgScore, "premiumSeedAvgScore"],
+        ].map(([value, label]) => `<article class="seed-summary-card"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(t(label))}</span></article>`).join("");
+      }
+
+      function premiumSeedStats(seeds) {
+        const rows = seeds || [];
+        const taskCount = rows.reduce((sum, entry) => sum + (entry.seed_terms || []).length, 0);
+        const scores = rows.map((entry) => Number(entry.seed_score) || 0);
+        const top = [...rows].sort((a, b) => (Number(b.seed_score) || 0) - (Number(a.seed_score) || 0) || (Number(b.brand_weight) || 0) - (Number(a.brand_weight) || 0))[0];
+        return {
+          taskCount,
+          coreGaps: rows.filter((entry) => Number(entry.brand_weight) >= 90 && Number(entry.sample_count) < 2).length,
+          topSeed: top ? `${top.alias} ${top.seed_terms?.[0] || ""}`.trim() : "-",
+          avgScore: scores.length ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length) : 0,
+        };
       }
 
       function premiumSeedRows(rows) {
