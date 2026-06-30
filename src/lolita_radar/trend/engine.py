@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 
@@ -21,8 +22,8 @@ def build_trend_feed(
         alias = str(brand.get("brand_alias") or "")
         if not alias:
             continue
-        sample_count = int(brand.get("sample_count") or 0)
-        avg_premium = float(brand.get("avg_premium_rate") or 0)
+        sample_count = safe_count(brand.get("sample_count"))
+        avg_premium = safe_float(brand.get("avg_premium_rate"))
         movement = momentum_by_alias.get(alias, {})
         direction = normalize_direction(movement.get("direction"), avg_premium, sample_count)
         confidence = trend_confidence(sample_count, avg_premium, movement, release_counts.get(alias, 0))
@@ -80,6 +81,21 @@ def primary_watch_url(brand: dict[str, Any]) -> str:
         if url.startswith(("http://", "https://")):
             return url
     return ""
+
+
+def safe_count(value: object) -> int:
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def safe_float(value: object) -> float:
+    try:
+        number = float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
+    return number if math.isfinite(number) else 0.0
 
 
 def count_release_events(events: list[dict[str, Any]]) -> dict[str, int]:

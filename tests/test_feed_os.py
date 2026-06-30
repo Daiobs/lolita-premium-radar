@@ -232,6 +232,20 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("premium_cooling", trends[0]["reason_codes"])
         self.assertNotIn("release_activity", trends[0]["reason_codes"])
 
+    def test_trend_engine_sanitizes_invalid_market_numbers(self) -> None:
+        trends = build_trend_feed(
+            {"brands": [{"brand_alias": "AP", "sample_count": "-5", "avg_premium_rate": "NaN"}]},
+            [{"brand_alias": "AP", "direction": "moonshot", "observed_at": "2026-06-30"}],
+            [],
+        )
+
+        self.assertEqual(trends[0]["kind"], "stable")
+        self.assertEqual(trends[0]["confidence"], 15)
+        self.assertEqual(trends[0]["avg_premium_rate"], 0)
+        self.assertEqual(trends[0]["sample_count"], 0)
+        self.assertIn("sample_gap", trends[0]["reason_codes"])
+        self.assertIn("premium_stable", trends[0]["reason_codes"])
+
     def test_trend_engine_outputs_sample_gap_for_weighted_brand_without_samples(self) -> None:
         trends = build_trend_feed(
             {"brands": []},
