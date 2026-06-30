@@ -133,9 +133,12 @@ def alert_feed(
                     "kind": str(run.get("status") or "source"),
                     "brand": str(run.get("source") or ""),
                     "title": f"{run.get('source')} {run.get('status')}",
-                    "meta": source_health_meta(run),
+                    "meta": str(run.get("error_message") or ""),
                     "time": str(run.get("checked_at") or ""),
                     "url": urls.get(str(run.get("source") or ""), ""),
+                    "error_rate": run.get("error_rate", 0),
+                    "latency_ms": run.get("latency_ms", 0),
+                    "item_count": run.get("item_count", 0),
                     "reason_codes": ["source_health"],
                     "visual": visual_token("alert", str(run.get("source") or "Source"), str(run.get("status") or "source")),
                 }
@@ -192,16 +195,6 @@ def market_alert_reasons(alert: dict[str, Any], kind: str) -> list[str]:
     if severity and severity not in reasons:
         reasons.append(severity)
     return reasons
-
-
-def source_health_meta(run: dict[str, Any]) -> str:
-    parts = [
-        str(run.get("error_message") or ""),
-        f"error_rate={run.get('error_rate', 0)}",
-        f"latency_ms={run.get('latency_ms', 0)}",
-        f"item_count={run.get('item_count', 0)}",
-    ]
-    return " · ".join(part for part in parts if part)
 
 
 def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> dict[str, Any]:

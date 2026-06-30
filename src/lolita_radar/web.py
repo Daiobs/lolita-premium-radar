@@ -484,6 +484,9 @@ FEED_INDEX_HTML = r"""<!doctype html>
           urgency: "紧急度",
           keywords: "关键词",
           sampleCount: "样本",
+          errorRate: "错误率",
+          latency: "延迟",
+          itemCount: "条目",
           priceDelta: "价差",
         },
         ja: {
@@ -506,6 +509,9 @@ FEED_INDEX_HTML = r"""<!doctype html>
           urgency: "優先度",
           keywords: "キーワード",
           sampleCount: "サンプル",
+          errorRate: "エラー率",
+          latency: "遅延",
+          itemCount: "件数",
           priceDelta: "価格差",
         },
       };
@@ -679,6 +685,9 @@ FEED_INDEX_HTML = r"""<!doctype html>
         if (Array.isArray(row.keywords) && row.keywords.length) chips.push(`${TEXT[language].keywords} · ${row.keywords.slice(0, 6).join(", ")}`);
         if (row.price_delta !== undefined) chips.push(`${TEXT[language].priceDelta} · ${formatPercent(row.price_delta)}`);
         if (row.sample_count !== undefined) chips.push(`${TEXT[language].sampleCount} · ${row.sample_count}`);
+        if (row.error_rate !== undefined) chips.push(`${TEXT[language].errorRate} · ${formatPercent(row.error_rate)}`);
+        if (row.latency_ms !== undefined) chips.push(`${TEXT[language].latency} · ${row.latency_ms}ms`);
+        if (row.item_count !== undefined) chips.push(`${TEXT[language].itemCount} · ${row.item_count}`);
         if (row.status) chips.push(statusLabel(row.status));
         if (row.source_label) chips.push(row.source_label);
         if (row.time_kind) chips.push((TEXT[language][row.time_kind] || row.time_kind) + (row.time ? ` · ${displayDate(row.time)}` : ""));

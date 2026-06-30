@@ -521,9 +521,10 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[0]["kind"], "degraded")
         self.assertEqual(alerts[0]["url"], "https://example.com/ap/news")
         self.assertEqual(alerts[0]["reason_codes"], ["source_health"])
-        self.assertIn("error_rate=0.3", alerts[0]["meta"])
-        self.assertIn("latency_ms=321", alerts[0]["meta"])
-        self.assertIn("item_count=0", alerts[0]["meta"])
+        self.assertEqual(alerts[0]["meta"], "")
+        self.assertEqual(alerts[0]["error_rate"], 0.3)
+        self.assertEqual(alerts[0]["latency_ms"], 321)
+        self.assertEqual(alerts[0]["item_count"], 0)
         self.assertEqual(alerts[0]["time"], "2026-06-30T10:05:00+00:00")
 
     def test_alert_feed_uses_latest_source_health_when_runs_are_unsorted(self) -> None:
