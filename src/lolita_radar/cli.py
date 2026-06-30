@@ -63,6 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     loop_parser.add_argument("--cycles", type=int, default=288, help="number of check cycles; 288 at 5 minutes covers 24h")
     loop_parser.add_argument("--interval-seconds", type=int, default=300)
     loop_parser.add_argument("--notify", action="store_true", help="send notifications during the loop")
+    loop_parser.add_argument("--log-file", type=Path, help="write the loop audit table for later verify-loop audit")
     loop_parser.add_argument("--exit-file", type=Path, help="write the loop exit code for later verify-loop audit")
 
     verify_loop_parser = subparsers.add_parser("verify-loop", help="verify a long-running check loop log and database")
@@ -104,7 +105,13 @@ def main(argv: list[str] | None = None) -> int:
         print(format_health_rows(latest_source_health(config_path=args.config, db_path=args.db)))
         return 0
     if args.command == "run-loop":
-        print("cycle | ok | event_count | error_message", flush=True)
+        header = "cycle | ok | event_count | error_message"
+        print(header, flush=True)
+        write_loop_log_header(args.log_file, header)
+        def on_loop_result(result: CheckLoopResult) -> None:
+            line = format_loop_result_line(result)
+            print(line, flush=True)
+            append_loop_log_line(args.log_file, line)
         try:
             results = run_check_loop(
                 config_path=args.config,
@@ -112,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
                 cycles=args.cycles,
                 interval_seconds=args.interval_seconds,
                 notify=args.notify,
-                on_result=lambda result: print(format_loop_result_line(result), flush=True),
+                on_result=on_loop_result,
             )
         except KeyboardInterrupt:
             print("interrupted", file=sys.stderr)
@@ -180,6 +187,20 @@ def write_exit_file(path: Path | None, exit_code: int) -> None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"{int(exit_code)}\n", encoding="utf-8")
+
+
+def write_loop_log_header(path: Path | None, header: str) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"{header}\n", encoding="utf-8")
+
+
+def append_loop_log_line(path: Path | None, line: str) -> None:
+    if path is None:
+        return
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(f"{line}\n")
 
 
 def format_health_rows(rows: list[dict[str, object]]) -> str:

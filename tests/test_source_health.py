@@ -126,6 +126,7 @@ class SourceHealthTests(unittest.TestCase):
             root = Path(temp_dir)
             config_path = self.write_config(root, {"good": "fake_good"})
             db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
             exit_path = root / "loop.exit"
             original = dict(runner.ADAPTERS)
             stdout = io.StringIO()
@@ -143,6 +144,8 @@ class SourceHealthTests(unittest.TestCase):
                             "2",
                             "--interval-seconds",
                             "0",
+                            "--log-file",
+                            str(log_path),
                             "--exit-file",
                             str(exit_path),
                         ]
@@ -156,13 +159,38 @@ class SourceHealthTests(unittest.TestCase):
             self.assertIn("cycle | ok | event_count | error_message", output)
             self.assertIn("1 | ok", output)
             self.assertIn("2 | ok", output)
+            self.assertIn("cycle | ok | event_count | error_message", log_path.read_text(encoding="utf-8"))
+            self.assertIn("1 | ok", log_path.read_text(encoding="utf-8"))
+            self.assertIn("2 | ok", log_path.read_text(encoding="utf-8"))
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "0\n")
+
+            verify_stdout = io.StringIO()
+            with redirect_stdout(verify_stdout):
+                verify_exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(verify_exit_code, 0)
+            self.assertIn("status: complete", verify_stdout.getvalue())
 
     def test_run_loop_writes_failed_exit_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config_path = self.write_config(root, {"bad": "fake_bad"})
             db_path = root / "radar.sqlite"
+            log_path = root / "logs" / "loop.log"
             exit_path = root / "logs" / "loop.exit"
             original = dict(runner.ADAPTERS)
             stdout = io.StringIO()
@@ -180,6 +208,8 @@ class SourceHealthTests(unittest.TestCase):
                             "1",
                             "--interval-seconds",
                             "0",
+                            "--log-file",
+                            str(log_path),
                             "--exit-file",
                             str(exit_path),
                         ]
@@ -190,6 +220,7 @@ class SourceHealthTests(unittest.TestCase):
 
             self.assertEqual(exit_code, 1)
             self.assertIn("1 | failed", stdout.getvalue())
+            self.assertIn("1 | failed", log_path.read_text(encoding="utf-8"))
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "1\n")
 
     def test_run_loop_ignores_old_source_failure_after_latest_success(self) -> None:
