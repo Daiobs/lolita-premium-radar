@@ -276,7 +276,7 @@ def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
         rows = streams.get(name, [])
         if not isinstance(rows, list):
             return f"stream {name} is not a list"
-        for row in rows[:3]:
+        for row in rows:
             if not isinstance(row, dict):
                 return f"stream {name} contains non-object row"
             missing = required_keys(row, required)
@@ -289,7 +289,7 @@ def runtime_feed_noise_problem(streams: dict[str, Any]) -> str:
     for name, rows in streams.items():
         if not isinstance(rows, list):
             continue
-        for row in rows[:30]:
+        for row in rows:
             if not isinstance(row, dict):
                 continue
             token = navigation_noise_token(row)

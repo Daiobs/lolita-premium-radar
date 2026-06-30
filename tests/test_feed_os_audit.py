@@ -244,6 +244,52 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("stale source time", check.detail)
 
+    def test_runtime_feed_audit_checks_all_rows_not_only_first_items(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        current_year = datetime.now(timezone.utc).year
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"drops": 4, "shops": 0, "trends": 0, "alerts": 0},
+                    "streams": {
+                        "release": [
+                            {
+                                "feed_type": "release",
+                                "brand": "AP",
+                                "title": f"Release {index}",
+                                "type": "new_arrival",
+                                "time": f"{current_year}-06-{index + 1:02d}",
+                                "price": "未取得",
+                                "url": f"https://example.com/ap/{index}",
+                            }
+                            for index in range(4)
+                        ],
+                        "drop": [],
+                        "trend": [],
+                        "alert": [],
+                    },
+                    "all": [
+                        {
+                            "feed_type": "release",
+                            "url": f"https://example.com/ap/{index}",
+                        }
+                        for index in range(4)
+                    ],
+                }
+            }
+            state = audit_module.get_feed_state()
+            state["feed"]["streams"]["release"][3]["price"] = ""
+            audit_module.get_feed_state = lambda **_kwargs: state
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("stream release row missing fields: price", check.detail)
+
     def test_cli_audit_returns_nonzero_when_evidence_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
