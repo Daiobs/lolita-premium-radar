@@ -89,6 +89,32 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[2]["kind"], "sample_gap")
         self.assertIn("sample_gap", alerts[2]["reason_codes"])
 
+    def test_release_feed_keeps_non_target_brand_sources_out(self) -> None:
+        events = [
+            {
+                "source": "innocent_world",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "IW Rose JSK",
+                "url": "https://example.com/iw",
+                "created_at": "2026-06-30T10:00:00+00:00",
+            },
+            {
+                "source": "metamorphose",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Meta Rose JSK",
+                "url": "https://example.com/meta",
+                "created_at": "2026-06-30T10:01:00+00:00",
+            },
+        ]
+
+        feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
+        release_titles = [row["title"] for row in feed["streams"]["release"]]
+
+        self.assertEqual(release_titles, ["Meta Rose JSK"])
+        self.assertEqual(feed["summary"]["drops"], 1)
+
     def test_alert_feed_uses_latest_source_health_per_source(self) -> None:
         source_runs = [
             {
