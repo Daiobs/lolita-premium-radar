@@ -31,6 +31,35 @@ class BrandParserTests(unittest.TestCase):
         self.assertEqual(items[0].metadata["price"], "¥38,280")
         self.assert_no_navigation(items)
 
+    def test_angelic_pretty_extracts_compact_date_from_url(self) -> None:
+        html = """
+        <article>
+          <span class="category">ご予約</span>
+          <a href="/Page/Feature/20260627.aspx">恋するお姫様ジャンパースカートSetご予約会のご案内</a>
+        </article>
+        """
+
+        items = parse_angelic_pretty_news(html, "https://angelicpretty.com/Page/news/")
+
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0].published_at, "2026-06-27")
+        self.assertEqual(items[0].status, ItemStatus.PREORDER)
+
+    def test_angelic_pretty_replaces_image_path_titles(self) -> None:
+        html = """
+        <article>
+          <span>ご予約</span>
+          <a href="/Page/Feature/20260627.aspx">
+            <img alt="/Contents%2fFeature%2f2026pre02_s.jpg の画像">
+          </a>
+        </article>
+        """
+
+        items = parse_angelic_pretty_news(html, "https://angelicpretty.com/Page/news/")
+
+        self.assertEqual(items[0].title, "Angelic Pretty 2026-06-27 予約特集 / 预约特集")
+        self.assertEqual(items[0].published_at, "2026-06-27")
+
     def test_baby_fixture_classifies_preorder(self) -> None:
         html = (FIXTURES / "baby_ssb_news.html").read_text(encoding="utf-8")
 

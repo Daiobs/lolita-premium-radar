@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from ..trend import build_trend_feed
@@ -8,6 +9,7 @@ from ..trend import build_trend_feed
 RELEASE_SOURCES = {"angelic_pretty", "baby_ssb", "alice_and_the_pirates", "metamorphose", "moitie"}
 RELEASE_STATUSES = {"new_arrival", "preorder", "restock"}
 MARKET_ALERT_KINDS = {"high_premium", "sample_gap"}
+HOME_LINK_LIMIT = 30
 
 
 def build_home_feed(
@@ -46,26 +48,34 @@ def release_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> l
     rows = [
         feed_card("release", row)
         for row in events
-        if row.get("source") in RELEASE_SOURCES and row.get("status") in RELEASE_STATUSES
+        if is_current_release_row(row)
     ]
     if rows:
-        return sort_cards(rows)[:30]
-    return sort_cards([
+        return unique_cards(sort_cards(rows))[:HOME_LINK_LIMIT]
+    return unique_cards(sort_cards([
         feed_card("release", row)
         for row in items
-        if row.get("source") in RELEASE_SOURCES and row.get("status") in RELEASE_STATUSES
-    ])[:30]
+        if is_current_release_row(row)
+    ]))[:HOME_LINK_LIMIT]
 
 
 def drop_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows = [drop_card(row) for row in events if is_drop_row(row)]
     if rows:
-        return sort_cards(rows)[:30]
-    return sort_cards([drop_card(row) for row in items if is_drop_row(row)])[:30]
+        return unique_cards(sort_cards(rows))[:HOME_LINK_LIMIT]
+    return unique_cards(sort_cards([drop_card(row) for row in items if is_drop_row(row)]))[:HOME_LINK_LIMIT]
 
 
 def is_drop_row(row: dict[str, Any]) -> bool:
     return row.get("source") == "generic_page" and bool(matched_keywords(row))
+
+
+def is_current_release_row(row: dict[str, Any]) -> bool:
+    return (
+        row.get("source") in RELEASE_SOURCES
+        and row.get("status") in RELEASE_STATUSES
+        and is_current_source_date(str(row.get("published_at") or ""))
+    )
 
 
 def alert_feed(
@@ -120,7 +130,7 @@ def alert_feed(
                     "reason_codes": ["source_health"],
                 }
             )
-    return sort_cards(alerts)[:40]
+    return unique_cards(sort_cards(alerts))[:40]
 
 
 def latest_source_runs_by_source(source_runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -141,6 +151,7 @@ def is_release_event(event: dict[str, Any]) -> bool:
         event.get("event_type") in {"new_item", "content_changed"}
         and event.get("source") in RELEASE_SOURCES
         and event.get("status") in RELEASE_STATUSES
+        and is_current_source_date(str(event.get("published_at") or ""))
     )
 
 
@@ -252,16 +263,17 @@ def feed_time(row: dict[str, Any]) -> tuple[str, str]:
     published_at = str(row.get("published_at") or "")
     if published_at:
         return published_at, "published"
-    created_at = str(row.get("created_at") or "")
-    if created_at:
-        return created_at, "seen"
-    last_seen_at = str(row.get("last_seen_at") or "")
-    if last_seen_at:
-        return last_seen_at, "seen"
-    first_seen_at = str(row.get("first_seen_at") or "")
-    if first_seen_at:
-        return first_seen_at, "seen"
     return "", ""
+
+
+def is_current_source_date(value: str) -> bool:
+    if len(value) < 4 or not value[:4].isdigit():
+        return False
+    return int(value[:4]) >= current_year()
+
+
+def current_year() -> int:
+    return datetime.now(timezone.utc).year
 
 
 def localized_status_label(status: str) -> str:
@@ -339,8 +351,21 @@ def merge_streams(streams: dict[str, list[dict[str, Any]]]) -> list[dict[str, An
     rows = []
     for key in ("release", "drop", "trend", "alert"):
         rows.extend(streams.get(key, []))
-    return sort_cards(rows)[:80]
+    linked_rows = [row for row in rows if row.get("url")]
+    return unique_cards(sort_cards(linked_rows))[:HOME_LINK_LIMIT]
 
 
 def sort_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda row: str(row.get("time") or ""), reverse=True)
+
+
+def unique_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen = set()
+    results = []
+    for row in rows:
+        key = str(row.get("url") or row.get("id") or row.get("title") or "")
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        results.append(row)
+    return results

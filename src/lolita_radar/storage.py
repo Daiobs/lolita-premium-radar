@@ -221,7 +221,11 @@ def list_items(connection: sqlite3.Connection, limit: int = 100) -> list[dict[st
             source, item_hash, title, url, status, published_at,
             content_hash, metadata_json, first_seen_at, last_seen_at
         FROM items
-        ORDER BY last_seen_at DESC, id DESC
+        ORDER BY
+            CASE WHEN published_at = '' THEN 1 ELSE 0 END,
+            published_at DESC,
+            last_seen_at DESC,
+            id DESC
         LIMIT ?
         """,
         (limit,),
@@ -238,7 +242,11 @@ def list_events(connection: sqlite3.Connection, limit: int = 100) -> list[dict[s
             created_at, items.published_at, items.metadata_json
         FROM events
         LEFT JOIN items ON items.item_hash = events.item_hash
-        ORDER BY created_at DESC, events.id DESC
+        ORDER BY
+            CASE WHEN items.published_at IS NULL OR items.published_at = '' THEN 1 ELSE 0 END,
+            items.published_at DESC,
+            created_at DESC,
+            events.id DESC
         LIMIT ?
         """,
         (limit,),

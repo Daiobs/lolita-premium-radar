@@ -66,6 +66,7 @@ sources:
                             title="New Arrival: Rose JSK",
                             url="https://example.com/news/rose",
                             status=ItemStatus.NEW_ARRIVAL,
+                            published_at="2026-06-30",
                         )
                     ],
                 )

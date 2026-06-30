@@ -14,6 +14,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "new_arrival",
                 "title": "Shell Garden JSK",
                 "url": "https://example.com/ap",
+                "published_at": "2026-06-30",
                 "created_at": "2026-06-30T10:00:00+00:00",
             },
             {
@@ -79,6 +80,63 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["release"][1]["time"], "2026-06-20")
         self.assertEqual(feed["streams"]["release"][1]["title_zh"], "新作")
         self.assertIn("新作 / 新品", card["status_label"])
+
+    def test_release_feed_requires_current_source_publish_time(self) -> None:
+        events = [
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Old 2025 JSK",
+                "url": "https://example.com/ap/old",
+                "published_at": "2025-12-31",
+                "created_at": "2026-06-30T10:00:00+00:00",
+            },
+            {
+                "source": "metamorphose",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Missing date should not use seen time",
+                "url": "https://example.com/meta/no-date",
+                "created_at": "2026-06-30T10:05:00+00:00",
+            },
+            {
+                "source": "baby_ssb",
+                "event_type": "new_item",
+                "status": "preorder",
+                "title": "Current Usakumya",
+                "url": "https://example.com/baby/current",
+                "published_at": "2026-06-29",
+                "created_at": "2026-06-30T10:10:00+00:00",
+            },
+        ]
+
+        feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
+        release_titles = [row["title"] for row in feed["streams"]["release"]]
+
+        self.assertEqual(release_titles, ["Current Usakumya"])
+        self.assertEqual(feed["streams"]["release"][0]["time"], "2026-06-29")
+        self.assertEqual(feed["streams"]["release"][0]["time_kind"], "published")
+
+    def test_home_all_feed_is_limited_to_thirty_links(self) -> None:
+        events = [
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": f"Release {index:02d}",
+                "url": f"https://example.com/ap/{index:02d}",
+                "published_at": f"2026-06-{(index % 28) + 1:02d}",
+                "created_at": "2026-06-30T10:00:00+00:00",
+            }
+            for index in range(35)
+        ]
+
+        feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
+
+        self.assertEqual(len(feed["all"]), 30)
+        self.assertTrue(all(row["url"] for row in feed["all"]))
+        self.assertEqual(len({row["url"] for row in feed["all"]}), 30)
 
     def test_alert_feed_normalizes_high_premium_and_sample_gap(self) -> None:
         market_alerts = {
@@ -188,6 +246,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "new_arrival",
                 "title": "Shell Garden JSK",
                 "url": "https://example.com/ap/shell-garden",
+                "published_at": "2026-06-30",
                 "created_at": "2026-06-30T10:05:00+00:00",
             }
         )
@@ -215,6 +274,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "new_arrival",
                 "title": "Meta Rose JSK",
                 "url": "https://example.com/meta",
+                "published_at": "2026-06-30",
                 "created_at": "2026-06-30T10:01:00+00:00",
             },
         ]

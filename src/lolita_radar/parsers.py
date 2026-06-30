@@ -10,6 +10,8 @@ from .models import RadarItem, classify_title
 
 
 DATE_RE = re.compile(r"(20\d{2})[./-](\d{1,2})[./-](\d{1,2})")
+COMPACT_DATE_RE = re.compile(r"(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)")
+IMAGE_TITLE_RE = re.compile(r"(?:^/|%2f|\.(?:jpe?g|png|webp|gif))(?:.*の画像)?", re.IGNORECASE)
 PRICE_RE = re.compile(r"(?:[¥￥]\s?[\d,]+|[\d,]+\s?円)")
 NAVIGATION_TOKENS = (
     "login",
@@ -21,7 +23,7 @@ NAVIGATION_TOKENS = (
     "shop list",
     "店舗",
     "マイページ",
-    "カート",
+    "/cart",
     "/category/",
     "/area/",
     "/shop/",
@@ -88,7 +90,7 @@ class LinkTextParser(HTMLParser):
                         title=title,
                         url=urljoin(self.base_url, href),
                         text=title,
-                        published_at=extract_date(title),
+                        published_at=extract_date(f"{title} {href}"),
                     )
                 )
                 for container in self._containers:
@@ -162,7 +164,7 @@ def parse_angelic_pretty_news(html_text: str, base_url: str, source: str = "ange
         category = angelic_pretty_category(link)
         if not category:
             continue
-        title = strip_date(link.title)
+        title = angelic_pretty_title(link, category)
         if not title:
             continue
         items.append(
@@ -317,7 +319,10 @@ def is_probable_brand_release_link(link: LinkCandidate) -> bool:
 
 def is_navigation_link(link: LinkCandidate) -> bool:
     lowered = f"{link.title} {link.url}".lower()
-    return any(token in lowered for token in NAVIGATION_TOKENS)
+    if any(token in lowered for token in NAVIGATION_TOKENS):
+        return True
+    normalized_title = clean_text(link.title).lower()
+    return normalized_title in {"cart", "shopping cart", "カート", "ショッピングカート"}
 
 
 def angelic_pretty_category(link: LinkCandidate) -> str:
@@ -332,6 +337,24 @@ def angelic_pretty_category(link: LinkCandidate) -> str:
         if any(token in lowered for token in tokens):
             return category
     return ""
+
+
+def angelic_pretty_title(link: LinkCandidate, category: str) -> str:
+    title = strip_date(link.title)
+    if title and not IMAGE_TITLE_RE.search(title):
+        return title
+    date = link.published_at or extract_date(link.text) or extract_date(link.url)
+    category_label = {
+        "preorder": "予約特集 / 预约特集",
+        "restock": "再入荷 / 再贩",
+        "new_arrival": "新作入荷 / 新作到货",
+        "topics": "お知らせ / 通知",
+    }.get(category, "Feature")
+    parts = ["Angelic Pretty"]
+    if date:
+        parts.append(date)
+    parts.append(category_label)
+    return " ".join(parts)
 
 
 def baby_category(link: LinkCandidate) -> str:
@@ -451,9 +474,19 @@ def dedupe_items(items: list[RadarItem]) -> list[RadarItem]:
 
 def extract_date(text: str) -> str:
     match = DATE_RE.search(text)
-    if not match:
+    if match:
+        year, month, day = (int(part) for part in match.groups())
+        return normalized_date(year, month, day)
+    compact_match = COMPACT_DATE_RE.search(text)
+    if compact_match:
+        year, month, day = (int(part) for part in compact_match.groups())
+        return normalized_date(year, month, day)
+    return ""
+
+
+def normalized_date(year: int, month: int, day: int) -> str:
+    if month < 1 or month > 12 or day < 1 or day > 31:
         return ""
-    year, month, day = (int(part) for part in match.groups())
     return f"{year:04d}-{month:02d}-{day:02d}"
 
 

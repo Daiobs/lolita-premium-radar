@@ -453,7 +453,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           emptyPrefix: "暂无",
           original: "原文",
           published: "发布时间",
-          seen: "发现时间",
+          seen: "检查时间",
           confidence: "信心",
         },
         ja: {
@@ -470,7 +470,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           emptyPrefix: "まだありません",
           original: "原文",
           published: "掲載日",
-          seen: "検知時刻",
+          seen: "確認時刻",
           confidence: "信頼度",
         },
       };
