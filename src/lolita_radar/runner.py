@@ -71,6 +71,7 @@ class CheckLoopVerification:
     duration_seconds: int
     failed_cycles: tuple[int, ...]
     missing_cycles: tuple[int, ...]
+    duplicate_cycles: tuple[int, ...]
     exit_code: int | None
     expected_sources: tuple[str, ...]
     source_cycle_counts: dict[str, int]
@@ -90,6 +91,7 @@ class CheckLoopVerification:
             "exit_code": self.exit_code,
             "failed_cycles": list(self.failed_cycles),
             "missing_cycles": list(self.missing_cycles),
+            "duplicate_cycles": list(self.duplicate_cycles),
             "expected_sources": list(self.expected_sources),
             "source_cycle_counts": self.source_cycle_counts,
             "unhealthy_source_runs": self.unhealthy_source_runs,
@@ -320,6 +322,7 @@ def verify_check_loop(
     failed_cycles = tuple(result.cycle for result in results if not result.ok)
     observed_cycle_numbers = {result.cycle for result in results}
     missing_cycles = tuple(cycle for cycle in range(1, expected + 1) if cycle not in observed_cycle_numbers)
+    duplicate_cycles = duplicate_cycle_numbers(results)
     sources = tuple(source.name for source in select_sources(load_sources(config_path), None))
     source_runs = recent_source_runs_by_source(db_path, sources, expected, window_start=window_start, window_end=window_end)
     source_cycle_counts = {source: len(source_runs.get(source, [])) for source in sources}
@@ -335,6 +338,7 @@ def verify_check_loop(
         and enough_log_cycles
         and enough_duration
         and not missing_cycles
+        and not duplicate_cycles
         and not failed_cycles
         and enough_source_runs
         and healthy_source_runs
@@ -356,12 +360,23 @@ def verify_check_loop(
         duration_seconds=duration_seconds,
         failed_cycles=failed_cycles,
         missing_cycles=missing_cycles,
+        duplicate_cycles=duplicate_cycles,
         exit_code=exit_code,
         expected_sources=sources,
         source_cycle_counts=source_cycle_counts,
         unhealthy_source_runs=unhealthy_source_runs,
         source_health_summary=source_health_summary,
     )
+
+
+def duplicate_cycle_numbers(results: list[CheckLoopResult]) -> tuple[int, ...]:
+    seen = set()
+    duplicates = []
+    for result in results:
+        if result.cycle in seen and result.cycle not in duplicates:
+            duplicates.append(result.cycle)
+        seen.add(result.cycle)
+    return tuple(duplicates)
 
 
 def parse_check_loop_log(path: Path) -> list[CheckLoopResult]:

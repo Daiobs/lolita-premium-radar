@@ -628,7 +628,8 @@ def audit_stable_loop_evidence(
         (
             f"verify-loop {verification.status}: observed={verification.observed_cycles}/"
             f"{verification.expected_cycles}, missing={list(verification.missing_cycles)}, "
-            f"failed={list(verification.failed_cycles)}, unhealthy={verification.unhealthy_source_runs}, "
+            f"duplicate={list(verification.duplicate_cycles)}, failed={list(verification.failed_cycles)}, "
+            f"unhealthy={verification.unhealthy_source_runs}, "
             f"duration={verification.duration_seconds}/{verification.min_duration_seconds}"
         ),
         verification.to_dict(),

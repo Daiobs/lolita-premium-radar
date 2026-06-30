@@ -642,6 +642,70 @@ class SourceHealthTests(unittest.TestCase):
             self.assertIn("status: incomplete", stdout.getvalue())
             self.assertIn("good: 0", stdout.getvalue())
 
+    def test_verify_loop_rejects_duplicate_cycle_numbers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 1 |",
+                        "2 | ok | 0 |",
+                        "2 | ok | 0 |",
+                        "# finished_at: 2026-07-01T00:00:00+00:00",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-30T00:00:00+00:00",
+                )
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-30T00:05:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("status: incomplete", stdout.getvalue())
+            self.assertIn("missing_cycles: []", stdout.getvalue())
+            self.assertIn("duplicate_cycles: 2", stdout.getvalue())
+
     def test_verify_loop_reports_missing_cycle_even_when_log_line_count_matches(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -919,6 +983,7 @@ class SourceHealthTests(unittest.TestCase):
             self.assertEqual(payload["window_start"], "2026-06-30T00:00:00Z")
             self.assertEqual(payload["window_end"], "2026-06-30T00:05:00Z")
             self.assertEqual(payload["duration_seconds"], 300)
+            self.assertEqual(payload["duplicate_cycles"], [])
             self.assertEqual(payload["expected_sources"], ["good"])
             self.assertEqual(payload["source_cycle_counts"], {"good": 1})
             self.assertEqual(payload["unhealthy_source_runs"], {})

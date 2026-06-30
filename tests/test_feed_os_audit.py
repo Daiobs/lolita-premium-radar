@@ -105,8 +105,69 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertEqual(stable_check["status"], "pass")
             self.assertEqual(stable_check["evidence"]["status"], "complete")
             self.assertEqual(stable_check["evidence"]["duration_seconds"], 300)
+            self.assertEqual(stable_check["evidence"]["duplicate_cycles"], [])
             self.assertEqual(stable_check["evidence"]["source_cycle_counts"], {"angelic_pretty": 2})
             self.assertEqual(stable_check["evidence"]["unhealthy_source_runs"], {})
+
+    def test_audit_reports_duplicate_loop_cycles(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root)
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 1 | ",
+                        "2 | ok | 0 | ",
+                        "2 | ok | 0 | ",
+                        "# finished_at: 2026-06-30T00:05:00+00:00",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "angelic_pretty",
+                    ok=True,
+                    status="ok",
+                    item_count=1,
+                    checked_at="2026-06-30T00:00:00+00:00",
+                )
+                record_source_run(
+                    connection,
+                    "angelic_pretty",
+                    ok=True,
+                    status="ok",
+                    item_count=1,
+                    checked_at="2026-06-30T00:05:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            audit = audit_feed_os(
+                config_path=config_path,
+                db_path=db_path,
+                loop_log_path=log_path,
+                loop_exit_path=exit_path,
+                expected_cycles=2,
+                min_duration_seconds=0,
+            )
+
+            payload = json.loads(format_feed_os_audit_json(audit))
+            stable_check = next(check for check in payload["checks"] if check["name"] == "stable_loop_evidence")
+            self.assertFalse(audit.complete)
+            self.assertEqual(stable_check["status"], "missing")
+            self.assertIn("duplicate=[2]", stable_check["detail"])
+            self.assertEqual(stable_check["evidence"]["duplicate_cycles"], [2])
 
     def test_audit_checks_runtime_feed_state_from_current_config_and_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
