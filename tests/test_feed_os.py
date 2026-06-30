@@ -95,6 +95,9 @@ class FeedOsTests(unittest.TestCase):
 
         self.assertEqual(trends[0]["kind"], "rising")
         self.assertGreaterEqual(trends[0]["confidence"], 60)
+        self.assertEqual(trends[0]["avg_premium_rate"], 0.5)
+        self.assertEqual(trends[0]["sample_count"], 4)
+        self.assertIn("reason: sample_supported, premium_rising", trends[0]["meta"])
         self.assertIn("sample_supported", trends[0]["reason_codes"])
         self.assertIn("premium_rising", trends[0]["reason_codes"])
 
@@ -108,6 +111,7 @@ class FeedOsTests(unittest.TestCase):
 
         self.assertEqual(trends[0]["brand"], "AP")
         self.assertEqual(trends[0]["kind"], "stable")
+        self.assertIn("reason: sample_gap", trends[0]["meta"])
         self.assertIn("sample_gap", trends[0]["reason_codes"])
 
     def test_crawler_health_marks_failed_and_degraded(self) -> None:

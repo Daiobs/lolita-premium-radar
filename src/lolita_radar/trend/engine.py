@@ -22,6 +22,7 @@ def build_trend_feed(
         movement = momentum_by_alias.get(alias, {})
         direction = str(movement.get("direction") or trend_direction(avg_premium, sample_count))
         confidence = trend_confidence(sample_count, avg_premium, movement, release_counts.get(alias, 0))
+        reasons = trend_reasons(sample_count, avg_premium, movement, release_counts.get(alias, 0))
         trends.append(
             {
                 "id": f"trend:{alias}",
@@ -29,11 +30,13 @@ def build_trend_feed(
                 "kind": direction,
                 "brand": alias,
                 "title": f"{alias} {direction}",
-                "meta": f"{format_percent(avg_premium)} avg premium · {sample_count} samples",
+                "meta": trend_meta(avg_premium, sample_count, reasons),
                 "time": str(movement.get("observed_at") or ""),
                 "url": str(brand.get("url") or ""),
                 "confidence": confidence,
-                "reason_codes": trend_reasons(sample_count, avg_premium, movement, release_counts.get(alias, 0)),
+                "avg_premium_rate": round(avg_premium, 4),
+                "sample_count": sample_count,
+                "reason_codes": reasons,
             }
         )
     return sorted(trends, key=lambda row: (int(row["confidence"]), float(row.get("avg_premium_rate") or 0)), reverse=True)
@@ -119,3 +122,11 @@ def trend_reasons(
 
 def format_percent(value: float) -> str:
     return f"{round(value * 100)}%"
+
+
+def trend_meta(avg_premium: float, sample_count: int, reasons: list[str]) -> str:
+    reason_text = ", ".join(reasons[:3])
+    parts = [f"{format_percent(avg_premium)} avg premium", f"{sample_count} samples"]
+    if reason_text:
+        parts.append(f"reason: {reason_text}")
+    return " · ".join(parts)
