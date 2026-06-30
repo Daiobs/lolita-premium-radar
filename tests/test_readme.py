@@ -11,6 +11,8 @@ class ReadmeTests(unittest.TestCase):
         self.assertIn("--exit-file .data/soak/lolita-radar-os-24h.exit", readme)
         self.assertIn("--expected-cycles 288", readme)
         self.assertIn("verify-loop \\", readme)
+        self.assertIn("pull_request", readme)
+        self.assertIn("Feed OS audit JSON", readme)
 
 
 if __name__ == "__main__":

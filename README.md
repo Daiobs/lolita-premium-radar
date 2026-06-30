@@ -251,7 +251,12 @@ The workflow in [.github/workflows/check.yml](./.github/workflows/check.yml)
 supports:
 
 - `workflow_dispatch` for manual runs.
+- `pull_request` for branch review before merging to `main`.
 - `schedule` for cron-based checks.
+- Unit tests before live source checks.
+- Feed OS audit JSON generation. The workflow fails on audit `fail` checks and
+  uploads `feed-os-audit.json`; `missing` stability evidence remains visible
+  without pretending that a 24-hour soak has completed.
 
 Recommended GitHub Secrets:
 
