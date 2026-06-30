@@ -254,7 +254,8 @@ The feed app renders four lightweight streams:
 - Release Feed: brand release, preorder, and restock events from AP, BABY, AATP, Meta, and MMM.
 - Drop Feed: public proxy-shop or Taobao-style page changes from `generic_page` sources.
 - Trend Feed: rule-based rising/stable/cooling premium signals with confidence, price_delta, and reason codes.
-- Alert Feed: new releases, high-premium signals, sample gaps, and source-health warnings.
+- Alert Feed: system-level market and source-health warnings such as
+  high-premium signals, sample gaps, degraded sources, and failed sources.
 
 No AI/ML model, checkout automation, login automation, CAPTCHA bypass, queue bypass, or risk-control bypass is included.
 
@@ -327,8 +328,12 @@ python -m unittest discover -s tests
 - Keeps public item card dates as Drop Feed source time when present.
 - Keeps public item link images as Drop Feed card visuals when present.
 - Keeps public item prices as Drop Feed card chips when present.
-- Falls back to one synthetic page item when no matching item links are found.
-- Adds structured `shop`, `item`, and `drop_keywords` metadata for Drop Feed.
+- Falls back to one synthetic page-level item when no matching item links are
+  found.
+- Marks synthetic page-level fallback rows with `page_level` so broad page text
+  matches can be tracked without becoming Drop Feed item cards.
+- Adds structured `shop`, `item`, and `drop_keywords` metadata for linked item
+  candidates and explicit `item_title` fallbacks.
 - A text-only edit on the same page can generate `content_changed` without
   creating duplicate `new_item` events.
 - `min_keyword_hits` controls how many configured keywords must match.
@@ -337,10 +342,11 @@ python -m unittest discover -s tests
 - `max_content_chars` limits stored/hashable text size.
 - `title_template` lets a source keep a stable item title.
 
-Drop Feed treats matching `generic_page` rows as public Shop -> Item signals.
-DROP candidates require one of the configured item/action keywords such as
-`JSK`, `OP`, `再贩`, `预约`, or `尾款`; new page items and reservation/restock
-keywords are ranked as higher urgency.
+Drop Feed treats non-page-level `generic_page` rows as public Shop -> Item
+signals. DROP candidates require concrete item context plus either a new item
+event or one of the configured item/action keywords such as `JSK`, `OP`,
+`再贩`, `预约`, or `尾款`; new item events and reservation/restock keywords are
+ranked as higher urgency.
 
 ## Notifications
 

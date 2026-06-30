@@ -23,6 +23,11 @@ class ReadmeTests(unittest.TestCase):
         self.assertIn("cycle_time_mismatches", readme)
         self.assertIn("pull_request", readme)
         self.assertIn("Feed OS audit JSON", readme)
+        self.assertIn("Alert Feed: system-level market and source-health warnings", readme)
+        self.assertNotIn("Alert Feed: new releases", readme)
+        self.assertIn("page_level", readme)
+        self.assertIn("without becoming Drop Feed item cards", readme)
+        self.assertIn("DROP candidates require concrete item context", readme)
 
 
 if __name__ == "__main__":
