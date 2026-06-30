@@ -242,6 +242,9 @@ def audit_runtime_feed_state(
     field_problem = runtime_feed_field_problem(streams)
     if field_problem:
         return FeedOsAuditCheck("runtime_feed_state", "fail", field_problem)
+    value_problem = runtime_feed_value_problem(streams)
+    if value_problem:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", value_problem)
     noise_problem = runtime_feed_noise_problem(streams)
     if noise_problem:
         return FeedOsAuditCheck("runtime_feed_state", "fail", noise_problem)
@@ -283,6 +286,46 @@ def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
             if missing:
                 return f"stream {name} row missing fields: {missing}"
     return ""
+
+
+def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
+    for row in feed_rows(streams, "drop"):
+        urgency = str(row.get("urgency") or "")
+        if urgency not in {"high", "medium", "low"}:
+            return f"stream drop row has invalid urgency: {urgency}"
+        keywords = row.get("keywords")
+        if not isinstance(keywords, list):
+            return "stream drop row keywords is not a list"
+    for row in feed_rows(streams, "trend"):
+        trend = str(row.get("trend") or "")
+        if trend not in {"rising", "cooling", "stable"}:
+            return f"stream trend row has invalid trend: {trend}"
+        confidence = row.get("confidence")
+        if not isinstance(confidence, int) or not 0 <= confidence <= 100:
+            return f"stream trend row has invalid confidence: {confidence}"
+        if not is_number(row.get("price_delta")):
+            return f"stream trend row has invalid price_delta: {row.get('price_delta')}"
+        if not non_empty_list(row.get("reason_codes")):
+            return "stream trend row reason_codes must be a non-empty list"
+    for row in feed_rows(streams, "alert"):
+        if not non_empty_list(row.get("reason_codes")):
+            return "stream alert row reason_codes must be a non-empty list"
+    return ""
+
+
+def feed_rows(streams: dict[str, Any], name: str) -> list[dict[str, Any]]:
+    rows = streams.get(name, [])
+    if not isinstance(rows, list):
+        return []
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def is_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def non_empty_list(value: object) -> bool:
+    return isinstance(value, list) and bool(value)
 
 
 def runtime_feed_noise_problem(streams: dict[str, Any]) -> str:

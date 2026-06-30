@@ -290,6 +290,75 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("stream release row missing fields: price", check.detail)
 
+    def test_runtime_feed_audit_rejects_invalid_trend_values(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"drops": 0, "shops": 0, "trends": 1, "alerts": 0},
+                    "streams": {
+                        "release": [],
+                        "drop": [],
+                        "trend": [
+                            {
+                                "feed_type": "trend",
+                                "brand": "AP",
+                                "trend": "rising",
+                                "confidence": 120,
+                                "price_delta": 0.5,
+                                "reason_codes": ["sample_supported"],
+                                "url": "https://example.com/market",
+                            }
+                        ],
+                        "alert": [],
+                    },
+                    "all": [{"feed_type": "trend", "url": "https://example.com/market"}],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("invalid confidence", check.detail)
+
+    def test_runtime_feed_audit_rejects_invalid_drop_values(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"drops": 0, "shops": 1, "trends": 0, "alerts": 0},
+                    "streams": {
+                        "release": [],
+                        "drop": [
+                            {
+                                "feed_type": "drop",
+                                "shop": "Proxy",
+                                "item": "Shell Garden JSK",
+                                "keywords": ["JSK"],
+                                "urgency": "soon",
+                                "url": "https://example.com/drop",
+                            }
+                        ],
+                        "trend": [],
+                        "alert": [],
+                    },
+                    "all": [{"feed_type": "drop", "url": "https://example.com/drop"}],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("invalid urgency", check.detail)
+
     def test_cli_audit_returns_nonzero_when_evidence_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
