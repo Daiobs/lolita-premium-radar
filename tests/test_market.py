@@ -5,18 +5,15 @@ from pathlib import Path
 
 from lolita_radar.market import (
     append_market_observation,
-    build_brand_signal_profile,
     build_market_alerts,
     build_market_momentum,
-    build_trend_candidates,
-    build_pattern_trends,
-    build_sample_backlog,
     load_market_observations,
     premium_band,
     premium_priority_score,
     premium_score_breakdown,
     summarize_market_observations,
 )
+from lolita_radar.trend import build_brand_signal_profile, build_pattern_trends, build_sample_backlog, build_trend_candidates
 
 
 class MarketTests(unittest.TestCase):

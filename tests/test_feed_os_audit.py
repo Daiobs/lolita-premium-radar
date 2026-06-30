@@ -62,7 +62,11 @@ class FeedOsAuditTests(unittest.TestCase):
             package_root = root / "src" / "lolita_radar"
             package_root.mkdir(parents=True)
             (package_root / "brands.py").write_text("def build_focus_queue():\n    return []\n", encoding="utf-8")
-            (package_root / "market.py").write_text("def build_opportunity_radar():\n    return []\n", encoding="utf-8")
+            (package_root / "market.py").write_text(
+                "def build_opportunity_radar():\n    return []\n"
+                "def build_trend_candidates():\n    return []\n",
+                encoding="utf-8",
+            )
 
             check = audit_module.audit_product_constraints(root)
 

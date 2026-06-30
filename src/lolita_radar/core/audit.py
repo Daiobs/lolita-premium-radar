@@ -149,6 +149,16 @@ def legacy_analysis_symbol_findings(project_root: Path) -> list[str]:
             "def opportunity_band(",
             "def opportunity_reasons(",
             "def sample_plan_",
+            "def build_trend_candidates(",
+            "def build_brand_signal_profile(",
+            "def build_sample_backlog(",
+            "def build_pattern_trends(",
+        ),
+        project_root / "src" / "lolita_radar" / "trend" / "signals.py": (
+            "def build_opportunity_radar(",
+            "def build_brand_weight_profile(",
+            "def build_sample_collection_plan(",
+            "def build_pattern_radar(",
         ),
     }
     findings = []
