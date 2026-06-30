@@ -235,7 +235,7 @@ def list_events(connection: sqlite3.Connection, limit: int = 100) -> list[dict[s
         SELECT
             events.source, events.item_hash, event_type, events.title, events.url, events.status,
             previous_title, previous_status, events.content_hash, previous_content_hash,
-            created_at, items.metadata_json
+            created_at, items.published_at, items.metadata_json
         FROM events
         LEFT JOIN items ON items.item_hash = events.item_hash
         ORDER BY created_at DESC, events.id DESC

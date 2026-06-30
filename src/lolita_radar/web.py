@@ -270,6 +270,7 @@ def event_to_dict(event: RadarEvent) -> dict[str, Any]:
         "title": event.item.title,
         "url": event.item.url,
         "status": event.item.status.value,
+        "published_at": event.item.published_at,
         "previous_title": event.previous_title,
         "previous_status": event.previous_status,
         "content_hash": event.item.content_hash,
@@ -315,7 +316,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
       .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
       .brand h1 { margin: 0; font: 700 24px/1.1 Georgia, "Times New Roman", serif; }
       .brand p { margin: 4px 0 0; color: var(--muted); }
-      .actions { display: flex; gap: 8px; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
       button {
         border: 1px solid var(--line);
         border-radius: 8px;
@@ -343,11 +344,30 @@ FEED_INDEX_HTML = r"""<!doctype html>
       .filters { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; }
       .feed-stream { display: grid; gap: 10px; }
       .feed-card {
-        display: block;
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 12px;
         padding: 13px;
         transition: border-color .15s ease, transform .15s ease;
       }
       .feed-card:hover { border-color: #d5b5c0; transform: translateY(-1px); }
+      .feed-card.no-link { cursor: default; }
+      .visual {
+        min-height: 74px;
+        border: 1px solid rgba(37, 31, 40, .08);
+        border-radius: 8px;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        gap: 4px;
+        color: #fff;
+        background: linear-gradient(145deg, var(--rose), #7f485d);
+      }
+      .visual.drop { background: linear-gradient(145deg, var(--teal), #335d59); }
+      .visual.trend { background: linear-gradient(145deg, var(--blue), #334f67); }
+      .visual.alert { background: linear-gradient(145deg, var(--warn), #7b3431); }
+      .visual strong { font: 700 18px/1 Georgia, "Times New Roman", serif; }
+      .visual span { font-size: 11px; opacity: .9; }
       .feed-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 8px; }
       .badge { display: inline-flex; align-items: center; min-height: 24px; border-radius: 999px; padding: 0 8px; font-size: 12px; color: #fff; }
       .release { background: var(--rose); }
@@ -356,8 +376,20 @@ FEED_INDEX_HTML = r"""<!doctype html>
       .alert { background: var(--warn); }
       .kind { color: var(--muted); font-size: 12px; }
       .feed-card h2 { margin: 0; font-size: 17px; line-height: 1.25; overflow-wrap: anywhere; }
+      .title-alt { margin: 4px 0 0; color: var(--teal); font-size: 13px; overflow-wrap: anywhere; }
       .meta { margin: 7px 0 0; color: var(--muted); overflow-wrap: anywhere; }
       .reasons { margin: 7px 0 0; color: var(--blue); font-size: 12px; overflow-wrap: anywhere; }
+      .detail-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      .chip {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--muted);
+        padding: 2px 8px;
+        font-size: 12px;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
       .foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; color: var(--muted); font-size: 12px; }
       .cta { color: var(--rose); font-weight: 700; }
       .empty { border: 1px dashed var(--line); border-radius: 8px; padding: 18px; color: var(--muted); text-align: center; }
@@ -367,6 +399,8 @@ FEED_INDEX_HTML = r"""<!doctype html>
         .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .actions { width: 100%; }
         .actions button { flex: 1; }
+        .feed-card { grid-template-columns: 58px minmax(0, 1fr); gap: 10px; }
+        .visual { min-height: 58px; }
       }
     </style>
   </head>
@@ -375,39 +409,78 @@ FEED_INDEX_HTML = r"""<!doctype html>
       <header class="topbar">
         <div class="brand">
           <h1>Lolita Radar OS</h1>
-          <p>日牌发售与二级市场信息流</p>
+          <p id="tagline">日牌发售与二级市场信息流</p>
         </div>
         <div class="actions">
+          <button id="langBtn" type="button">日本語</button>
           <button id="refreshBtn" type="button">刷新 / Refresh</button>
           <button id="checkBtn" type="button">检查 / Check</button>
         </div>
       </header>
       <section class="summary" aria-label="Summary">
-        <article class="summary-card"><strong id="dropsCount">0</strong><span>🔥 Drops</span></article>
-        <article class="summary-card"><strong id="shopsCount">0</strong><span>🛒 Shops</span></article>
-        <article class="summary-card"><strong id="trendsCount">0</strong><span>📈 Trends</span></article>
-        <article class="summary-card"><strong id="alertsCount">0</strong><span>⚠️ Alerts</span></article>
+        <article class="summary-card"><strong id="dropsCount">0</strong><span id="dropsLabel">🔥 Drops</span></article>
+        <article class="summary-card"><strong id="shopsCount">0</strong><span id="shopsLabel">🛒 Shops</span></article>
+        <article class="summary-card"><strong id="trendsCount">0</strong><span id="trendsLabel">📈 Trends</span></article>
+        <article class="summary-card"><strong id="alertsCount">0</strong><span id="alertsLabel">⚠️ Alerts</span></article>
       </section>
       <nav class="filters" aria-label="Feed filter">
-        <button class="active" data-filter="all" type="button">全部 / All</button>
-        <button data-filter="release" type="button">发售 / Release</button>
-        <button data-filter="drop" type="button">上新 / Drop</button>
-        <button data-filter="trend" type="button">趋势 / Trend</button>
-        <button data-filter="alert" type="button">提醒 / Alert</button>
+        <button class="active" data-filter="all" type="button"></button>
+        <button data-filter="release" type="button"></button>
+        <button data-filter="drop" type="button"></button>
+        <button data-filter="trend" type="button"></button>
+        <button data-filter="alert" type="button"></button>
       </nav>
       <section id="feedStream" class="feed-stream" aria-live="polite"></section>
     </main>
     <script>
       const $ = (id) => document.getElementById(id);
       const FEED_LABELS = {
-        all: "全部 Feed",
-        release: "发售 Feed",
-        drop: "上新 Feed",
-        trend: "趋势 Feed",
-        alert: "提醒 Feed",
+        zh: { all: "全部 Feed", release: "发售 Feed", drop: "上新 Feed", trend: "趋势 Feed", alert: "提醒 Feed" },
+        ja: { all: "すべて", release: "発売 Feed", drop: "入荷 Feed", trend: "トレンド Feed", alert: "アラート Feed" },
+      };
+      const TEXT = {
+        zh: {
+          tagline: "日牌发售与二级市场信息流",
+          langButton: "日本語",
+          refresh: "刷新",
+          check: "检查",
+          drops: "🔥 Drops",
+          shops: "🛒 Shops",
+          trends: "📈 Trends",
+          alerts: "⚠️ Alerts",
+          cta: "打开来源",
+          noLink: "暂无来源链接",
+          emptyPrefix: "暂无",
+          original: "原文",
+          published: "发布时间",
+          seen: "发现时间",
+          confidence: "信心",
+        },
+        ja: {
+          tagline: "ロリィタ発売情報と二次流通シグナル",
+          langButton: "中文",
+          refresh: "更新",
+          check: "チェック",
+          drops: "🔥 発売",
+          shops: "🛒 入荷",
+          trends: "📈 トレンド",
+          alerts: "⚠️ 通知",
+          cta: "ソースを開く",
+          noLink: "リンクなし",
+          emptyPrefix: "まだありません",
+          original: "原文",
+          published: "掲載日",
+          seen: "検知時刻",
+          confidence: "信頼度",
+        },
+      };
+      const FILTER_TEXT = {
+        zh: { all: "全部 / All", release: "发售 / Release", drop: "上新 / Drop", trend: "趋势 / Trend", alert: "提醒 / Alert" },
+        ja: { all: "すべて", release: "発売", drop: "入荷", trend: "トレンド", alert: "通知" },
       };
       let state = {};
       let activeFilter = "all";
+      let language = localStorage.getItem("lolitaRadarLanguage") || "zh";
       async function api(path, options = {}) {
         const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
         if (!response.ok) throw new Error(await response.text());
@@ -417,34 +490,88 @@ FEED_INDEX_HTML = r"""<!doctype html>
         state = await api("/api/state");
         render();
       }
+      function renderChrome() {
+        const text = TEXT[language];
+        $("tagline").textContent = text.tagline;
+        $("langBtn").textContent = text.langButton;
+        $("refreshBtn").textContent = text.refresh;
+        $("checkBtn").textContent = text.check;
+        $("dropsLabel").textContent = text.drops;
+        $("shopsLabel").textContent = text.shops;
+        $("trendsLabel").textContent = text.trends;
+        $("alertsLabel").textContent = text.alerts;
+        document.querySelectorAll("[data-filter]").forEach((button) => {
+          button.textContent = FILTER_TEXT[language][button.dataset.filter] || button.dataset.filter;
+        });
+      }
       function render() {
+        renderChrome();
         const feed = state.feed || { summary: {}, streams: {}, all: [] };
         $("dropsCount").textContent = feed.summary?.drops || 0;
         $("shopsCount").textContent = feed.summary?.shops || 0;
         $("trendsCount").textContent = feed.summary?.trends || 0;
         $("alertsCount").textContent = feed.summary?.alerts || 0;
         const rows = activeFilter === "all" ? (feed.all || []) : (feed.streams?.[activeFilter] || []);
-        $("feedStream").innerHTML = rows.length ? rows.map(cardHtml).join("") : `<div class="empty">暂无 ${escapeHtml(FEED_LABELS[activeFilter] || activeFilter)}</div>`;
+        const emptyLabel = FEED_LABELS[language][activeFilter] || activeFilter;
+        $("feedStream").innerHTML = rows.length ? rows.map(cardHtml).join("") : `<div class="empty">${escapeHtml(TEXT[language].emptyPrefix)} ${escapeHtml(emptyLabel)}</div>`;
       }
       function cardHtml(row) {
         const type = row.feed_type || "alert";
+        const text = TEXT[language];
         const hasUrl = Boolean(row.url);
         const tag = hasUrl ? "a" : "article";
         const attrs = hasUrl
           ? `href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer"`
           : `aria-disabled="true"`;
-        const confidence = row.confidence !== undefined ? ` · confidence ${row.confidence}` : "";
+        const confidence = row.confidence !== undefined ? ` · ${text.confidence} ${row.confidence}` : "";
         const reasons = reasonHtml(row.reason_codes);
+        const titleAlt = titleAltHtml(row);
+        const detail = detailHtml(row);
+        const visual = row.visual || {};
+        const kind = language === "ja" ? (row.kind || "") : (row.kind_label || row.kind || "");
         return `<${tag} class="feed-card ${hasUrl ? "" : "no-link"}" ${attrs}>
-          <div class="feed-head">
-            <span class="badge ${escapeHtml(type)}">${escapeHtml(type.toUpperCase())} · ${escapeHtml(row.brand || "-")}</span>
-            <span class="kind">${escapeHtml(row.kind || "")}</span>
+          <div class="visual ${escapeHtml(type)}" aria-hidden="true">
+            <strong>${escapeHtml(visual.initials || row.brand || "-")}</strong>
+            <span>${escapeHtml(visual.mark || type.slice(0, 1).toUpperCase())}</span>
           </div>
-          <h2>${escapeHtml(row.title || "-")}</h2>
-          <p class="meta">${escapeHtml(row.meta || "")}${escapeHtml(confidence)}</p>
-          ${reasons}
-          <div class="foot"><span>${escapeHtml(row.time || "")}</span><span class="cta">${hasUrl ? "打开来源 / Source" : "暂无来源链接"}</span></div>
+          <div class="feed-body">
+            <div class="feed-head">
+              <span class="badge ${escapeHtml(type)}">${escapeHtml(type.toUpperCase())} · ${escapeHtml(row.brand || "-")}</span>
+              <span class="kind">${escapeHtml(kind)}</span>
+            </div>
+            <h2>${escapeHtml(row.title || "-")}</h2>
+            ${titleAlt}
+            <p class="meta">${escapeHtml(row.meta || "")}${escapeHtml(confidence)}</p>
+            ${detail}
+            ${reasons}
+            <div class="foot"><span>${escapeHtml(timeLabel(row))}</span><span class="cta">${hasUrl ? text.cta : text.noLink}</span></div>
+          </div>
         </${tag}>`;
+      }
+      function titleAltHtml(row) {
+        if (language !== "zh" || !row.title_zh) return "";
+        return `<p class="title-alt">${escapeHtml(row.title_zh)}</p>`;
+      }
+      function detailHtml(row) {
+        const chips = [];
+        if (row.status_label) chips.push(row.status_label);
+        if (row.source_label) chips.push(row.source_label);
+        if (row.time_kind) chips.push((TEXT[language][row.time_kind] || row.time_kind) + (row.time ? ` · ${displayDate(row.time)}` : ""));
+        return chips.length ? `<div class="detail-row">${chips.slice(0, 4).map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join("")}</div>` : "";
+      }
+      function timeLabel(row) {
+        if (!row.time) return "";
+        const label = TEXT[language][row.time_kind] || "";
+        return [label, displayDate(row.time)].filter(Boolean).join(" · ");
+      }
+      function displayDate(value) {
+        const text = String(value || "");
+        const datePart = text.slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+          if (language === "ja") return datePart.replace(/-/g, ".");
+          return datePart;
+        }
+        return text;
       }
       function reasonHtml(reasonCodes) {
         const reasons = Array.isArray(reasonCodes) ? reasonCodes.filter(Boolean).slice(0, 4) : [];
@@ -461,11 +588,17 @@ FEED_INDEX_HTML = r"""<!doctype html>
         });
       });
       $("refreshBtn").addEventListener("click", load);
+      $("langBtn").addEventListener("click", () => {
+        language = language === "zh" ? "ja" : "zh";
+        localStorage.setItem("lolitaRadarLanguage", language);
+        render();
+      });
       $("checkBtn").addEventListener("click", async () => {
         state = await api("/api/check", { method: "POST", body: JSON.stringify({ notify: false }) });
         render();
       });
       load().catch((error) => {
+        renderChrome();
         $("feedStream").innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
       });
     </script>

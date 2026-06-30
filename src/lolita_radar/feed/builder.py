@@ -49,19 +49,19 @@ def release_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> l
         if row.get("source") in RELEASE_SOURCES and row.get("status") in RELEASE_STATUSES
     ]
     if rows:
-        return rows[:30]
-    return [
+        return sort_cards(rows)[:30]
+    return sort_cards([
         feed_card("release", row)
         for row in items
         if row.get("source") in RELEASE_SOURCES and row.get("status") in RELEASE_STATUSES
-    ][:30]
+    ])[:30]
 
 
 def drop_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows = [drop_card(row) for row in events if is_drop_row(row)]
     if rows:
-        return rows[:30]
-    return [drop_card(row) for row in items if is_drop_row(row)][:30]
+        return sort_cards(rows)[:30]
+    return sort_cards([drop_card(row) for row in items if is_drop_row(row)])[:30]
 
 
 def is_drop_row(row: dict[str, Any]) -> bool:
@@ -120,7 +120,7 @@ def alert_feed(
                     "reason_codes": ["source_health"],
                 }
             )
-    return alerts[:40]
+    return sort_cards(alerts)[:40]
 
 
 def latest_source_runs_by_source(source_runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -176,16 +176,25 @@ def market_alert_reasons(alert: dict[str, Any], kind: str) -> list[str]:
 def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> dict[str, Any]:
     source = str(row.get("source") or "")
     status = str(row.get("status") or "")
+    time_value, time_kind = feed_time(row)
+    brand = brand_label(source, str(row.get("title") or ""))
+    resolved_kind = kind or str(row.get("event_type") or status or feed_type)
     return {
         "id": f"{feed_type}:{source}:{row.get('item_hash') or row.get('url') or row.get('title')}",
         "feed_type": feed_type,
-        "kind": kind or str(row.get("event_type") or status or feed_type),
-        "brand": brand_label(source, str(row.get("title") or "")),
+        "kind": resolved_kind,
+        "kind_label": localized_kind_label(resolved_kind),
+        "brand": brand,
         "title": str(row.get("title") or ""),
-        "meta": " · ".join(part for part in [source, status, str(row.get("event_type") or "")] if part),
-        "time": str(row.get("created_at") or row.get("last_seen_at") or row.get("published_at") or ""),
+        "title_zh": title_hint(str(row.get("title") or ""), status),
+        "meta": " · ".join(part for part in [source_label(source), localized_status_label(status), str(row.get("event_type") or "")] if part),
+        "time": time_value,
+        "time_kind": time_kind,
         "url": str(row.get("url") or ""),
         "status": status,
+        "status_label": localized_status_label(status),
+        "source_label": source_label(source),
+        "visual": visual_token(feed_type, brand, status),
     }
 
 
@@ -227,8 +236,111 @@ def brand_label(source: str, title: str) -> str:
     return title.split(" ", 1)[0] if title else source
 
 
+def source_label(source: str) -> str:
+    labels = {
+        "angelic_pretty": "Angelic Pretty",
+        "baby_ssb": "BABY",
+        "alice_and_the_pirates": "AATP",
+        "metamorphose": "Metamorphose",
+        "moitie": "Moi-meme-Moitie",
+        "generic_page": "Shop / Proxy",
+    }
+    return labels.get(source, source)
+
+
+def feed_time(row: dict[str, Any]) -> tuple[str, str]:
+    published_at = str(row.get("published_at") or "")
+    if published_at:
+        return published_at, "published"
+    created_at = str(row.get("created_at") or "")
+    if created_at:
+        return created_at, "seen"
+    last_seen_at = str(row.get("last_seen_at") or "")
+    if last_seen_at:
+        return last_seen_at, "seen"
+    first_seen_at = str(row.get("first_seen_at") or "")
+    if first_seen_at:
+        return first_seen_at, "seen"
+    return "", ""
+
+
+def localized_status_label(status: str) -> str:
+    labels = {
+        "new_arrival": "新作 / 新品",
+        "preorder": "予約 / 预约",
+        "restock": "再入荷 / 再贩",
+        "shop_news": "ショップ情報 / 店铺资讯",
+    }
+    return labels.get(status, status)
+
+
+def localized_kind_label(kind: str) -> str:
+    labels = {
+        "new_item": "新着 / 新发现",
+        "content_changed": "更新 / 内容变化",
+        "update": "更新 / 状态变化",
+        "new_release": "新作 / 新发售",
+        "high_premium": "高騰 / 高溢价",
+        "sample_gap": "サンプル不足 / 样本不足",
+        "rising": "上昇 / 上升",
+        "stable": "安定 / 稳定",
+        "cooling": "下落 / 降温",
+    }
+    return labels.get(kind, kind)
+
+
+def title_hint(title: str, status: str) -> str:
+    replacements = [
+        ("新作", "新作"),
+        ("予約", "预约"),
+        ("ご予約", "预约"),
+        ("受注", "受注预约"),
+        ("再入荷", "再入荷 / 再贩"),
+        ("再販", "再贩"),
+        ("入荷", "到货"),
+        ("販売開始", "开始贩售"),
+        ("発売", "发售"),
+        ("お知らせ", "通知"),
+        ("ワンピース", "OP 连衣裙"),
+        ("ジャンパースカート", "JSK 吊带裙"),
+        ("ブラウス", "衬衫"),
+        ("カチューシャ", "发箍"),
+    ]
+    hints = [zh for token, zh in replacements if token in title]
+    if not hints and status:
+        label = localized_status_label(status)
+        hints.append(label.split(" / ")[-1])
+    return " · ".join(dict.fromkeys(hints[:4]))
+
+
+def visual_token(feed_type: str, brand: str, status: str) -> dict[str, str]:
+    initials = {
+        "AP": "AP",
+        "BABY": "BB",
+        "AATP": "AT",
+        "Meta": "ME",
+        "MMM": "MM",
+        "Shop": "SH",
+    }.get(brand, (brand[:2] or feed_type[:2]).upper())
+    icons = {
+        "release": "R",
+        "drop": "D",
+        "trend": "T",
+        "alert": "!",
+    }
+    return {
+        "initials": initials,
+        "mark": icons.get(feed_type, "*"),
+        "tone": status or feed_type,
+    }
+
+
 def merge_streams(streams: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     rows = []
     for key in ("release", "drop", "trend", "alert"):
         rows.extend(streams.get(key, []))
-    return sorted(rows, key=lambda row: str(row.get("time") or ""), reverse=True)[:80]
+    return sort_cards(rows)[:80]
+
+
+def sort_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(rows, key=lambda row: str(row.get("time") or ""), reverse=True)

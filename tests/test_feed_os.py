@@ -48,6 +48,38 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("Shell Garden JSK", alert_titles)
         self.assertNotIn("Proxy JSK 预约", alert_titles)
 
+    def test_release_feed_prefers_published_at_over_seen_time(self) -> None:
+        events = [
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "2026.06.20 新作 JSK",
+                "url": "https://example.com/ap",
+                "published_at": "2026-06-20",
+                "created_at": "2026-06-30T10:00:00+00:00",
+            },
+            {
+                "source": "metamorphose",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "2026.06.22 New Arrival OP",
+                "url": "https://example.com/meta",
+                "published_at": "2026-06-22",
+                "created_at": "2026-06-29T10:00:00+00:00",
+            }
+        ]
+
+        feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
+        card = feed["streams"]["release"][0]
+
+        self.assertEqual(card["title"], "2026.06.22 New Arrival OP")
+        self.assertEqual(card["time"], "2026-06-22")
+        self.assertEqual(card["time_kind"], "published")
+        self.assertEqual(feed["streams"]["release"][1]["time"], "2026-06-20")
+        self.assertEqual(feed["streams"]["release"][1]["title_zh"], "新作")
+        self.assertIn("新作 / 新品", card["status_label"])
+
     def test_alert_feed_normalizes_high_premium_and_sample_gap(self) -> None:
         market_alerts = {
             "alerts": [

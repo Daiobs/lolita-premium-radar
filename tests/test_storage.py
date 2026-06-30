@@ -54,6 +54,7 @@ class StorageTests(unittest.TestCase):
                 title="Proxy page: JSK, 预约",
                 url="https://example.com/shop",
                 status=ItemStatus.PREORDER,
+                published_at="2026-06-20",
                 metadata={"matched_keywords": ["JSK", "预约"]},
             )
 
@@ -63,6 +64,7 @@ class StorageTests(unittest.TestCase):
 
             self.assertEqual(items[0]["metadata"]["matched_keywords"], ["JSK", "预约"])
             self.assertEqual(events[0]["metadata"]["matched_keywords"], ["JSK", "预约"])
+            self.assertEqual(events[0]["published_at"], "2026-06-20")
             connection.close()
 
 
