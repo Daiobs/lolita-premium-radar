@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -123,10 +124,21 @@ def count_release_events(events: list[dict[str, Any]]) -> dict[str, int]:
     for event in events:
         source = str(event.get("source") or "")
         alias = aliases.get(source)
-        if alias and event.get("status") in RELEASE_STATUSES:
+        if alias and event.get("status") in RELEASE_STATUSES and is_current_release_event(event):
             key = alias_key(alias)
             counts[key] = counts.get(key, 0) + 1
     return counts
+
+
+def is_current_release_event(event: dict[str, Any]) -> bool:
+    published_at = str(event.get("published_at") or "")
+    if len(published_at) >= 4 and published_at[:4].isdigit():
+        return int(published_at[:4]) >= current_year()
+    return True
+
+
+def current_year() -> int:
+    return datetime.now(timezone.utc).year
 
 
 def normalize_direction(raw_direction: object, avg_premium: float, sample_count: int) -> str:

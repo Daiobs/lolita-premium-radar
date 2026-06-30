@@ -548,6 +548,7 @@ def required_keys(row: dict[str, Any], keys: tuple[str, ...]) -> str:
 
 
 def audit_trend_engine() -> FeedOsAuditCheck:
+    year = datetime.now(timezone.utc).year
     market_summary = {
         "brands": [
             {"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5},
@@ -558,7 +559,7 @@ def audit_trend_engine() -> FeedOsAuditCheck:
     trends = build_trend_feed(
         market_summary,
         momentum,
-        [{"source": "angelic_pretty", "status": "new_arrival"}],
+        [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{year}-06-30"}],
         brand_weights=[{"alias": "BABY"}],
     )
     if not trends:

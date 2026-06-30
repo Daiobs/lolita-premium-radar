@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timezone
 
 from lolita_radar.crawler import enrich_source_runs
 from lolita_radar.feed import build_home_feed
@@ -594,6 +595,27 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["time"], "2026-06-30")
         self.assertIn("momentum_observed", trends[0]["reason_codes"])
         self.assertIn("release_activity", trends[0]["reason_codes"])
+
+    def test_trend_engine_ignores_stale_release_events(self) -> None:
+        current_year = datetime.now(timezone.utc).year
+        stale_year = current_year - 1
+        base_market = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.4}]}
+        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": f"{current_year}-06-30"}]
+
+        stale_trends = build_trend_feed(
+            base_market,
+            momentum,
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{stale_year}-12-31"}],
+        )
+        current_trends = build_trend_feed(
+            base_market,
+            momentum,
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+        )
+
+        self.assertNotIn("release_activity", stale_trends[0]["reason_codes"])
+        self.assertIn("release_activity", current_trends[0]["reason_codes"])
+        self.assertGreater(current_trends[0]["confidence"], stale_trends[0]["confidence"])
 
     def test_crawler_health_marks_failed_and_degraded(self) -> None:
         rows = enrich_source_runs(
