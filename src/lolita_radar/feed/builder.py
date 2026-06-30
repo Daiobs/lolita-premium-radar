@@ -76,9 +76,14 @@ def alert_feed(
 ) -> list[dict[str, Any]]:
     alerts = []
     urls = source_urls or {}
-    for event in events[:20]:
-        if is_release_event(event):
-            alerts.append(feed_card("alert", event, kind="new_release"))
+    release_count = 0
+    for event in events:
+        if not is_release_event(event):
+            continue
+        if release_count >= 20:
+            break
+        alerts.append(feed_card("alert", event, kind="new_release"))
+        release_count += 1
     market_count = 0
     for alert in market_alerts.get("alerts", []):
         kind = market_alert_kind(alert)
@@ -121,7 +126,8 @@ def alert_feed(
 def latest_source_runs_by_source(source_runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     latest = []
     seen = set()
-    for run in source_runs:
+    sorted_runs = sorted(source_runs, key=lambda run: str(run.get("checked_at") or ""), reverse=True)
+    for run in sorted_runs:
         source = str(run.get("source") or "")
         if not source or source in seen:
             continue

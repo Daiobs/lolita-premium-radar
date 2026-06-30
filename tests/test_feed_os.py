@@ -137,6 +137,36 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[0]["kind"], "sample_gap")
         self.assertEqual(alerts[0]["brand"], "BABY")
 
+    def test_alert_feed_filters_release_events_before_limit(self) -> None:
+        noisy_events = [
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "status": "shop_news",
+                "title": f"Shop noise {index}",
+                "url": f"https://example.com/shop/{index}",
+                "created_at": "2026-06-30T10:00:00+00:00",
+            }
+            for index in range(20)
+        ]
+        noisy_events.append(
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Shell Garden JSK",
+                "url": "https://example.com/ap/shell-garden",
+                "created_at": "2026-06-30T10:05:00+00:00",
+            }
+        )
+
+        feed = build_home_feed(noisy_events, [], {"brands": []}, {"alerts": []}, [], [])
+        alerts = feed["streams"]["alert"]
+
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0]["kind"], "new_release")
+        self.assertEqual(alerts[0]["title"], "Shell Garden JSK")
+
     def test_release_feed_keeps_non_target_brand_sources_out(self) -> None:
         events = [
             {
@@ -245,6 +275,31 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[0]["url"], "https://example.com/ap/news")
         self.assertEqual(alerts[0]["reason_codes"], ["source_health"])
         self.assertEqual(alerts[0]["time"], "2026-06-30T10:05:00+00:00")
+
+    def test_alert_feed_uses_latest_source_health_when_runs_are_unsorted(self) -> None:
+        source_runs = [
+            {
+                "source": "angelic_pretty",
+                "ok": False,
+                "status": "failed",
+                "error_rate": 1.0,
+                "checked_at": "2026-06-30T10:00:00+00:00",
+                "error_message": "old timeout",
+            },
+            {
+                "source": "angelic_pretty",
+                "ok": True,
+                "status": "ok",
+                "error_rate": 0.0,
+                "checked_at": "2026-06-30T10:05:00+00:00",
+                "error_message": "",
+            },
+        ]
+
+        feed = build_home_feed([], [], {"brands": []}, {"alerts": []}, [], source_runs)
+        alerts = [alert for alert in feed["streams"]["alert"] if alert.get("reason_codes") == ["source_health"]]
+
+        self.assertEqual(alerts, [])
 
     def test_trend_engine_outputs_direction_confidence_and_reasons(self) -> None:
         trends = build_trend_feed(
