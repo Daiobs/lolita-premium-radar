@@ -41,6 +41,7 @@ def build_trend_feed(
                 "url": str(brand.get("url") or ""),
                 "confidence": confidence,
                 "avg_premium_rate": round(avg_premium, 4),
+                "price_delta": round(avg_premium, 4),
                 "sample_count": sample_count,
                 "reason_codes": reasons,
             }

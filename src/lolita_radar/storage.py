@@ -60,6 +60,7 @@ def initialize(connection: sqlite3.Connection) -> None:
             ok INTEGER NOT NULL,
             status TEXT NOT NULL DEFAULT '',
             error_rate REAL NOT NULL DEFAULT 0,
+            latency_ms INTEGER NOT NULL DEFAULT 0,
             item_count INTEGER NOT NULL DEFAULT 0,
             event_count INTEGER NOT NULL DEFAULT 0,
             error_message TEXT NOT NULL DEFAULT ''
@@ -71,6 +72,7 @@ def initialize(connection: sqlite3.Connection) -> None:
     ensure_column(connection, "events", "previous_content_hash", "TEXT")
     ensure_column(connection, "source_runs", "status", "TEXT NOT NULL DEFAULT ''")
     ensure_column(connection, "source_runs", "error_rate", "REAL NOT NULL DEFAULT 0")
+    ensure_column(connection, "source_runs", "latency_ms", "INTEGER NOT NULL DEFAULT 0")
     connection.commit()
 
 
@@ -291,15 +293,16 @@ def record_source_run(
     checked_at: str | None = None,
     status: str = "",
     error_rate: float = 0.0,
+    latency_ms: int | float = 0,
 ) -> None:
     item_total = max(0, int(item_count))
     event_total = max(0, int(event_count))
     connection.execute(
         """
         INSERT INTO source_runs (
-            source, checked_at, ok, status, error_rate, item_count, event_count, error_message
+            source, checked_at, ok, status, error_rate, latency_ms, item_count, event_count, error_message
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             source,
@@ -307,6 +310,7 @@ def record_source_run(
             1 if ok else 0,
             normalize_source_run_status(ok, status),
             normalize_error_rate(error_rate),
+            normalize_latency_ms(latency_ms),
             item_total,
             event_total,
             str(error_message or ""),
@@ -331,10 +335,20 @@ def normalize_error_rate(value: object) -> float:
     return max(0.0, min(1.0, rate))
 
 
+def normalize_latency_ms(value: object) -> int:
+    try:
+        latency = float(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    if not math.isfinite(latency):
+        return 0
+    return max(0, int(round(latency)))
+
+
 def list_source_runs(connection: sqlite3.Connection, limit: int = 50) -> list[dict[str, Any]]:
     rows = connection.execute(
         """
-        SELECT source, checked_at, ok, status, error_rate, item_count, event_count, error_message
+        SELECT source, checked_at, ok, status, error_rate, latency_ms, item_count, event_count, error_message
         FROM source_runs
         ORDER BY checked_at DESC, id DESC
         LIMIT ?
@@ -353,7 +367,7 @@ def list_source_runs(connection: sqlite3.Connection, limit: int = 50) -> list[di
 def list_latest_source_runs(connection: sqlite3.Connection) -> list[dict[str, Any]]:
     rows = connection.execute(
         """
-        SELECT source, checked_at, ok, status, error_rate, item_count, event_count, error_message
+        SELECT source, checked_at, ok, status, error_rate, latency_ms, item_count, event_count, error_message
         FROM source_runs
         WHERE id IN (
             SELECT MAX(id)

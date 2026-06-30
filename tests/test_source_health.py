@@ -8,7 +8,7 @@ import signal
 
 import lolita_radar.cli as cli
 import lolita_radar.runner as runner
-from lolita_radar.cli import DEFAULT_LOOP_CYCLES, format_loop_results, main
+from lolita_radar.cli import DEFAULT_LOOP_CYCLES, format_health_rows, format_loop_results, main
 from lolita_radar.runner import CheckLoopResult
 from lolita_radar.models import ItemStatus, RadarItem
 from lolita_radar.storage import connect, list_source_runs, record_source_run
@@ -62,6 +62,7 @@ class SourceHealthTests(unittest.TestCase):
             self.assertTrue(runs[0]["ok"])
             self.assertEqual(runs[0]["item_count"], 1)
             self.assertEqual(runs[0]["event_count"], 1)
+            self.assertGreaterEqual(runs[0]["latency_ms"], 0)
             self.assertEqual(runs[0]["error_message"], "")
 
     def test_failed_source_does_not_stop_check_all_and_records_error(self) -> None:
@@ -123,14 +124,31 @@ class SourceHealthTests(unittest.TestCase):
             self.assertTrue(rows[0]["ok"])
             self.assertEqual(rows[0]["status"], "degraded")
             self.assertEqual(rows[0]["error_rate"], 0.5)
+            self.assertEqual(rows[0]["latency_ms"], 0)
 
     def test_source_run_storage_normalizes_status_and_error_rate(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             db_path = Path(temp_dir) / "radar.sqlite"
             connection = connect(db_path)
             try:
-                record_source_run(connection, "good", ok=True, status="strange", error_rate=float("nan"), item_count=1)
-                record_source_run(connection, "bad", ok=False, status="ok", error_rate=2.5, error_message="boom")
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    status="strange",
+                    error_rate=float("nan"),
+                    latency_ms=float("nan"),
+                    item_count=1,
+                )
+                record_source_run(
+                    connection,
+                    "bad",
+                    ok=False,
+                    status="ok",
+                    error_rate=2.5,
+                    latency_ms=-10,
+                    error_message="boom",
+                )
                 connection.commit()
                 rows = list_source_runs(connection)
             finally:
@@ -139,8 +157,30 @@ class SourceHealthTests(unittest.TestCase):
             by_source = {row["source"]: row for row in rows}
             self.assertEqual(by_source["good"]["status"], "ok")
             self.assertEqual(by_source["good"]["error_rate"], 0.0)
+            self.assertEqual(by_source["good"]["latency_ms"], 0)
             self.assertEqual(by_source["bad"]["status"], "failed")
             self.assertEqual(by_source["bad"]["error_rate"], 1.0)
+            self.assertEqual(by_source["bad"]["latency_ms"], 0)
+
+    def test_format_health_rows_includes_latency_ms(self) -> None:
+        text = format_health_rows(
+            [
+                {
+                    "source": "good",
+                    "status": "ok",
+                    "ok": True,
+                    "error_rate": 0.0,
+                    "latency_ms": 42,
+                    "item_count": 1,
+                    "event_count": 0,
+                    "checked_at": "2026-06-30T00:00:00+00:00",
+                    "error_message": "",
+                }
+            ]
+        )
+
+        self.assertIn("latency_ms", text.splitlines()[0])
+        self.assertIn("42", text)
 
     def test_run_loop_runs_multiple_cycles_without_notifications(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

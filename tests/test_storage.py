@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from lolita_radar.models import ItemStatus, RadarItem, item_identity_hash
-from lolita_radar.storage import connect, diff_and_store, list_events, list_items
+from lolita_radar.storage import connect, diff_and_store, list_events, list_items, list_source_runs, record_source_run
 
 
 class StorageTests(unittest.TestCase):
@@ -66,6 +66,18 @@ class StorageTests(unittest.TestCase):
             self.assertEqual(events[0]["metadata"]["matched_keywords"], ["JSK", "预约"])
             self.assertEqual(events[0]["published_at"], "2026-06-20")
             connection.close()
+
+    def test_source_runs_include_latency_ms(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "radar.sqlite")
+            try:
+                record_source_run(connection, "source", ok=True, item_count=1, latency_ms=12.6)
+                connection.commit()
+                runs = list_source_runs(connection)
+            finally:
+                connection.close()
+
+            self.assertEqual(runs[0]["latency_ms"], 13)
 
 
 if __name__ == "__main__":

@@ -37,7 +37,8 @@ The current OS includes:
 
 - `SourceAdapter` abstraction.
 - Feed home with Release, Drop, Trend, and Alert streams.
-- Rule-based trend engine with rising/stable/cooling, confidence, and reasons.
+- Rule-based trend engine with rising/stable/cooling, confidence, price_delta,
+  and reasons.
 - Shop -> Item model for public proxy-shop/Taobao-style DROP signals.
 - Official brand adapters for Angelic Pretty, BABY, AATP, Metamorphose, and
   Moi-meme-Moitie public release/news pages.
@@ -48,8 +49,8 @@ The current OS includes:
 - `update` events when title or status changes.
 - `content_changed` events when a tracked page/item keeps the same title and
   status but its normalized content hash changes.
-- Per-source health records for successful checks, item counts, event counts,
-  and adapter errors.
+- Per-source health records for successful checks, latency, item counts, event
+  counts, and adapter errors.
 - Console, Telegram, and Discord webhook notifiers.
 - GitHub Actions manual and scheduled runs.
 
@@ -207,7 +208,7 @@ The feed app renders four lightweight streams:
 
 - Release Feed: brand release, preorder, and restock events from AP, BABY, AATP, Meta, and MMM.
 - Drop Feed: public proxy-shop or Taobao-style page changes from `generic_page` sources.
-- Trend Feed: rule-based rising/stable/cooling premium signals with confidence and reason codes.
+- Trend Feed: rule-based rising/stable/cooling premium signals with confidence, price_delta, and reason codes.
 - Alert Feed: new releases, high-premium signals, sample gaps, and source-health warnings.
 
 No AI/ML model, checkout automation, login automation, CAPTCHA bypass, queue bypass, or risk-control bypass is included.

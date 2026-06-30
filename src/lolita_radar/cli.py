@@ -256,7 +256,7 @@ def append_loop_log_line(path: Path | None, line: str) -> None:
 
 
 def format_health_rows(rows: list[dict[str, object]]) -> str:
-    lines = ["source | status | ok | error_rate | item_count | event_count | checked_at | error_message"]
+    lines = ["source | status | ok | error_rate | latency_ms | item_count | event_count | checked_at | error_message"]
     for row in rows:
         ok = row["ok"]
         ok_text = "ok" if ok is True else "failed" if ok is False else "no_run"
@@ -267,6 +267,7 @@ def format_health_rows(rows: list[dict[str, object]]) -> str:
                     str(row.get("status") or ok_text),
                     ok_text,
                     str(row.get("error_rate", 0)),
+                    str(row.get("latency_ms", 0)),
                     str(row["item_count"]),
                     str(row["event_count"]),
                     str(row["checked_at"] or "-"),

@@ -95,12 +95,21 @@ def check_sources(
             guard_baseline_only(connection, selected)
         all_events: list[RadarEvent] = []
         for source in selected:
+            started_at = time.monotonic()
             try:
                 adapter = build_adapter(source)
                 items = adapter.fetch_items()
                 events = diff_and_store(connection, items, write_events=not baseline_only)
             except Exception as exc:
-                record_source_run(connection, source.name, ok=False, status="failed", error_rate=1.0, error_message=str(exc))
+                record_source_run(
+                    connection,
+                    source.name,
+                    ok=False,
+                    status="failed",
+                    error_rate=1.0,
+                    latency_ms=elapsed_ms(started_at),
+                    error_message=str(exc),
+                )
                 connection.commit()
                 if source_name:
                     raise
@@ -112,6 +121,7 @@ def check_sources(
                 ok=True,
                 status=status,
                 error_rate=0.0,
+                latency_ms=elapsed_ms(started_at),
                 item_count=len(items),
                 event_count=len(events),
             )
@@ -196,6 +206,7 @@ def latest_source_health(config_path: Path, db_path: Path) -> list[dict[str, obj
                 "ok": run["ok"] if run else None,
                 "status": run["status"] if run else "no_run",
                 "error_rate": run["error_rate"] if run else 0,
+                "latency_ms": run["latency_ms"] if run else 0,
                 "item_count": run["item_count"] if run else 0,
                 "event_count": run["event_count"] if run else 0,
                 "checked_at": run["checked_at"] if run else "",
@@ -212,6 +223,10 @@ def latest_enriched_source_runs(runs: list[dict[str, object]]) -> dict[str, dict
         if source and source not in latest:
             latest[source] = run
     return latest
+
+
+def elapsed_ms(started_at: float) -> int:
+    return max(0, int(round((time.monotonic() - started_at) * 1000)))
 
 
 def run_check_loop(
@@ -343,7 +358,7 @@ def recent_source_runs_by_source(
         for source in sources:
             rows = connection.execute(
                 """
-                SELECT source, checked_at, ok, status, error_rate, item_count, event_count, error_message
+                SELECT source, checked_at, ok, status, error_rate, latency_ms, item_count, event_count, error_message
                 FROM source_runs
                 WHERE source = ?
                 ORDER BY checked_at DESC, id DESC

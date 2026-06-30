@@ -146,6 +146,50 @@ class FeedOsTests(unittest.TestCase):
         self.assertTrue(all(row["url"] for row in feed["all"]))
         self.assertEqual(len({row["url"] for row in feed["all"]}), 30)
 
+    def test_home_all_feed_uses_feed_type_priority(self) -> None:
+        events = [
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Release",
+                "url": "https://example.com/release",
+                "published_at": "2026-01-01",
+            },
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "status": "shop_news",
+                "title": "Shop drop",
+                "url": "https://example.com/drop",
+                "metadata": {"matched_keywords": ["JSK"]},
+            },
+        ]
+        source_runs = [
+            {
+                "source": "angelic_pretty",
+                "status": "failed",
+                "ok": False,
+                "error_rate": 1.0,
+                "checked_at": "2026-06-30T10:00:00+00:00",
+                "error_message": "timeout",
+            }
+        ]
+        market_summary = {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.8}]}
+
+        feed = build_home_feed(
+            events,
+            [],
+            market_summary,
+            {"alerts": []},
+            [],
+            source_runs,
+            brand_weights=[{"alias": "AP", "watch_urls": [{"label": "market", "url": "https://example.com/market/ap"}]}],
+            source_urls={"angelic_pretty": "https://example.com/ap-health"},
+        )
+
+        self.assertEqual([row["feed_type"] for row in feed["all"][:4]], ["release", "drop", "alert", "trend"])
+
     def test_alert_feed_normalizes_high_premium_and_sample_gap(self) -> None:
         market_alerts = {
             "alerts": [
@@ -425,6 +469,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["url"], "https://www.goofish.com/search?q=AP")
         self.assertGreaterEqual(trends[0]["confidence"], 60)
         self.assertEqual(trends[0]["avg_premium_rate"], 0.5)
+        self.assertEqual(trends[0]["price_delta"], 0.5)
         self.assertEqual(trends[0]["sample_count"], 4)
         self.assertIn("reason: sample_supported, premium_rising", trends[0]["meta"])
         self.assertIn("sample_supported", trends[0]["reason_codes"])

@@ -364,10 +364,10 @@ def visual_token(feed_type: str, brand: str, status: str) -> dict[str, str]:
 
 def merge_streams(streams: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     rows = []
-    for key in ("release", "drop", "trend", "alert"):
-        rows.extend(streams.get(key, []))
+    for key in ("release", "drop", "alert", "trend"):
+        rows.extend(sort_cards(streams.get(key, [])))
     linked_rows = [row for row in rows if row.get("url")]
-    return unique_cards(sort_cards(linked_rows))[:HOME_LINK_LIMIT]
+    return unique_cards(linked_rows)[:HOME_LINK_LIMIT]
 
 
 def sort_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
