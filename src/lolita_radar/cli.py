@@ -7,7 +7,16 @@ from pathlib import Path
 from .brands import default_brand_weights_path
 from .config import default_config_path
 from .market import default_market_observations_path
-from .runner import CheckLoopResult, InspectResult, check_sources, inspect_sources, latest_source_health, run_check_loop
+from .runner import (
+    CheckLoopResult,
+    CheckLoopVerification,
+    InspectResult,
+    check_sources,
+    inspect_sources,
+    latest_source_health,
+    run_check_loop,
+    verify_check_loop,
+)
 from .web import DEFAULT_WEB_PORT, run_web
 
 
@@ -55,6 +64,13 @@ def main(argv: list[str] | None = None) -> int:
     loop_parser.add_argument("--interval-seconds", type=int, default=300)
     loop_parser.add_argument("--notify", action="store_true", help="send notifications during the loop")
 
+    verify_loop_parser = subparsers.add_parser("verify-loop", help="verify a long-running check loop log and database")
+    verify_loop_parser.add_argument("--config", type=Path, default=default_config_path())
+    verify_loop_parser.add_argument("--db", type=Path, required=True)
+    verify_loop_parser.add_argument("--log", type=Path, required=True)
+    verify_loop_parser.add_argument("--exit-file", type=Path)
+    verify_loop_parser.add_argument("--expected-cycles", type=int, default=96)
+
     web_parser = subparsers.add_parser("web", help="start the local feed app")
     web_parser.add_argument("--config", type=Path, default=default_config_path())
     web_parser.add_argument("--brands", type=Path, default=default_brand_weights_path())
@@ -101,6 +117,16 @@ def main(argv: list[str] | None = None) -> int:
             print("interrupted", file=sys.stderr)
             return 130
         return 0 if all(result.ok for result in results) else 1
+    if args.command == "verify-loop":
+        verification = verify_check_loop(
+            config_path=args.config,
+            db_path=args.db,
+            log_path=args.log,
+            expected_cycles=args.expected_cycles,
+            exit_path=args.exit_file,
+        )
+        print(format_loop_verification(verification))
+        return 0 if verification.complete else 1
     if args.command == "web":
         return run_web(
             config_path=args.config,
@@ -183,6 +209,22 @@ def format_loop_result_line(result: CheckLoopResult) -> str:
             result.error_message,
         ]
     )
+
+
+def format_loop_verification(verification: CheckLoopVerification) -> str:
+    exit_code = "-" if verification.exit_code is None else str(verification.exit_code)
+    lines = [
+        f"status: {verification.status}",
+        f"expected_cycles: {verification.expected_cycles}",
+        f"observed_cycles: {verification.observed_cycles}",
+        f"exit_code: {exit_code}",
+        "failed_cycles: "
+        + (", ".join(str(cycle) for cycle in verification.failed_cycles) if verification.failed_cycles else "[]"),
+        "source_cycles:",
+    ]
+    for source in verification.expected_sources:
+        lines.append(f"  - {source}: {verification.source_cycle_counts.get(source, 0)}")
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

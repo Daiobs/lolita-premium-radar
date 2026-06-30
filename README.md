@@ -167,6 +167,20 @@ The loop keeps notifications off by default and records source health every
 cycle. Add `--notify` only when you intentionally want live alerts during the
 long run.
 
+Verify a completed long run before calling it stable:
+
+```bash
+python -m lolita_radar.cli verify-loop \
+  --log .data/soak/lolita-radar-os-24h.log \
+  --db .data/soak/lolita-radar-os-24h.sqlite \
+  --exit-file .data/soak/lolita-radar-os-24h.exit \
+  --expected-cycles 96
+```
+
+`verify-loop` reports `complete` only when the loop log has the expected cycle
+count, the exit file is `0`, and every enabled source has enough `source_runs`
+records in the database. This keeps the 24-hour stability check auditable.
+
 Start the local feed app:
 
 ```bash

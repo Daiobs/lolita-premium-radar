@@ -8,7 +8,7 @@ import lolita_radar.runner as runner
 from lolita_radar.cli import format_loop_results, main
 from lolita_radar.runner import CheckLoopResult
 from lolita_radar.models import ItemStatus, RadarItem
-from lolita_radar.storage import connect, list_source_runs
+from lolita_radar.storage import connect, list_source_runs, record_source_run
 
 
 class FakeGoodAdapter:
@@ -129,6 +129,133 @@ class SourceHealthTests(unittest.TestCase):
         self.assertIn("cycle | ok | event_count | error_message", output)
         self.assertIn("1 | ok | 2 |", output)
         self.assertIn("2 | failed | 0 | boom", output)
+
+    def test_verify_loop_reports_complete_run(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good", "other": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 2 |",
+                        "2 | ok | 0 |",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                for _ in range(2):
+                    record_source_run(connection, "good", ok=True, item_count=1)
+                    record_source_run(connection, "other", ok=True, item_count=1)
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("status: complete", stdout.getvalue())
+            self.assertIn("good: 2", stdout.getvalue())
+            self.assertIn("other: 2", stdout.getvalue())
+
+    def test_verify_loop_reports_incomplete_without_exit_and_cycles(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            log_path.write_text("cycle | ok | event_count | error_message\n1 | ok | 1 |\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(connection, "good", ok=True, item_count=1)
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("status: incomplete", stdout.getvalue())
+            self.assertIn("observed_cycles: 1", stdout.getvalue())
+            self.assertIn("exit_code: -", stdout.getvalue())
+
+    def test_verify_loop_reports_failed_cycle(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "cycle | ok | event_count | error_message\n1 | ok | 1 |\n2 | failed | 0 | boom\n",
+                encoding="utf-8",
+            )
+            exit_path.write_text("1\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(connection, "good", ok=True, item_count=1)
+                record_source_run(connection, "good", ok=False, error_message="boom")
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("status: failed", stdout.getvalue())
+            self.assertIn("failed_cycles: 2", stdout.getvalue())
 
     def write_config(self, root: Path, sources: dict[str, str]) -> Path:
         body = ["sources:"]

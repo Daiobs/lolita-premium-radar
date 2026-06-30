@@ -19,7 +19,13 @@ from .adapters import (
 from .config import load_sources
 from .models import RadarEvent, RadarItem
 from .notifiers import build_notifiers_from_env, notify_all
-from .storage import connect, count_items_for_sources, diff_and_store, list_latest_source_runs, record_source_run
+from .storage import (
+    connect,
+    count_items_for_sources,
+    diff_and_store,
+    list_latest_source_runs,
+    record_source_run,
+)
 
 
 ADAPTERS: dict[str, type[SourceAdapter]] = {
@@ -48,6 +54,18 @@ class CheckLoopResult:
     ok: bool
     event_count: int
     error_message: str = ""
+
+
+@dataclass(frozen=True)
+class CheckLoopVerification:
+    status: str
+    complete: bool
+    expected_cycles: int
+    observed_cycles: int
+    failed_cycles: tuple[int, ...]
+    exit_code: int | None
+    expected_sources: tuple[str, ...]
+    source_cycle_counts: dict[str, int]
 
 
 def build_adapter(config: SourceConfig) -> SourceAdapter:
@@ -208,6 +226,91 @@ def run_check_loop(
         if cycle < total_cycles and sleep_seconds:
             time.sleep(sleep_seconds)
     return results
+
+
+def verify_check_loop(
+    config_path: Path,
+    db_path: Path,
+    log_path: Path,
+    expected_cycles: int,
+    exit_path: Path | None = None,
+) -> CheckLoopVerification:
+    expected = max(1, int(expected_cycles))
+    results = parse_check_loop_log(log_path)
+    failed_cycles = tuple(result.cycle for result in results if not result.ok)
+    sources = tuple(source.name for source in select_sources(load_sources(config_path), None))
+    source_cycle_counts = count_source_runs(db_path, sources)
+    exit_code = read_exit_code(exit_path) if exit_path else None
+    enough_log_cycles = len(results) >= expected
+    enough_source_runs = all(source_cycle_counts.get(source, 0) >= expected for source in sources)
+    complete = exit_code == 0 and enough_log_cycles and not failed_cycles and enough_source_runs
+    if complete:
+        status = "complete"
+    elif exit_code not in (None, 0) or failed_cycles:
+        status = "failed"
+    else:
+        status = "incomplete"
+    return CheckLoopVerification(
+        status=status,
+        complete=complete,
+        expected_cycles=expected,
+        observed_cycles=len(results),
+        failed_cycles=failed_cycles,
+        exit_code=exit_code,
+        expected_sources=sources,
+        source_cycle_counts=source_cycle_counts,
+    )
+
+
+def parse_check_loop_log(path: Path) -> list[CheckLoopResult]:
+    if not path.exists():
+        return []
+    results: list[CheckLoopResult] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        parts = [part.strip() for part in line.split("|")]
+        if len(parts) < 3 or not parts[0].isdigit():
+            continue
+        cycle = int(parts[0])
+        ok = parts[1] == "ok"
+        try:
+            event_count = int(parts[2])
+        except ValueError:
+            event_count = 0
+        error_message = parts[3] if len(parts) > 3 else ""
+        results.append(CheckLoopResult(cycle=cycle, ok=ok, event_count=event_count, error_message=error_message))
+    return results
+
+
+def count_source_runs(db_path: Path, sources: tuple[str, ...]) -> dict[str, int]:
+    connection = connect(db_path)
+    try:
+        counts = {source: 0 for source in sources}
+        rows = connection.execute(
+            """
+            SELECT source, COUNT(*) AS count
+            FROM source_runs
+            GROUP BY source
+            """
+        ).fetchall()
+        for row in rows:
+            source = str(row["source"])
+            if source in counts:
+                counts[source] = int(row["count"])
+        return counts
+    finally:
+        connection.close()
+
+
+def read_exit_code(path: Path | None) -> int | None:
+    if path is None or not path.exists():
+        return None
+    raw = path.read_text(encoding="utf-8", errors="replace").strip()
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return -1
 
 
 def select_sources(sources: dict[str, SourceConfig], source_name: str | None) -> list[SourceConfig]:
