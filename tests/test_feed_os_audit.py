@@ -29,6 +29,40 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertIn("provide --loop-log", text)
             self.assertIn("pass | product_constraints", text)
 
+    def test_structure_audit_requires_key_module_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package_root = root / "src" / "lolita_radar"
+            for name in ("feed", "trend", "shop", "crawler", "core"):
+                (package_root / name).mkdir(parents=True)
+
+            check = audit_module.audit_required_modules(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn("missing product module files", check.detail)
+
+    def test_structure_audit_requires_trend_signal_exports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package_root = root / "src" / "lolita_radar"
+            files = (
+                package_root / "feed" / "builder.py",
+                package_root / "trend" / "engine.py",
+                package_root / "trend" / "signals.py",
+                package_root / "shop" / "model.py",
+                package_root / "crawler" / "health.py",
+                package_root / "core" / "audit.py",
+            )
+            for path in files:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("", encoding="utf-8")
+            (package_root / "trend" / "__init__.py").write_text("from .engine import build_trend_feed\n", encoding="utf-8")
+
+            check = audit_module.audit_required_modules(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn("trend module missing exports", check.detail)
+
     def test_product_constraint_audit_rejects_forbidden_direction_tokens(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

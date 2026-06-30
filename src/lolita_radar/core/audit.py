@@ -111,7 +111,24 @@ def audit_required_modules(project_root: Path) -> FeedOsAuditCheck:
     missing = [name for name in required if not (root / name).is_dir()]
     if missing:
         return FeedOsAuditCheck("structure", "fail", "missing product modules: " + ", ".join(missing))
-    return FeedOsAuditCheck("structure", "pass", "feed/trend/shop/crawler/core modules exist")
+    required_files = (
+        root / "feed" / "builder.py",
+        root / "trend" / "engine.py",
+        root / "trend" / "signals.py",
+        root / "shop" / "model.py",
+        root / "crawler" / "health.py",
+        root / "core" / "audit.py",
+    )
+    missing_files = [path.relative_to(root).as_posix() for path in required_files if not path.is_file()]
+    if missing_files:
+        return FeedOsAuditCheck("structure", "fail", "missing product module files: " + ", ".join(missing_files))
+    trend_init = root / "trend" / "__init__.py"
+    trend_exports = trend_init.read_text(encoding="utf-8", errors="ignore") if trend_init.exists() else ""
+    required_exports = ("build_trend_feed", "build_trend_candidates", "build_sample_backlog")
+    missing_exports = [name for name in required_exports if name not in trend_exports]
+    if missing_exports:
+        return FeedOsAuditCheck("structure", "fail", "trend module missing exports: " + ", ".join(missing_exports))
+    return FeedOsAuditCheck("structure", "pass", "feed/trend/shop/crawler/core modules and key files exist")
 
 
 def audit_product_constraints(project_root: Path) -> FeedOsAuditCheck:
