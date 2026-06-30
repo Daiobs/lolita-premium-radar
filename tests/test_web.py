@@ -454,6 +454,44 @@ sources:
                 server.shutdown()
                 server.server_close()
 
+    def test_state_api_serves_public_feed_payload_without_internal_radar_blocks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "sources.yaml"
+            db_path = root / "radar.sqlite"
+            config_path.write_text(
+                """
+sources:
+  angelic_pretty:
+    type: angelic_pretty
+    enabled: true
+    url: "https://example.com/ap"
+""".strip(),
+                encoding="utf-8",
+            )
+
+            handler = make_handler(config_path=config_path, db_path=db_path)
+            server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = f"http://127.0.0.1:{server.server_port}/api/state"
+                with urllib.request.urlopen(url) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+
+                self.assertTrue(payload["ok"])
+                self.assertIn("feed", payload)
+                self.assertNotIn("items", payload)
+                self.assertNotIn("events", payload)
+                self.assertNotIn("market", payload)
+                self.assertNotIn("market_alerts", payload)
+                self.assertNotIn("focus_queue", payload)
+                self.assertNotIn("opportunity_radar", payload)
+                self.assertNotIn("brand_weight_profile", payload)
+            finally:
+                server.shutdown()
+                server.server_close()
+
     def test_index_html_is_feed_app_alias(self) -> None:
         self.assertEqual(INDEX_HTML, FEED_INDEX_HTML)
         self.assertIn("Lolita Feed OS", INDEX_HTML)
@@ -574,6 +612,9 @@ sources:
                 self.assertEqual(payload["new_events"][0]["source"], "good")
                 self.assertEqual(payload["new_events"][0]["metadata"]["brand"], "Test Brand")
                 self.assertEqual(payload["new_events"][0]["metadata"]["price"], "¥12,000")
+                self.assertNotIn("items", payload)
+                self.assertNotIn("events", payload)
+                self.assertNotIn("market", payload)
                 source_alerts = [
                     alert
                     for alert in payload["feed"]["streams"]["alert"]
@@ -629,8 +670,11 @@ sources:
                     payload = json.loads(response.read().decode("utf-8"))
 
                 self.assertEqual(payload["added_market_observation"]["premium_rate"], 0.5)
-                self.assertEqual(payload["market"]["summary"]["sample_count"], 1)
-                self.assertEqual(payload["market"]["summary"]["brands"][0]["brand_alias"], "AP")
+                self.assertIn("feed", payload)
+                self.assertNotIn("market", payload)
+                saved = json.loads(market_path.read_text(encoding="utf-8"))
+                self.assertEqual(len(saved), 1)
+                self.assertEqual(saved[0]["brand_alias"], "AP")
             finally:
                 server.shutdown()
                 server.server_close()
@@ -676,8 +720,11 @@ sources:
                 with urllib.request.urlopen(request) as response:
                     payload = json.loads(response.read().decode("utf-8"))
 
-                meta = next(brand for brand in payload["brand_weights"] if brand["alias"] == "Meta")
+                meta = next(brand for brand in payload["updated_brand_weights"] if brand["alias"] == "Meta")
                 self.assertEqual(meta["weight"], 96)
+                self.assertIn("feed", payload)
+                self.assertNotIn("brand_weights", payload)
+                self.assertNotIn("brand_weight_profile", payload)
                 saved = json.loads(brands_path.read_text(encoding="utf-8"))
                 self.assertEqual(next(brand for brand in saved if brand["alias"] == "Meta")["weight"], 96)
             finally:

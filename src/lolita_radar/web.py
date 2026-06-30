@@ -91,7 +91,7 @@ def make_handler(
                 elif parsed.path == "/api/feed":
                     self.send_json(get_feed_payload(config_path, db_path, brands_path, market_path))
                 elif parsed.path == "/api/state":
-                    self.send_json(get_feed_state(config_path, db_path, brands_path, market_path))
+                    self.send_json(get_feed_payload(config_path, db_path, brands_path, market_path))
                 else:
                     self.send_error(HTTPStatus.NOT_FOUND, "Not found")
             except Exception as exc:
@@ -124,7 +124,7 @@ def make_handler(
             source_name = text_value(payload.get("source")) or None
             notify = bool(payload.get("notify", False))
             events = check_sources(config_path=config_path, db_path=db_path, source_name=source_name, notify=notify)
-            state = get_feed_state(config_path, db_path, brands_path, market_path)
+            state = get_feed_payload(config_path, db_path, brands_path, market_path)
             state.update(
                 {
                     "checked_source": source_name or "all",
@@ -137,7 +137,7 @@ def make_handler(
         def handle_market_observation(self) -> None:
             payload = self.read_json(default={})
             observation = append_market_observation(market_path, payload)
-            state = get_feed_state(config_path, db_path, brands_path, market_path)
+            state = get_feed_payload(config_path, db_path, brands_path, market_path)
             state.update({"added_market_observation": observation})
             self.send_json(state, status=HTTPStatus.CREATED)
 
@@ -147,7 +147,7 @@ def make_handler(
             if not isinstance(rows, list):
                 raise ValueError("brand weight update must include a weights list")
             updated = save_brand_weights(brands_path, rows)
-            state = get_feed_state(config_path, db_path, brands_path, market_path)
+            state = get_feed_payload(config_path, db_path, brands_path, market_path)
             state.update({"updated_brand_weights": updated})
             self.send_json(state)
 
