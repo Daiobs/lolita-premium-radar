@@ -513,6 +513,38 @@ FEED_INDEX_HTML = r"""<!doctype html>
         zh: { high: "高", medium: "中", low: "低" },
         ja: { high: "高", medium: "中", low: "低" },
       };
+      const KIND_TEXT = {
+        zh: {
+          new_item: "新发现",
+          content_changed: "内容更新",
+          update: "状态变化",
+          new_release: "新发售",
+          new_arrival: "新作",
+          preorder: "预约",
+          restock: "再贩",
+          high_premium: "高溢价",
+          sample_gap: "样本不足",
+          source_health: "来源状态",
+          rising: "上升",
+          stable: "稳定",
+          cooling: "降温",
+        },
+        ja: {
+          new_item: "新着",
+          content_changed: "更新",
+          update: "状態変化",
+          new_release: "発売情報",
+          new_arrival: "新作",
+          preorder: "予約",
+          restock: "再入荷",
+          high_premium: "高プレミア",
+          sample_gap: "サンプル不足",
+          source_health: "取得状態",
+          rising: "上昇",
+          stable: "安定",
+          cooling: "低下",
+        },
+      };
       const REASON_TEXT = {
         zh: {
           new_release: "新发售",
@@ -609,7 +641,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         const visualInner = imageUrl
           ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy">`
           : `<strong>${escapeHtml(visual.initials || row.brand || "-")}</strong><span>${escapeHtml(visual.mark || type.slice(0, 1).toUpperCase())}</span>`;
-        const kind = language === "ja" ? (row.kind || "") : (row.kind_label || row.kind || "");
+        const kind = kindLabel(row);
         return `<${tag} class="feed-card ${hasUrl ? "" : "no-link"}" ${attrs}>
           <div class="visual ${escapeHtml(type)} ${imageUrl ? "has-image" : ""}" aria-hidden="true">
             ${visualInner}
@@ -645,6 +677,10 @@ FEED_INDEX_HTML = r"""<!doctype html>
       function urgencyLabel(value) {
         const raw = String(value || "");
         return URGENCY_TEXT[language]?.[raw] || raw;
+      }
+      function kindLabel(row) {
+        const raw = String(row.kind || row.type || row.status || "");
+        return KIND_TEXT[language]?.[raw] || row.kind_label || raw;
       }
       function formatPercent(value) {
         const number = Number(value);
