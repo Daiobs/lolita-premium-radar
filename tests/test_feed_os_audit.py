@@ -899,6 +899,32 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("source_health row missing metrics", check.detail)
 
+    def test_source_health_alert_audit_rejects_metric_ranges(self) -> None:
+        base_row = {
+            "feed_type": "alert",
+            "kind": "failed",
+            "title": "angelic_pretty failed",
+            "reason_codes": ["source_health"],
+            "url": "https://example.com/ap",
+            "error_rate": 0.5,
+            "latency_ms": 20,
+            "item_count": 1,
+            "visual": self.visual("AL", "!", "failed"),
+        }
+
+        cases = [
+            ({"error_rate": 1.5}, "invalid error_rate"),
+            ({"error_rate": -0.1}, "invalid error_rate"),
+            ({"latency_ms": -1}, "invalid latency_ms"),
+            ({"item_count": -1}, "invalid item_count"),
+        ]
+
+        for overrides, expected in cases:
+            with self.subTest(overrides=overrides):
+                problem = audit_module.source_health_alert_problem({**base_row, **overrides})
+
+                self.assertIn(expected, problem)
+
     def test_runtime_feed_audit_rejects_missing_card_visual(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         try:

@@ -635,11 +635,14 @@ def source_health_alert_problem(row: dict[str, Any]) -> str:
     missing = [key for key in ("error_rate", "latency_ms", "item_count") if key not in row]
     if missing:
         return "stream alert source_health row missing metrics: " + ", ".join(missing)
-    if not is_number(row.get("error_rate")):
+    error_rate = row.get("error_rate")
+    if not is_number(error_rate) or not 0 <= float(error_rate) <= 1:
         return f"stream alert source_health row has invalid error_rate: {row.get('error_rate')}"
-    if not isinstance(row.get("latency_ms"), int) or isinstance(row.get("latency_ms"), bool):
+    latency_ms = row.get("latency_ms")
+    if not isinstance(latency_ms, int) or isinstance(latency_ms, bool) or latency_ms < 0:
         return f"stream alert source_health row has invalid latency_ms: {row.get('latency_ms')}"
-    if not isinstance(row.get("item_count"), int) or isinstance(row.get("item_count"), bool):
+    item_count = row.get("item_count")
+    if not isinstance(item_count, int) or isinstance(item_count, bool) or item_count < 0:
         return f"stream alert source_health row has invalid item_count: {row.get('item_count')}"
     return ""
 
