@@ -1,4 +1,30 @@
 sources:
+  angelic_pretty:
+    type: angelic_pretty
+    enabled: true
+    url: "https://angelicpretty.com/"
+    keywords: []
+    options:
+      timeout_seconds: 20
+
+  baby_ssb:
+    type: baby_ssb
+    enabled: true
+    url: "https://www.babyssb.co.jp/news/"
+    keywords: []
+    options:
+      timeout_seconds: 20
+
+  alice_and_the_pirates:
+    type: alice_and_the_pirates
+    enabled: true
+    url: "https://www.babyssb.co.jp/news/"
+    keywords:
+      - "ALICE and the PIRATES"
+      - AATP
+    options:
+      timeout_seconds: 20
+
   metamorphose:
     type: metamorphose
     enabled: true
@@ -7,10 +33,26 @@ sources:
     options:
       timeout_seconds: 20
 
-  taobao_proxy_sample:
+  moitie:
+    type: moitie
+    enabled: true
+    url: "https://moi-meme-moitie.com/"
+    keywords: []
+    options:
+      timeout_seconds: 20
+
+  innocent_world:
+    type: innocent_world
+    enabled: false
+    url: "https://innocent-w.jp/news/"
+    keywords: []
+    options:
+      timeout_seconds: 20
+
+  proxy_shop_template:
     type: generic_page
     enabled: false
-    url: "https://example.com/public-shop-page"
+    url: "https://example.com/replace-with-public-shop-page"
     keywords:
       - Lolita
       - JSK
@@ -19,5 +61,12 @@ sources:
       - 现货
       - 再贩
     options:
-      title: "Taobao proxy public page"
+      title: "Proxy public shop page template"
+      title_template: "{source} public page"
+      min_keyword_hits: 1
+      ignore_patterns:
+        - "updated at: [0-9: /.-]+"
+        - "浏览量[:：]?\\s*\\d+"
+      content_change_alert: true
+      max_content_chars: 12000
       timeout_seconds: 20

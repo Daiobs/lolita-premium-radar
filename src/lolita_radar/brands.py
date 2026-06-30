@@ -44,7 +44,7 @@ DEFAULT_BRAND_WEIGHTS: list[dict[str, Any]] = [
             "palette": "ivory rose",
             "accent": "#a9782c",
             "paper": "#fff8ec",
-            "motif": "crown / kumya",
+            "motif": "kumya / mascot",
             "radar_cue": "经典甜系与熊包线索优先补样本",
         },
     },

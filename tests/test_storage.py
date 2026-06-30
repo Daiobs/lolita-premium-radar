@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from lolita_radar.models import ItemStatus, RadarItem, item_identity_hash
-from lolita_radar.storage import connect, diff_and_store
+from lolita_radar.storage import connect, diff_and_store, list_events, list_items
 
 
 class StorageTests(unittest.TestCase):
@@ -44,6 +44,27 @@ class StorageTests(unittest.TestCase):
             self.assertEqual([event.event_type.value for event in updated_events], ["update"])
             self.assertEqual(updated_events[0].previous_status, "new_arrival")
             self.assertEqual(updated_events[0].previous_title, "New Arrival: Rose JSK")
+            connection.close()
+
+    def test_list_items_and_events_include_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "radar.sqlite")
+            item = RadarItem(
+                source="generic_page",
+                title="Proxy page: JSK, 预约",
+                url="https://example.com/shop",
+                status=ItemStatus.PREORDER,
+                published_at="2026-06-20",
+                metadata={"matched_keywords": ["JSK", "预约"]},
+            )
+
+            diff_and_store(connection, [item])
+            items = list_items(connection)
+            events = list_events(connection)
+
+            self.assertEqual(items[0]["metadata"]["matched_keywords"], ["JSK", "预约"])
+            self.assertEqual(events[0]["metadata"]["matched_keywords"], ["JSK", "预约"])
+            self.assertEqual(events[0]["published_at"], "2026-06-20")
             connection.close()
 
 
