@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 
+TREND_DIRECTIONS = {"rising", "stable", "cooling"}
+RELEASE_STATUSES = {"new_arrival", "preorder", "restock"}
+
+
 def build_trend_feed(
     market_summary: dict[str, Any],
     momentum: list[dict[str, Any]],
@@ -20,7 +24,7 @@ def build_trend_feed(
         sample_count = int(brand.get("sample_count") or 0)
         avg_premium = float(brand.get("avg_premium_rate") or 0)
         movement = momentum_by_alias.get(alias, {})
-        direction = str(movement.get("direction") or trend_direction(avg_premium, sample_count))
+        direction = normalize_direction(movement.get("direction"), avg_premium, sample_count)
         confidence = trend_confidence(sample_count, avg_premium, movement, release_counts.get(alias, 0))
         reasons = trend_reasons(sample_count, avg_premium, movement, release_counts.get(alias, 0))
         trends.append(
@@ -73,9 +77,16 @@ def count_release_events(events: list[dict[str, Any]]) -> dict[str, int]:
     for event in events:
         source = str(event.get("source") or "")
         alias = aliases.get(source)
-        if alias:
+        if alias and event.get("status") in RELEASE_STATUSES:
             counts[alias] = counts.get(alias, 0) + 1
     return counts
+
+
+def normalize_direction(raw_direction: object, avg_premium: float, sample_count: int) -> str:
+    direction = str(raw_direction or "").strip().lower()
+    if direction in TREND_DIRECTIONS:
+        return direction
+    return trend_direction(avg_premium, sample_count)
 
 
 def trend_direction(avg_premium: float, sample_count: int) -> str:

@@ -93,7 +93,7 @@ class FeedOsTests(unittest.TestCase):
         trends = build_trend_feed(
             {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]},
             [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
-            [{"source": "angelic_pretty"}],
+            [{"source": "angelic_pretty", "status": "new_arrival"}],
         )
 
         self.assertEqual(trends[0]["kind"], "rising")
@@ -103,6 +103,17 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("reason: sample_supported, premium_rising", trends[0]["meta"])
         self.assertIn("sample_supported", trends[0]["reason_codes"])
         self.assertIn("premium_rising", trends[0]["reason_codes"])
+
+    def test_trend_engine_allows_only_rule_directions(self) -> None:
+        trends = build_trend_feed(
+            {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": -0.2}]},
+            [{"brand_alias": "AP", "direction": "spiking", "observed_at": "2026-06-30"}],
+            [{"source": "angelic_pretty", "status": "shop_news"}],
+        )
+
+        self.assertEqual(trends[0]["kind"], "cooling")
+        self.assertIn("premium_cooling", trends[0]["reason_codes"])
+        self.assertNotIn("release_activity", trends[0]["reason_codes"])
 
     def test_trend_engine_outputs_sample_gap_for_weighted_brand_without_samples(self) -> None:
         trends = build_trend_feed(
