@@ -433,6 +433,9 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
     for row in feed_rows(streams, "alert"):
         if not non_empty_list(row.get("reason_codes")):
             return "stream alert row reason_codes must be a non-empty list"
+        release_alert_problem = release_alert_boundary_problem(row)
+        if release_alert_problem:
+            return release_alert_problem
         source_health_problem = source_health_alert_problem(row)
         if source_health_problem:
             return source_health_problem
@@ -489,6 +492,15 @@ def source_health_alert_problem(row: dict[str, Any]) -> str:
     return ""
 
 
+def release_alert_boundary_problem(row: dict[str, Any]) -> str:
+    reason_codes = row.get("reason_codes")
+    if str(row.get("kind") or "") == "new_release" or (
+        isinstance(reason_codes, list) and "new_release" in reason_codes
+    ):
+        return "stream alert row must be system-level, not new_release"
+    return ""
+
+
 def runtime_feed_noise_problem(streams: dict[str, Any]) -> str:
     for name, rows in streams.items():
         if not isinstance(rows, list):
@@ -505,14 +517,7 @@ def runtime_feed_noise_problem(streams: dict[str, Any]) -> str:
 
 
 def is_release_noise_candidate(stream_name: str, row: dict[str, Any]) -> bool:
-    if stream_name == "release":
-        return True
-    if stream_name != "alert":
-        return False
-    if str(row.get("kind") or "") == "new_release":
-        return True
-    reason_codes = row.get("reason_codes")
-    return isinstance(reason_codes, list) and "new_release" in reason_codes
+    return stream_name == "release"
 
 
 NAVIGATION_NOISE_TOKENS = {

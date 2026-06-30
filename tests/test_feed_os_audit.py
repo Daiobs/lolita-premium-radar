@@ -95,17 +95,17 @@ class FeedOsAuditTests(unittest.TestCase):
                     "alert": [
                         {
                             "feed_type": "alert",
-                            "kind": "new_release",
-                            "title": "Shell Garden JSK",
-                            "reason_codes": ["new_release"],
-                            "url": "https://example.com/ap/shell",
+                            "kind": "failed",
+                            "title": "Angelic Pretty source unavailable",
+                            "reason_codes": ["source_health"],
+                            "url": "https://example.com/ap/source",
                         }
                     ],
                 },
                 "all": [
                     {"feed_type": "release", "url": "https://example.com/ap/shell"},
                     {"feed_type": "drop", "url": "https://example.com/drop"},
-                    {"feed_type": "alert", "url": "https://example.com/ap/shell"},
+                    {"feed_type": "alert", "url": "https://example.com/ap/source"},
                     {"feed_type": "trend", "url": "https://example.com/market"},
                 ],
             }
@@ -512,7 +512,7 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("stale source time", check.detail)
 
-    def test_runtime_feed_audit_rejects_stale_release_alert_time(self) -> None:
+    def test_runtime_feed_audit_rejects_release_alert_boundary(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
@@ -545,7 +545,7 @@ class FeedOsAuditTests(unittest.TestCase):
             audit_module.get_feed_state = original_get_feed_state
 
         self.assertEqual(check.status, "fail")
-        self.assertIn("stream alert row has stale source time", check.detail)
+        self.assertIn("stream alert row must be system-level", check.detail)
 
     def test_runtime_feed_audit_allows_old_source_health_alert_time(self) -> None:
         streams = {

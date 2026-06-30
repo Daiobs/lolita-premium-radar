@@ -92,16 +92,6 @@ def alert_feed(
 ) -> list[dict[str, Any]]:
     alerts = []
     urls = source_urls or {}
-    release_count = 0
-    for event in events:
-        if not is_release_event(event):
-            continue
-        if release_count >= 20:
-            break
-        card = feed_card("alert", event, kind="new_release")
-        card["reason_codes"] = release_alert_reasons(event)
-        alerts.append(card)
-        release_count += 1
     market_count = 0
     for alert in market_alerts.get("alerts", []):
         kind = market_alert_kind(alert)
@@ -166,15 +156,6 @@ def latest_source_runs_by_source(source_runs: list[dict[str, Any]]) -> list[dict
     return latest
 
 
-def is_release_event(event: dict[str, Any]) -> bool:
-    return (
-        event.get("event_type") in {"new_item", "content_changed"}
-        and event.get("source") in RELEASE_SOURCES
-        and event.get("status") in RELEASE_STATUSES
-        and is_current_source_date(str(event.get("published_at") or ""))
-    )
-
-
 def market_alert_kind(alert: dict[str, Any]) -> str:
     raw_kind = str(alert.get("kind") or "market_alert")
     if raw_kind in {"sample_spike", "brand_heat"}:
@@ -226,15 +207,6 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
         "source_label": source_label(source),
         "visual": visual_token(feed_type, brand, status, image_url=image_url),
     }
-
-
-def release_alert_reasons(event: dict[str, Any]) -> list[str]:
-    reasons = ["new_release"]
-    for key in ("event_type", "status"):
-        value = str(event.get(key) or "")
-        if value and value not in reasons:
-            reasons.append(value)
-    return reasons
 
 
 def drop_card(row: dict[str, Any]) -> dict[str, Any]:

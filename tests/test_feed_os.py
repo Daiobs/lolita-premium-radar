@@ -47,7 +47,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["summary"]["drops"], 1)
         self.assertEqual(feed["summary"]["shops"], 1)
         self.assertEqual(feed["summary"]["trends"], 1)
-        self.assertGreaterEqual(feed["summary"]["alerts"], 2)
+        self.assertEqual(feed["summary"]["alerts"], 1)
         self.assertEqual(feed["streams"]["release"][0]["brand"], "AP")
         self.assertEqual(feed["streams"]["release"][0]["type"], "new_arrival")
         self.assertEqual(feed["streams"]["release"][0]["price"], "¥38,280")
@@ -69,10 +69,9 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["trend"][0]["price_delta"], 0.45)
         self.assertEqual(feed["streams"]["trend"][0]["visual"]["mark"], "T")
         alert_titles = {row["title"] for row in feed["streams"]["alert"]}
-        self.assertIn("Shell Garden JSK", alert_titles)
+        self.assertNotIn("Shell Garden JSK", alert_titles)
         self.assertNotIn("Proxy JSK 预约", alert_titles)
-        release_alert = next(row for row in feed["streams"]["alert"] if row["title"] == "Shell Garden JSK")
-        self.assertEqual(release_alert["reason_codes"], ["new_release", "new_item", "new_arrival"])
+        self.assertEqual(feed["streams"]["alert"][0]["reason_codes"], ["sample_gap"])
         self.assertTrue(all(row["visual"]["mark"] for rows in feed["streams"].values() for row in rows))
 
     def test_release_feed_prefers_published_at_over_seen_time(self) -> None:
@@ -305,7 +304,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[0]["kind"], "sample_gap")
         self.assertEqual(alerts[0]["brand"], "BABY")
 
-    def test_alert_feed_filters_release_events_before_limit(self) -> None:
+    def test_alert_feed_keeps_release_events_out(self) -> None:
         noisy_events = [
             {
                 "source": "generic_page",
@@ -332,9 +331,7 @@ class FeedOsTests(unittest.TestCase):
         feed = build_home_feed(noisy_events, [], {"brands": []}, {"alerts": []}, [], [])
         alerts = feed["streams"]["alert"]
 
-        self.assertEqual(len(alerts), 1)
-        self.assertEqual(alerts[0]["kind"], "new_release")
-        self.assertEqual(alerts[0]["title"], "Shell Garden JSK")
+        self.assertEqual(alerts, [])
 
     def test_release_feed_keeps_non_target_brand_sources_out(self) -> None:
         events = [
