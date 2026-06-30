@@ -103,6 +103,9 @@ def alert_feed(
                 "kind": kind,
                 "brand": str(alert.get("alias") or ""),
                 "title": str(alert.get("item_name") or alert.get("title") or alert.get("reason") or "Market alert"),
+                "title_zh": market_alert_title(alert, kind, language="zh"),
+                "title_ja": market_alert_title(alert, kind, language="ja"),
+                "use_localized_title": True,
                 "meta": market_alert_meta(alert),
                 "premium_rate": alert.get("premium_rate", ""),
                 "time": "",
@@ -162,6 +165,23 @@ def market_alert_kind(alert: dict[str, Any]) -> str:
 
 def market_alert_meta(alert: dict[str, Any]) -> str:
     return ""
+
+
+def market_alert_title(alert: dict[str, Any], kind: str, language: str) -> str:
+    raw_title = str(alert.get("item_name") or alert.get("title") or alert.get("alias") or "").strip()
+    label = {
+        "zh": {
+            "high_premium": "高溢价",
+            "sample_gap": "样本不足",
+        },
+        "ja": {
+            "high_premium": "高プレミア",
+            "sample_gap": "サンプル不足",
+        },
+    }.get(language, {}).get(kind, kind)
+    if raw_title:
+        return f"{label}: {raw_title}"
+    return label
 
 
 def market_alert_reasons(alert: dict[str, Any], kind: str) -> list[str]:

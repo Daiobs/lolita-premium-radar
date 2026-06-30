@@ -284,6 +284,9 @@ class FeedOsTests(unittest.TestCase):
 
         self.assertEqual(alerts[0]["kind"], "high_premium")
         self.assertEqual(alerts[0]["title"], "Shell Garden JSK")
+        self.assertEqual(alerts[0]["title_zh"], "高溢价: Shell Garden JSK")
+        self.assertEqual(alerts[0]["title_ja"], "高プレミア: Shell Garden JSK")
+        self.assertTrue(alerts[0]["use_localized_title"])
         self.assertEqual(alerts[0]["meta"], "")
         self.assertEqual(alerts[0]["premium_rate"], 0.82)
         self.assertNotIn("% premium", alerts[0]["meta"])
@@ -292,6 +295,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[1]["premium_rate"], 0.55)
         self.assertIn("brand_heat", alerts[1]["reason_codes"])
         self.assertEqual(alerts[2]["kind"], "sample_gap")
+        self.assertEqual(alerts[2]["title_zh"], "样本不足: ALICE and the PIRATES")
+        self.assertEqual(alerts[2]["title_ja"], "サンプル不足: ALICE and the PIRATES")
         self.assertIn("sample_gap", alerts[2]["reason_codes"])
 
     def test_alert_feed_keeps_unknown_market_alert_kinds_out(self) -> None:
