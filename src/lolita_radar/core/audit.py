@@ -132,7 +132,11 @@ def audit_required_modules(project_root: Path) -> FeedOsAuditCheck:
 
 
 def audit_product_constraints(project_root: Path) -> FeedOsAuditCheck:
-    findings = forbidden_product_findings(project_root) + legacy_analysis_symbol_findings(project_root)
+    findings = (
+        forbidden_product_findings(project_root)
+        + legacy_analysis_symbol_findings(project_root)
+        + trend_boundary_findings(project_root)
+    )
     if findings:
         return FeedOsAuditCheck("product_constraints", "fail", "forbidden product direction found: " + findings[0])
     return FeedOsAuditCheck("product_constraints", "pass", "no blocked product-direction or purchase-automation tokens found")
@@ -186,6 +190,37 @@ def legacy_analysis_symbol_findings(project_root: Path) -> list[str]:
         for token in tokens:
             if token in source:
                 findings.append(f"{path.relative_to(project_root)} defines legacy analysis API {token}")
+    return findings
+
+
+def trend_boundary_findings(project_root: Path) -> list[str]:
+    trend_root = project_root / "src" / "lolita_radar" / "trend"
+    if not trend_root.exists():
+        return []
+    blocked_tokens = (
+        "import random",
+        "from random",
+        "requests",
+        "urllib",
+        "httpx",
+        "urlopen",
+        "fetch_text",
+        "socket",
+        "subprocess",
+        "open" + "ai",
+        "anth" + "ropic",
+        "tensor" + "flow",
+        "sk" + "learn",
+        "scikit",
+        "numpy",
+        "pandas",
+    )
+    findings = []
+    for path in sorted(trend_root.rglob("*.py")):
+        source = path.read_text(encoding="utf-8", errors="ignore").casefold()
+        for token in blocked_tokens:
+            if token in source:
+                findings.append(f"{path.relative_to(project_root)} violates rule-only trend boundary with {token}")
     return findings
 
 

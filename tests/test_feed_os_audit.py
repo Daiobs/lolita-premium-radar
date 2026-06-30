@@ -107,6 +107,21 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertEqual(check.status, "fail")
             self.assertIn("legacy analysis API", check.detail)
 
+    def test_product_constraint_audit_rejects_non_rule_trend_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            trend_root = root / "src" / "lolita_radar" / "trend"
+            trend_root.mkdir(parents=True)
+            (trend_root / "engine.py").write_text(
+                "import random\nfrom urllib.request import urlopen\n",
+                encoding="utf-8",
+            )
+
+            check = audit_module.audit_product_constraints(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn("rule-only trend boundary", check.detail)
+
     def test_home_feed_ui_audit_requires_image_card_tokens(self) -> None:
         original_html = audit_module.FEED_INDEX_HTML
         try:
