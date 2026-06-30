@@ -56,6 +56,7 @@ def audit_feed_os(
     loop_log_path: Path | None = None,
     loop_exit_path: Path | None = None,
     expected_cycles: int = 288,
+    min_duration_seconds: int = 24 * 60 * 60,
     project_root: Path | None = None,
 ) -> FeedOsAudit:
     root = project_root or Path.cwd()
@@ -68,7 +69,14 @@ def audit_feed_os(
         audit_shop_drop_model(),
         audit_crawler_health_contract(db_path),
         audit_generic_noise_controls(),
-        audit_stable_loop_evidence(config_path, db_path, loop_log_path, loop_exit_path, expected_cycles),
+        audit_stable_loop_evidence(
+            config_path,
+            db_path,
+            loop_log_path,
+            loop_exit_path,
+            expected_cycles,
+            min_duration_seconds,
+        ),
     ]
     return FeedOsAudit(tuple(checks))
 
@@ -370,6 +378,7 @@ def audit_stable_loop_evidence(
     loop_log_path: Path | None,
     loop_exit_path: Path | None,
     expected_cycles: int,
+    min_duration_seconds: int,
 ) -> FeedOsAuditCheck:
     if loop_log_path is None:
         return FeedOsAuditCheck(
@@ -383,6 +392,7 @@ def audit_stable_loop_evidence(
         log_path=loop_log_path,
         expected_cycles=expected_cycles,
         exit_path=loop_exit_path,
+        min_duration_seconds=min_duration_seconds,
     )
     if verification.complete:
         return FeedOsAuditCheck(
@@ -397,6 +407,7 @@ def audit_stable_loop_evidence(
         (
             f"verify-loop {verification.status}: observed={verification.observed_cycles}/"
             f"{verification.expected_cycles}, missing={list(verification.missing_cycles)}, "
-            f"failed={list(verification.failed_cycles)}, unhealthy={verification.unhealthy_source_runs}"
+            f"failed={list(verification.failed_cycles)}, unhealthy={verification.unhealthy_source_runs}, "
+            f"duration={verification.duration_seconds}/{verification.min_duration_seconds}"
         ),
     )

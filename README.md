@@ -190,10 +190,22 @@ python -m lolita_radar.cli verify-loop \
 ```
 
 `verify-loop` reports `complete` only when the loop log has the expected cycle
-coverage, the exit file is `0`, every enabled source has enough recent
-`source_runs` records in the database, and those recent source runs are healthy.
-This keeps the 24-hour stability check auditable and prevents old failures or
-duplicate log lines from producing a false result.
+coverage, the log proves at least 86400 seconds elapsed, the exit file is `0`,
+every enabled source has enough recent `source_runs` records in the database,
+and those recent source runs are healthy. This keeps the 24-hour stability check
+auditable and prevents old failures, duplicate log lines, or fast synthetic
+cycles from producing a false result.
+
+For local smoke tests that intentionally are not 24-hour evidence, pass:
+
+```bash
+python -m lolita_radar.cli verify-loop \
+  --log .data/soak/short.log \
+  --db .data/soak/short.sqlite \
+  --exit-file .data/soak/short.exit \
+  --expected-cycles 2 \
+  --min-duration-seconds 0
+```
 
 Audit the Feed OS acceptance evidence:
 

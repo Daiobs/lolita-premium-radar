@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
@@ -64,6 +65,8 @@ class CheckLoopVerification:
     complete: bool
     expected_cycles: int
     observed_cycles: int
+    min_duration_seconds: int
+    duration_seconds: int
     failed_cycles: tuple[int, ...]
     missing_cycles: tuple[int, ...]
     exit_code: int | None
@@ -286,9 +289,12 @@ def verify_check_loop(
     log_path: Path,
     expected_cycles: int,
     exit_path: Path | None = None,
+    min_duration_seconds: int = 0,
 ) -> CheckLoopVerification:
     expected = max(1, int(expected_cycles))
+    min_duration = max(0, int(min_duration_seconds))
     results = parse_check_loop_log(log_path)
+    duration_seconds = loop_log_duration_seconds(log_path)
     failed_cycles = tuple(result.cycle for result in results if not result.ok)
     observed_cycle_numbers = {result.cycle for result in results}
     missing_cycles = tuple(cycle for cycle in range(1, expected + 1) if cycle not in observed_cycle_numbers)
@@ -299,11 +305,13 @@ def verify_check_loop(
     source_health_summary = summarize_source_runs(source_runs)
     exit_code = read_exit_code(exit_path) if exit_path else None
     enough_log_cycles = len(results) >= expected
+    enough_duration = min_duration == 0 or duration_seconds >= min_duration
     enough_source_runs = all(source_cycle_counts.get(source, 0) >= expected for source in sources)
     healthy_source_runs = not unhealthy_source_runs
     complete = (
         exit_code == 0
         and enough_log_cycles
+        and enough_duration
         and not missing_cycles
         and not failed_cycles
         and enough_source_runs
@@ -320,6 +328,8 @@ def verify_check_loop(
         complete=complete,
         expected_cycles=expected,
         observed_cycles=len(results),
+        min_duration_seconds=min_duration,
+        duration_seconds=duration_seconds,
         failed_cycles=failed_cycles,
         missing_cycles=missing_cycles,
         exit_code=exit_code,
@@ -347,6 +357,40 @@ def parse_check_loop_log(path: Path) -> list[CheckLoopResult]:
         error_message = parts[3] if len(parts) > 3 else ""
         results.append(CheckLoopResult(cycle=cycle, ok=ok, event_count=event_count, error_message=error_message))
     return results
+
+
+def loop_log_duration_seconds(path: Path) -> int:
+    metadata = parse_check_loop_metadata(path)
+    started_at = parse_iso_datetime(metadata.get("started_at", ""))
+    finished_at = parse_iso_datetime(metadata.get("finished_at", ""))
+    if started_at is None or finished_at is None:
+        return 0
+    seconds = int((finished_at - started_at).total_seconds())
+    return max(0, seconds)
+
+
+def parse_check_loop_metadata(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+    metadata: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.startswith("#"):
+            continue
+        raw = line.lstrip("#").strip()
+        if ":" not in raw:
+            continue
+        key, value = raw.split(":", 1)
+        metadata[key.strip()] = value.strip()
+    return metadata
+
+
+def parse_iso_datetime(value: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def recent_source_runs_by_source(

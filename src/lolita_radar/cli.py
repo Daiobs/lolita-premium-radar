@@ -11,6 +11,7 @@ from .brands import default_brand_weights_path
 from .config import default_config_path
 from .core import FeedOsAudit, audit_feed_os
 from .market import default_market_observations_path
+from .models import utc_now_iso
 from .runner import (
     CheckLoopResult,
     CheckLoopVerification,
@@ -26,6 +27,7 @@ from .web import DEFAULT_WEB_PORT, run_web
 
 DEFAULT_DB_PATH = Path(".data") / "lolita_radar.sqlite"
 DEFAULT_LOOP_CYCLES = 288
+DEFAULT_LOOP_MIN_DURATION_SECONDS = 24 * 60 * 60
 
 
 class LoopSignalInterrupt(Exception):
@@ -93,6 +95,12 @@ def main(argv: list[str] | None = None) -> int:
     verify_loop_parser.add_argument("--log", type=Path, required=True)
     verify_loop_parser.add_argument("--exit-file", type=Path)
     verify_loop_parser.add_argument("--expected-cycles", type=int, default=DEFAULT_LOOP_CYCLES)
+    verify_loop_parser.add_argument(
+        "--min-duration-seconds",
+        type=int,
+        default=DEFAULT_LOOP_MIN_DURATION_SECONDS,
+        help="minimum elapsed time required in the loop log; default is 86400 seconds",
+    )
 
     audit_parser = subparsers.add_parser("audit-feed-os", help="audit Feed OS product acceptance evidence")
     audit_parser.add_argument("--config", type=Path, default=default_config_path())
@@ -102,6 +110,12 @@ def main(argv: list[str] | None = None) -> int:
     audit_parser.add_argument("--loop-log", type=Path)
     audit_parser.add_argument("--loop-exit-file", type=Path)
     audit_parser.add_argument("--expected-cycles", type=int, default=DEFAULT_LOOP_CYCLES)
+    audit_parser.add_argument(
+        "--min-duration-seconds",
+        type=int,
+        default=DEFAULT_LOOP_MIN_DURATION_SECONDS,
+        help="minimum elapsed time required when loop evidence is provided",
+    )
 
     web_parser = subparsers.add_parser("web", help="start the local feed app")
     web_parser.add_argument("--config", type=Path, default=default_config_path())
@@ -136,8 +150,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "run-loop":
         header = "cycle | ok | event_count | error_message"
+        loop_started_at = utc_now_iso()
         print(header, flush=True)
-        write_loop_log_header(args.log_file, header)
+        write_loop_log_header(args.log_file, header, loop_started_at)
 
         def on_loop_result(result: CheckLoopResult) -> None:
             line = format_loop_result_line(result)
@@ -156,14 +171,17 @@ def main(argv: list[str] | None = None) -> int:
             )
         except LoopSignalInterrupt as exc:
             print(f"interrupted by {exc.signal_name}", file=sys.stderr)
+            append_loop_log_metadata(args.log_file, "finished_at", utc_now_iso())
             write_exit_file(args.exit_file, exc.exit_code)
             return exc.exit_code
         except KeyboardInterrupt:
             print("interrupted", file=sys.stderr)
+            append_loop_log_metadata(args.log_file, "finished_at", utc_now_iso())
             write_exit_file(args.exit_file, 130)
             return 130
         finally:
             restore_loop_signal_handlers()
+        append_loop_log_metadata(args.log_file, "finished_at", utc_now_iso())
         exit_code = 0 if all(result.ok for result in results) else 1
         write_exit_file(args.exit_file, exit_code)
         return exit_code
@@ -174,6 +192,7 @@ def main(argv: list[str] | None = None) -> int:
             log_path=args.log,
             expected_cycles=args.expected_cycles,
             exit_path=args.exit_file,
+            min_duration_seconds=args.min_duration_seconds,
         )
         print(format_loop_verification(verification))
         return 0 if verification.complete else 1
@@ -186,6 +205,7 @@ def main(argv: list[str] | None = None) -> int:
             loop_log_path=args.loop_log,
             loop_exit_path=args.loop_exit_file,
             expected_cycles=args.expected_cycles,
+            min_duration_seconds=args.min_duration_seconds,
         )
         print(format_feed_os_audit(audit))
         return 0 if audit.complete else 1
@@ -263,11 +283,11 @@ def install_loop_signal_handlers() -> Callable[[], None]:
     return restore
 
 
-def write_loop_log_header(path: Path | None, header: str) -> None:
+def write_loop_log_header(path: Path | None, header: str, started_at: str) -> None:
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"{header}\n", encoding="utf-8")
+    path.write_text(f"# started_at: {started_at}\n{header}\n", encoding="utf-8")
 
 
 def append_loop_log_line(path: Path | None, line: str) -> None:
@@ -275,6 +295,13 @@ def append_loop_log_line(path: Path | None, line: str) -> None:
         return
     with path.open("a", encoding="utf-8") as fh:
         fh.write(f"{line}\n")
+
+
+def append_loop_log_metadata(path: Path | None, key: str, value: str) -> None:
+    if path is None:
+        return
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(f"# {key}: {value}\n")
 
 
 def format_health_rows(rows: list[dict[str, object]]) -> str:
@@ -324,6 +351,8 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
         f"status: {verification.status}",
         f"expected_cycles: {verification.expected_cycles}",
         f"observed_cycles: {verification.observed_cycles}",
+        f"min_duration_seconds: {verification.min_duration_seconds}",
+        f"duration_seconds: {verification.duration_seconds}",
         f"exit_code: {exit_code}",
         "failed_cycles: "
         + (", ".join(str(cycle) for cycle in verification.failed_cycles) if verification.failed_cycles else "[]"),

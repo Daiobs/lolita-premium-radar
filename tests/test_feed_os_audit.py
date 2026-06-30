@@ -77,6 +77,7 @@ class FeedOsAuditTests(unittest.TestCase):
                 loop_log_path=log_path,
                 loop_exit_path=exit_path,
                 expected_cycles=2,
+                min_duration_seconds=0,
             )
 
             self.assertTrue(audit.complete)
@@ -170,6 +171,7 @@ class FeedOsAuditTests(unittest.TestCase):
                 brands_path=brands_path,
                 market_path=market_path,
                 expected_cycles=2,
+                min_duration_seconds=0,
             )
             text = format_feed_os_audit(audit)
 
