@@ -25,7 +25,7 @@ class FeedOsTests(unittest.TestCase):
             },
             {
                 "source": "generic_page",
-                "event_type": "content_changed",
+                "event_type": "new_item",
                 "status": "shop_news",
                 "title": "Proxy JSK 预约",
                 "url": "https://example.com/shop",
@@ -253,7 +253,7 @@ class FeedOsTests(unittest.TestCase):
             },
             {
                 "source": "generic_page",
-                "event_type": "content_changed",
+                "event_type": "new_item",
                 "status": "shop_news",
                 "title": "Shop drop",
                 "url": "https://example.com/drop",
@@ -466,7 +466,7 @@ class FeedOsTests(unittest.TestCase):
         events = [
             {
                 "source": "generic_page",
-                "event_type": "content_changed",
+                "event_type": "new_item",
                 "status": "shop_news",
                 "title": "Proxy page changed",
                 "url": "https://example.com/shop/no-keywords",
@@ -476,7 +476,7 @@ class FeedOsTests(unittest.TestCase):
             },
             {
                 "source": "generic_page",
-                "event_type": "content_changed",
+                "event_type": "new_item",
                 "status": "shop_news",
                 "title": "Proxy JSK 预约",
                 "url": "https://example.com/shop/jsk",
@@ -501,11 +501,33 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["drop"][0]["title_zh"], "店铺上新 · 预约 · JSK 吊带裙 · OP 连衣裙")
         self.assertEqual(feed["streams"]["drop"][0]["title_ja"], "ショップ入荷 · 予約 · JSK · OP")
 
-    def test_drop_feed_requires_current_source_publish_time(self) -> None:
+    def test_drop_feed_rejects_explicit_content_changed_items(self) -> None:
         events = [
             {
                 "source": "generic_page",
                 "event_type": "content_changed",
+                "status": "shop_news",
+                "title": "Proxy JSK updated copy",
+                "url": "https://example.com/shop/jsk",
+                "published_at": "2026-06-30",
+                "metadata": {
+                    "shop_name": "Proxy Shop",
+                    "item_title": "Usakumya JSK",
+                    "matched_keywords": ["JSK"],
+                },
+            }
+        ]
+
+        feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
+
+        self.assertEqual(feed["streams"]["drop"], [])
+        self.assertEqual(feed["summary"]["drops"], 0)
+
+    def test_drop_feed_requires_current_source_publish_time(self) -> None:
+        events = [
+            {
+                "source": "generic_page",
+                "event_type": "new_item",
                 "status": "shop_news",
                 "title": "Old Proxy JSK 预约",
                 "url": "https://example.com/shop/old",
@@ -514,7 +536,7 @@ class FeedOsTests(unittest.TestCase):
             },
             {
                 "source": "generic_page",
-                "event_type": "content_changed",
+                "event_type": "new_item",
                 "status": "shop_news",
                 "title": "Missing date OP",
                 "url": "https://example.com/shop/no-date",
@@ -523,7 +545,7 @@ class FeedOsTests(unittest.TestCase):
             },
             {
                 "source": "generic_page",
-                "event_type": "content_changed",
+                "event_type": "new_item",
                 "status": "shop_news",
                 "title": "Current JSK 预约",
                 "url": "https://example.com/shop/current",
@@ -543,7 +565,7 @@ class FeedOsTests(unittest.TestCase):
         events = [
             {
                 "source": "generic_page",
-                "event_type": "content_changed",
+                "event_type": "new_item",
                 "status": "shop_news",
                 "title": "Event Proxy JSK",
                 "url": "https://example.com/shop/shell",

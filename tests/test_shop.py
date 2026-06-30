@@ -7,7 +7,7 @@ class ShopModelTests(unittest.TestCase):
     def test_build_drop_signal_maps_shop_item_keywords_and_urgency(self) -> None:
         row = {
             "source": "generic_page",
-            "event_type": "content_changed",
+            "event_type": "new_item",
             "title": "Public shop page",
             "url": "https://example.com/shop",
             "metadata": {
@@ -26,13 +26,30 @@ class ShopModelTests(unittest.TestCase):
         self.assertEqual(signal.item.url, "https://example.com/shop/shell")
         self.assertEqual(signal.item.keywords, ("JSK", "预约"))
         self.assertEqual(signal.urgency, "high")
-        self.assertEqual(signal.reason_codes[:3], ("shop_item_changed", "keyword_match", "kw:JSK"))
+        self.assertEqual(signal.reason_codes[:3], ("new_shop_item", "keyword_match", "kw:JSK"))
+
+    def test_build_drop_signal_rejects_explicit_content_changed_item(self) -> None:
+        signal = build_drop_signal(
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "title": "Public shop page",
+                "url": "https://example.com/shop",
+                "metadata": {
+                    "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+                    "item": {"title": "Shell Garden JSK", "url": "https://example.com/shop/shell"},
+                    "matched_keywords": ["JSK", "预约"],
+                },
+            }
+        )
+
+        self.assertIsNone(signal)
 
     def test_build_drop_signal_ignores_non_drop_keywords(self) -> None:
         signal = build_drop_signal(
             {
                 "source": "generic_page",
-                "event_type": "content_changed",
+                "event_type": "new_item",
                 "title": "Plain page",
                 "url": "https://example.com/shop",
                 "metadata": {"matched_keywords": ["brand"]},
@@ -79,7 +96,7 @@ class ShopModelTests(unittest.TestCase):
                 signal = build_drop_signal(
                     {
                         "source": "generic_page",
-                        "event_type": "content_changed",
+                        "event_type": "new_item",
                         "title": f"Proxy page {keyword}",
                         "url": f"https://example.com/shop/{keyword}",
                         "metadata": {

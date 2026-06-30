@@ -880,7 +880,7 @@ def sample_home_feed() -> dict[str, Any]:
         },
         {
             "source": "generic_page",
-            "event_type": "content_changed",
+            "event_type": "new_item",
             "status": "shop_news",
             "title": "Proxy JSK 预约",
             "url": "https://example.com/shop",
@@ -1033,6 +1033,22 @@ def audit_shop_drop_model() -> FeedOsAuditCheck:
     )
     if page_level_signal is not None:
         return FeedOsAuditCheck("shop_drop_model", "fail", "page-level keyword match produced DROP without item")
+    changed_item_signal = build_drop_signal(
+        {
+            "source": "generic_page",
+            "event_type": "content_changed",
+            "status": "shop_news",
+            "title": "Changed Shell Garden JSK",
+            "url": "https://example.com/shop/shell",
+            "metadata": {
+                "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+                "item": {"title": "Shell Garden JSK", "url": "https://example.com/shop/shell"},
+                "matched_keywords": ["JSK", "预约"],
+            },
+        }
+    )
+    if changed_item_signal is not None:
+        return FeedOsAuditCheck("shop_drop_model", "fail", "content_changed shop item produced DROP")
     page_level_item_signal = build_drop_signal(
         {
             "source": "generic_page",
@@ -1069,7 +1085,7 @@ def audit_shop_drop_model() -> FeedOsAuditCheck:
     return FeedOsAuditCheck(
         "shop_drop_model",
         "pass",
-        "Shop -> Item DROP triggers on new item and JSK/OP/再贩/预约/尾款 keywords without page-level keyword noise",
+        "Shop -> Item DROP triggers on new item and JSK/OP/再贩/预约/尾款 keywords; content_changed and page-level noise are ignored",
     )
 
 
