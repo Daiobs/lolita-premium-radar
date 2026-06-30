@@ -282,6 +282,30 @@ class SourceHealthTests(unittest.TestCase):
         self.assertIn("1 | ok | 2 |", output)
         self.assertIn("2 | failed | 0 | boom", output)
 
+    def test_loop_help_exposes_audit_file_options(self) -> None:
+        stdout = io.StringIO()
+        with redirect_stdout(stdout), self.assertRaises(SystemExit) as raised:
+            main(["run-loop", "--help"])
+
+        self.assertEqual(raised.exception.code, 0)
+        output = stdout.getvalue()
+        self.assertIn("--log-file", output)
+        self.assertIn("--exit-file", output)
+        self.assertIn("--cycles", output)
+        self.assertIn("--interval-seconds", output)
+
+    def test_verify_loop_help_exposes_audit_inputs(self) -> None:
+        stdout = io.StringIO()
+        with redirect_stdout(stdout), self.assertRaises(SystemExit) as raised:
+            main(["verify-loop", "--help"])
+
+        self.assertEqual(raised.exception.code, 0)
+        output = stdout.getvalue()
+        self.assertIn("--log", output)
+        self.assertIn("--db", output)
+        self.assertIn("--exit-file", output)
+        self.assertIn("--expected-cycles", output)
+
     def test_verify_loop_reports_complete_run(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
