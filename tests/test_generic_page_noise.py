@@ -57,6 +57,7 @@ class GenericPageNoiseTests(unittest.TestCase):
                   <img alt="" data-src="/images/shell-jsk.webp">
                   Shell Garden JSK 预约
                 </a>
+                <span class="price">¥12,800</span>
               </article>
               <article><a href="/shop/ribbon-op">Ribbon OP</a></article>
               <article><a href="/about">About us</a></article>
@@ -74,6 +75,7 @@ class GenericPageNoiseTests(unittest.TestCase):
         self.assertEqual(items[0].metadata["source_type"], "generic_page")
         self.assertEqual(items[0].metadata["matched_keywords"], ["JSK", "预约"])
         self.assertEqual(items[0].metadata["image_url"], "https://example.com/images/shell-jsk.webp")
+        self.assertEqual(items[0].metadata["price"], "¥12,800")
         self.assertEqual(items[1].metadata["matched_keywords"], ["OP"])
 
     def test_min_keyword_hits_filters_low_signal_page(self) -> None:

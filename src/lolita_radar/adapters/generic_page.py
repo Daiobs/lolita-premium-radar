@@ -4,7 +4,7 @@ import re
 
 from ..fetcher import fetch_text
 from ..models import RadarItem, classify_title
-from ..parsers import LinkCandidate, parse_generic_text, parse_links
+from ..parsers import LinkCandidate, extract_price, parse_generic_text, parse_links
 from ..rules import keyword_matches
 from .base import SourceAdapter
 
@@ -162,6 +162,7 @@ def linked_shop_items(html_text: str, config, page_text: str, page_matches: list
 
 
 def linked_item_metadata(config, shop_name: str, shop_url: str, title: str, link: LinkCandidate, matches: list[str]) -> dict[str, object]:
+    price = extract_price(f"{link.text} {link.context}")
     metadata: dict[str, object] = {
         "shop": {"name": shop_name, "url": shop_url},
         "item": {"title": title, "url": link.url},
@@ -172,6 +173,8 @@ def linked_item_metadata(config, shop_name: str, shop_url: str, title: str, link
     }
     if link.image_url:
         metadata["image_url"] = link.image_url
+    if price:
+        metadata["price"] = price
     return metadata
 
 
