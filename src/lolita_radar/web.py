@@ -443,10 +443,10 @@ FEED_INDEX_HTML = r"""<!doctype html>
         </div>
       </header>
       <section class="summary" aria-label="Summary">
-        <article class="summary-card"><strong id="dropsCount">0</strong><span id="dropsLabel">🔥 Drops</span></article>
-        <article class="summary-card"><strong id="shopsCount">0</strong><span id="shopsLabel">🛒 Shops</span></article>
-        <article class="summary-card"><strong id="trendsCount">0</strong><span id="trendsLabel">📈 Trends</span></article>
-        <article class="summary-card"><strong id="alertsCount">0</strong><span id="alertsLabel">⚠️ Alerts</span></article>
+        <article class="summary-card"><strong id="releasesCount">0</strong><span id="releasesLabel">Release</span></article>
+        <article class="summary-card"><strong id="dropsCount">0</strong><span id="dropsLabel">Drop</span></article>
+        <article class="summary-card"><strong id="trendsCount">0</strong><span id="trendsLabel">Trend</span></article>
+        <article class="summary-card"><strong id="alertsCount">0</strong><span id="alertsLabel">Alert</span></article>
       </section>
       <nav class="filters" aria-label="Feed filter">
         <button class="active" data-filter="all" type="button"></button>
@@ -469,10 +469,10 @@ FEED_INDEX_HTML = r"""<!doctype html>
           langButton: "日本語",
           refresh: "刷新",
           check: "检查",
-          drops: "🔥 Drops",
-          shops: "🛒 Shops",
-          trends: "📈 Trends",
-          alerts: "⚠️ Alerts",
+          releases: "发售",
+          drops: "上新",
+          trends: "趋势",
+          alerts: "提醒",
           cta: "打开来源",
           noLink: "暂无来源链接",
           emptyPrefix: "暂无",
@@ -489,10 +489,10 @@ FEED_INDEX_HTML = r"""<!doctype html>
           langButton: "中文",
           refresh: "更新",
           check: "チェック",
-          drops: "🔥 発売",
-          shops: "🛒 入荷",
-          trends: "📈 トレンド",
-          alerts: "⚠️ 通知",
+          releases: "発売",
+          drops: "入荷",
+          trends: "トレンド",
+          alerts: "通知",
           cta: "ソースを開く",
           noLink: "リンクなし",
           emptyPrefix: "まだありません",
@@ -527,8 +527,8 @@ FEED_INDEX_HTML = r"""<!doctype html>
         $("langBtn").textContent = text.langButton;
         $("refreshBtn").textContent = text.refresh;
         $("checkBtn").textContent = text.check;
+        $("releasesLabel").textContent = text.releases;
         $("dropsLabel").textContent = text.drops;
-        $("shopsLabel").textContent = text.shops;
         $("trendsLabel").textContent = text.trends;
         $("alertsLabel").textContent = text.alerts;
         document.querySelectorAll("[data-filter]").forEach((button) => {
@@ -538,8 +538,8 @@ FEED_INDEX_HTML = r"""<!doctype html>
       function render() {
         renderChrome();
         const feed = state.feed || { summary: {}, streams: {}, all: [] };
-        $("dropsCount").textContent = feed.summary?.drops || 0;
-        $("shopsCount").textContent = feed.summary?.shops || 0;
+        $("releasesCount").textContent = feed.summary?.releases ?? feed.streams?.release?.length ?? 0;
+        $("dropsCount").textContent = feed.summary?.drops ?? feed.streams?.drop?.length ?? 0;
         $("trendsCount").textContent = feed.summary?.trends || 0;
         $("alertsCount").textContent = feed.summary?.alerts || 0;
         const rows = activeFilter === "all" ? (feed.all || []) : (feed.streams?.[activeFilter] || []);

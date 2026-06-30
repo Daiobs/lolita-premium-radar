@@ -43,6 +43,7 @@ class FeedOsTests(unittest.TestCase):
 
         feed = build_home_feed(events, [], market_summary, market_alerts, [], [])
 
+        self.assertEqual(feed["summary"]["releases"], 1)
         self.assertEqual(feed["summary"]["drops"], 1)
         self.assertEqual(feed["summary"]["shops"], 1)
         self.assertEqual(feed["summary"]["trends"], 1)
@@ -353,7 +354,7 @@ class FeedOsTests(unittest.TestCase):
         release_titles = [row["title"] for row in feed["streams"]["release"]]
 
         self.assertEqual(release_titles, ["Meta Rose JSK"])
-        self.assertEqual(feed["summary"]["drops"], 1)
+        self.assertEqual(feed["summary"]["releases"], 1)
 
     def test_drop_feed_requires_generic_page_keyword_matches(self) -> None:
         events = [
@@ -387,7 +388,7 @@ class FeedOsTests(unittest.TestCase):
         drop_titles = [row["title"] for row in feed["streams"]["drop"]]
 
         self.assertEqual(drop_titles, ["Usakumya OP"])
-        self.assertEqual(feed["summary"]["shops"], 1)
+        self.assertEqual(feed["summary"]["drops"], 1)
         self.assertEqual(feed["streams"]["drop"][0]["shop"], "Proxy Shop")
         self.assertEqual(feed["streams"]["drop"][0]["urgency"], "high")
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
@@ -453,6 +454,7 @@ class FeedOsTests(unittest.TestCase):
 
         feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
 
+        self.assertEqual(feed["summary"]["drops"], 1)
         self.assertEqual(feed["summary"]["shops"], 1)
         self.assertEqual(feed["streams"]["drop"][0]["shop"], "Tokyo Proxy")
         self.assertEqual(feed["streams"]["drop"][0]["item"], "Shell Garden JSK 预约")

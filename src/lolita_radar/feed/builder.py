@@ -35,10 +35,11 @@ def build_home_feed(
     }
     return {
         "summary": {
-            "drops": len(release),
-            "shops": len(drop),
+            "releases": len(release),
+            "drops": len(drop),
             "trends": len(trend),
             "alerts": len(alert),
+            "shops": unique_shop_count(drop),
         },
         "streams": streams,
         "all": merge_streams(streams),
@@ -426,3 +427,12 @@ def unique_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         seen.add(key)
         results.append(row)
     return results
+
+
+def unique_shop_count(rows: list[dict[str, Any]]) -> int:
+    shops = {
+        str(row.get("shop") or row.get("brand") or "").strip()
+        for row in rows
+        if str(row.get("shop") or row.get("brand") or "").strip()
+    }
+    return len(shops)

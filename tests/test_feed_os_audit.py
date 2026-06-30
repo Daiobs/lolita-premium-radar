@@ -57,6 +57,7 @@ class FeedOsAuditTests(unittest.TestCase):
         original_sample_home_feed = audit_module.sample_home_feed
         try:
             audit_module.sample_home_feed = lambda: {
+                "summary": {"releases": 1, "drops": 1, "trends": 1, "alerts": 1},
                 "streams": {
                     "release": [
                         {
@@ -115,6 +116,20 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "fail")
         self.assertIn("release.visual.image_url", check.detail)
+
+    def test_feed_contract_requires_summary_fields(self) -> None:
+        original_sample_home_feed = audit_module.sample_home_feed
+        try:
+            feed = audit_module.sample_home_feed()
+            feed["summary"].pop("releases", None)
+            audit_module.sample_home_feed = lambda: feed
+
+            check = audit_module.audit_feed_contract()
+        finally:
+            audit_module.sample_home_feed = original_sample_home_feed
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("releases", check.detail)
 
     def test_generic_shop_item_extraction_audit_checks_drop_card_context(self) -> None:
         check = audit_module.audit_generic_shop_item_extraction()
@@ -502,7 +517,7 @@ class FeedOsAuditTests(unittest.TestCase):
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
                 "feed": {
-                    "summary": {"drops": 0, "shops": 0, "trends": 0, "alerts": 1},
+                    "summary": {"releases": 0, "drops": 0, "trends": 0, "alerts": 1, "shops": 0},
                     "streams": {
                         "release": [],
                         "drop": [],
@@ -584,7 +599,7 @@ class FeedOsAuditTests(unittest.TestCase):
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
                 "feed": {
-                    "summary": {"drops": 4, "shops": 0, "trends": 0, "alerts": 0},
+                    "summary": {"releases": 4, "drops": 0, "trends": 0, "alerts": 0, "shops": 0},
                     "streams": {
                         "release": [
                             {
@@ -630,7 +645,7 @@ class FeedOsAuditTests(unittest.TestCase):
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
                 "feed": {
-                    "summary": {"drops": 2, "shops": 0, "trends": 0, "alerts": 0},
+                    "summary": {"releases": 2, "drops": 0, "trends": 0, "alerts": 0, "shops": 0},
                     "streams": {
                         "release": [],
                         "drop": [],
@@ -648,14 +663,14 @@ class FeedOsAuditTests(unittest.TestCase):
             audit_module.get_feed_state = original_get_feed_state
 
         self.assertEqual(check.status, "fail")
-        self.assertIn("summary drops=2", check.detail)
+        self.assertIn("summary releases=2", check.detail)
 
     def test_runtime_feed_audit_rejects_invalid_trend_values(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
                 "feed": {
-                    "summary": {"drops": 0, "shops": 0, "trends": 1, "alerts": 0},
+                    "summary": {"releases": 0, "drops": 0, "trends": 1, "alerts": 0, "shops": 0},
                     "streams": {
                         "release": [],
                         "drop": [],
@@ -691,7 +706,7 @@ class FeedOsAuditTests(unittest.TestCase):
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
                 "feed": {
-                    "summary": {"drops": 0, "shops": 1, "trends": 0, "alerts": 0},
+                    "summary": {"releases": 0, "drops": 1, "trends": 0, "alerts": 0, "shops": 1},
                     "streams": {
                         "release": [],
                         "drop": [
@@ -806,7 +821,7 @@ class FeedOsAuditTests(unittest.TestCase):
     def test_runtime_feed_payload_audit_rejects_full_state_leak(self) -> None:
         original_get_feed_payload = audit_module.get_feed_payload
         expected_feed = {
-            "summary": {"drops": 0, "shops": 0, "trends": 0, "alerts": 0},
+            "summary": {"releases": 0, "drops": 0, "trends": 0, "alerts": 0, "shops": 0},
             "streams": {"release": [], "drop": [], "trend": [], "alert": []},
             "all": [],
         }
@@ -835,7 +850,7 @@ class FeedOsAuditTests(unittest.TestCase):
     def test_runtime_feed_payload_audit_rejects_feed_mismatch(self) -> None:
         original_get_feed_payload = audit_module.get_feed_payload
         expected_feed = {
-            "summary": {"drops": 0, "shops": 0, "trends": 0, "alerts": 0},
+            "summary": {"releases": 0, "drops": 0, "trends": 0, "alerts": 0, "shops": 0},
             "streams": {"release": [], "drop": [], "trend": [], "alert": []},
             "all": [],
         }
@@ -844,7 +859,7 @@ class FeedOsAuditTests(unittest.TestCase):
                 "ok": True,
                 "counts": {},
                 "feed": {
-                    "summary": {"drops": 1, "shops": 0, "trends": 0, "alerts": 0},
+                    "summary": {"releases": 1, "drops": 0, "trends": 0, "alerts": 0, "shops": 0},
                     "streams": {"release": [], "drop": [], "trend": [], "alert": []},
                     "all": [],
                 },
@@ -952,7 +967,7 @@ sources:
             release_row = {**release_row, "visual": self.visual("AP", "R", str(release_row.get("type") or "release"))}
         return {
             "feed": {
-                "summary": {"drops": 1, "shops": 0, "trends": 0, "alerts": 0},
+                "summary": {"releases": 1, "drops": 0, "trends": 0, "alerts": 0, "shops": 0},
                 "streams": {
                     "release": [release_row],
                     "drop": [],
@@ -976,7 +991,7 @@ sources:
         }
         return {
             "feed": {
-                "summary": {"drops": 0, "shops": 1, "trends": 0, "alerts": 0},
+                "summary": {"releases": 0, "drops": 1, "trends": 0, "alerts": 0, "shops": 1},
                 "streams": {"release": [], "drop": [row], "trend": [], "alert": []},
                 "all": [row],
             }

@@ -166,6 +166,8 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         'data-filter="drop"',
         'data-filter="trend"',
         'data-filter="alert"',
+        "releasesCount",
+        "dropsCount",
         "visual.image_url",
         'loading="lazy"',
         "has-image",
@@ -197,7 +199,9 @@ def audit_feed_contract() -> FeedOsAuditCheck:
     expected_streams = {"release", "drop", "trend", "alert"}
     if set(streams) != expected_streams:
         return FeedOsAuditCheck("feed_contract", "fail", f"streams={sorted(streams)}")
+    summary = feed.get("summary", {})
     checks = [
+        required_keys(summary, ("releases", "drops", "trends", "alerts")),
         required_keys(streams["release"][0], ("brand", "title", "type", "time", "price", "url")),
         required_keys(streams["drop"][0], ("shop", "item", "keywords", "urgency", "url")),
         required_keys(streams["trend"][0], ("brand", "trend", "confidence", "price_delta", "reason_codes")),
@@ -324,8 +328,8 @@ def feed_ordering_problem(rows: list[dict[str, Any]]) -> str:
 
 def summary_count_problem(summary: dict[str, Any], streams: dict[str, Any]) -> str:
     summary_to_stream = {
-        "drops": "release",
-        "shops": "drop",
+        "releases": "release",
+        "drops": "drop",
         "trends": "trend",
         "alerts": "alert",
     }
