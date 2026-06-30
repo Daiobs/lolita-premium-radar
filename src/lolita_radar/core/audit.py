@@ -476,7 +476,7 @@ def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
     required_by_stream = {
         "release": ("feed_type", "brand", "title", "type", "time", "price", "url"),
         "drop": ("feed_type", "shop", "item", "keywords", "urgency", "reason_codes", "url"),
-        "trend": ("feed_type", "brand", "trend", "confidence", "price_delta", "reason_codes"),
+        "trend": ("feed_type", "brand", "trend", "confidence", "price_delta", "sample_count", "reason_codes"),
         "alert": ("feed_type", "kind", "title", "reason_codes", "url"),
     }
     for name, required in required_by_stream.items():
@@ -546,6 +546,9 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
             return f"stream trend row has invalid confidence: {confidence}"
         if not is_number(row.get("price_delta")):
             return f"stream trend row has invalid price_delta: {row.get('price_delta')}"
+        sample_count = row.get("sample_count")
+        if not isinstance(sample_count, int) or isinstance(sample_count, bool) or sample_count < 0:
+            return f"stream trend row has invalid sample_count: {sample_count}"
         if not non_empty_list(row.get("reason_codes")):
             return "stream trend row reason_codes must be a non-empty list"
     for row in feed_rows(streams, "alert"):
@@ -819,6 +822,9 @@ def audit_trend_engine() -> FeedOsAuditCheck:
         confidence = int(raw_confidence) if raw_confidence is not None else -1
         if trend.get("trend") != direction or not (0 <= confidence <= 100):
             return FeedOsAuditCheck("trend_engine", "fail", f"invalid trend output for {brand}: {trend}")
+        sample_count = trend.get("sample_count")
+        if not isinstance(sample_count, int) or isinstance(sample_count, bool) or sample_count < 0:
+            return FeedOsAuditCheck("trend_engine", "fail", f"invalid sample_count for {brand}: {sample_count}")
         if not trend.get("reason_codes"):
             return FeedOsAuditCheck("trend_engine", "fail", f"missing reason_codes for {brand}")
     without_release = build_trend_feed(market_summary, momentum, [], brand_weights=[{"alias": "BABY"}])[0]

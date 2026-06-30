@@ -132,6 +132,7 @@ class FeedOsAuditTests(unittest.TestCase):
                             "trend": "rising",
                             "confidence": 80,
                             "price_delta": 0.5,
+                            "sample_count": 3,
                             "reason_codes": ["sample_supported"],
                             "url": "https://example.com/market",
                         }
@@ -247,6 +248,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "trend": "rising",
                     "confidence": 70,
+                    "sample_count": 4,
                     "reason_codes": ["sample_supported", "premium_rising", "release_activity"],
                 }
             ]
@@ -266,18 +268,21 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "trend": "rising",
                     "confidence": 70,
+                    "sample_count": 4,
                     "reason_codes": ["sample_supported", "premium_rising", "momentum_observed"],
                 },
                 {
                     "brand": "Meta",
                     "trend": "cooling",
                     "confidence": 50,
+                    "sample_count": 3,
                     "reason_codes": ["sample_supported", "premium_cooling"],
                 },
                 {
                     "brand": "BABY",
                     "trend": "stable",
                     "confidence": 0,
+                    "sample_count": 0,
                     "reason_codes": ["sample_gap", "premium_stable"],
                 },
             ]
@@ -301,18 +306,21 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "trend": "rising",
                     "confidence": 75 if events else 70,
+                    "sample_count": 4,
                     "reason_codes": ap_reasons,
                 },
                 {
                     "brand": "Meta",
                     "trend": "cooling",
                     "confidence": 50,
+                    "sample_count": 3,
                     "reason_codes": ["sample_supported", "premium_cooling"],
                 },
                 {
                     "brand": "BABY",
                     "trend": "stable",
                     "confidence": 0,
+                    "sample_count": 0,
                     "reason_codes": ["sample_gap", "premium_stable"],
                 },
             ]
@@ -341,18 +349,21 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "trend": "rising",
                     "confidence": 75 if "release_activity" in ap_reasons else 70,
+                    "sample_count": 4,
                     "reason_codes": ap_reasons,
                 },
                 {
                     "brand": "Meta",
                     "trend": "cooling",
                     "confidence": 50,
+                    "sample_count": 3,
                     "reason_codes": ["sample_supported", "premium_cooling"],
                 },
                 {
                     "brand": "BABY",
                     "trend": "stable",
                     "confidence": 0,
+                    "sample_count": 0,
                     "reason_codes": ["sample_gap", "premium_stable"],
                 },
             ]
@@ -366,6 +377,40 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "fail")
         self.assertIn("without source publish time", check.detail)
+
+    def test_trend_engine_audit_rejects_invalid_sample_count(self) -> None:
+        original_build_trend_feed = audit_module.build_trend_feed
+        try:
+            audit_module.build_trend_feed = lambda *_args, **_kwargs: [
+                {
+                    "brand": "AP",
+                    "trend": "rising",
+                    "confidence": 70,
+                    "sample_count": -1,
+                    "reason_codes": ["sample_supported", "premium_rising", "release_activity"],
+                },
+                {
+                    "brand": "Meta",
+                    "trend": "cooling",
+                    "confidence": 50,
+                    "sample_count": 3,
+                    "reason_codes": ["sample_supported", "premium_cooling"],
+                },
+                {
+                    "brand": "BABY",
+                    "trend": "stable",
+                    "confidence": 0,
+                    "sample_count": 0,
+                    "reason_codes": ["sample_gap", "premium_stable"],
+                },
+            ]
+
+            check = audit_module.audit_trend_engine()
+        finally:
+            audit_module.build_trend_feed = original_build_trend_feed
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("invalid sample_count", check.detail)
 
     def test_audit_passes_with_complete_loop_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1238,6 +1283,7 @@ class FeedOsAuditTests(unittest.TestCase):
                                 "trend": "rising",
                                 "confidence": 120,
                                 "price_delta": 0.5,
+                                "sample_count": 4,
                                 "reason_codes": ["sample_supported"],
                                 "url": "https://example.com/market",
                                 "visual": self.visual("AP", "T", "rising"),
@@ -1257,6 +1303,43 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "fail")
         self.assertIn("invalid confidence", check.detail)
+
+    def test_runtime_feed_audit_rejects_invalid_trend_sample_count(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"releases": 0, "drops": 0, "trends": 1, "alerts": 0, "shops": 0},
+                    "streams": {
+                        "release": [],
+                        "drop": [],
+                        "trend": [
+                            {
+                                "feed_type": "trend",
+                                "brand": "AP",
+                                "trend": "rising",
+                                "confidence": 80,
+                                "price_delta": 0.5,
+                                "sample_count": -1,
+                                "reason_codes": ["sample_supported"],
+                                "url": "https://example.com/market",
+                                "visual": self.visual("AP", "T", "rising"),
+                            }
+                        ],
+                        "alert": [],
+                    },
+                    "all": [{"feed_type": "trend", "url": "https://example.com/market"}],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("invalid sample_count", check.detail)
 
     def test_runtime_feed_audit_rejects_invalid_drop_values(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
