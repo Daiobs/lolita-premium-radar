@@ -548,9 +548,11 @@ def required_keys(row: dict[str, Any], keys: tuple[str, ...]) -> str:
 
 
 def audit_trend_engine() -> FeedOsAuditCheck:
+    market_summary = {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]}
+    momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}]
     trends = build_trend_feed(
-        {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]},
-        [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
+        market_summary,
+        momentum,
         [{"source": "angelic_pretty", "status": "new_arrival"}],
     )
     if not trends:
@@ -561,7 +563,10 @@ def audit_trend_engine() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("trend_engine", "fail", f"invalid trend output: {trend}")
     if not trend.get("reason_codes"):
         return FeedOsAuditCheck("trend_engine", "fail", "missing reason_codes")
-    return FeedOsAuditCheck("trend_engine", "pass", "rule-based rising/cooling/stable output with confidence and reasons")
+    without_release = build_trend_feed(market_summary, momentum, [])[0]
+    if "release_activity" not in trend.get("reason_codes", []) or int(trend.get("confidence") or 0) <= int(without_release.get("confidence") or 0):
+        return FeedOsAuditCheck("trend_engine", "fail", "release events did not affect trend reasons/confidence")
+    return FeedOsAuditCheck("trend_engine", "pass", "rule-based rising/cooling/stable output with confidence, release activity, and reasons")
 
 
 def audit_shop_drop_model() -> FeedOsAuditCheck:
