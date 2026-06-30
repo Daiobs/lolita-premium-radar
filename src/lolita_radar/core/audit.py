@@ -215,7 +215,7 @@ def audit_feed_contract() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("feed_contract", "fail", f"streams={sorted(streams)}")
     summary = feed.get("summary", {})
     checks = [
-        required_keys(summary, ("releases", "drops", "trends", "alerts")),
+        required_keys(summary, ("releases", "drops", "trends", "alerts", "shops")),
         required_keys(streams["release"][0], ("brand", "title", "type", "time", "price", "url")),
         required_keys(streams["drop"][0], ("shop", "item", "keywords", "urgency", "url")),
         required_keys(streams["trend"][0], ("brand", "trend", "confidence", "price_delta", "reason_codes")),

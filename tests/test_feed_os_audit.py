@@ -117,11 +117,11 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("release.visual.image_url", check.detail)
 
-    def test_feed_contract_requires_summary_fields(self) -> None:
+    def test_feed_contract_requires_shop_summary_field(self) -> None:
         original_sample_home_feed = audit_module.sample_home_feed
         try:
             feed = audit_module.sample_home_feed()
-            feed["summary"].pop("releases", None)
+            feed["summary"].pop("shops", None)
             audit_module.sample_home_feed = lambda: feed
 
             check = audit_module.audit_feed_contract()
@@ -129,7 +129,7 @@ class FeedOsAuditTests(unittest.TestCase):
             audit_module.sample_home_feed = original_sample_home_feed
 
         self.assertEqual(check.status, "fail")
-        self.assertIn("releases", check.detail)
+        self.assertIn("shops", check.detail)
 
     def test_generic_shop_item_extraction_audit_checks_drop_card_context(self) -> None:
         check = audit_module.audit_generic_shop_item_extraction()
