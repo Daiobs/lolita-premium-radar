@@ -213,9 +213,59 @@ class SourceHealthTests(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             self.assertIn("status: complete", stdout.getvalue())
+            self.assertIn("missing_cycles: []", stdout.getvalue())
             self.assertIn("unhealthy_source_runs: []", stdout.getvalue())
             self.assertIn("good: 2", stdout.getvalue())
             self.assertIn("other: 2", stdout.getvalue())
+
+    def test_verify_loop_reports_missing_cycle_even_when_log_line_count_matches(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 2 |",
+                        "1 | ok | 0 |",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(connection, "good", ok=True, item_count=1)
+                record_source_run(connection, "good", ok=True, item_count=1)
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("status: incomplete", stdout.getvalue())
+            self.assertIn("observed_cycles: 2", stdout.getvalue())
+            self.assertIn("missing_cycles: 2", stdout.getvalue())
 
     def test_verify_loop_reports_unhealthy_source_runs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -220,6 +220,8 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
         f"exit_code: {exit_code}",
         "failed_cycles: "
         + (", ".join(str(cycle) for cycle in verification.failed_cycles) if verification.failed_cycles else "[]"),
+        "missing_cycles: "
+        + (", ".join(str(cycle) for cycle in verification.missing_cycles) if verification.missing_cycles else "[]"),
         "unhealthy_source_runs: "
         + (
             ", ".join(

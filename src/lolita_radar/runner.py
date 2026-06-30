@@ -64,6 +64,7 @@ class CheckLoopVerification:
     expected_cycles: int
     observed_cycles: int
     failed_cycles: tuple[int, ...]
+    missing_cycles: tuple[int, ...]
     exit_code: int | None
     expected_sources: tuple[str, ...]
     source_cycle_counts: dict[str, int]
@@ -249,6 +250,8 @@ def verify_check_loop(
     expected = max(1, int(expected_cycles))
     results = parse_check_loop_log(log_path)
     failed_cycles = tuple(result.cycle for result in results if not result.ok)
+    observed_cycle_numbers = {result.cycle for result in results}
+    missing_cycles = tuple(cycle for cycle in range(1, expected + 1) if cycle not in observed_cycle_numbers)
     sources = tuple(source.name for source in select_sources(load_sources(config_path), None))
     source_runs = recent_source_runs_by_source(db_path, sources, expected)
     source_cycle_counts = {source: len(source_runs.get(source, [])) for source in sources}
@@ -257,7 +260,14 @@ def verify_check_loop(
     enough_log_cycles = len(results) >= expected
     enough_source_runs = all(source_cycle_counts.get(source, 0) >= expected for source in sources)
     healthy_source_runs = not unhealthy_source_runs
-    complete = exit_code == 0 and enough_log_cycles and not failed_cycles and enough_source_runs and healthy_source_runs
+    complete = (
+        exit_code == 0
+        and enough_log_cycles
+        and not missing_cycles
+        and not failed_cycles
+        and enough_source_runs
+        and healthy_source_runs
+    )
     if complete:
         status = "complete"
     elif exit_code not in (None, 0) or failed_cycles or unhealthy_source_runs:
@@ -270,6 +280,7 @@ def verify_check_loop(
         expected_cycles=expected,
         observed_cycles=len(results),
         failed_cycles=failed_cycles,
+        missing_cycles=missing_cycles,
         exit_code=exit_code,
         expected_sources=sources,
         source_cycle_counts=source_cycle_counts,
