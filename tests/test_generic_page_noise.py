@@ -111,6 +111,39 @@ class GenericPageNoiseTests(unittest.TestCase):
             self.assertEqual([event.event_type for event in first_events], [EventType.NEW_ITEM])
             self.assertEqual(second_events, [])
 
+    def test_view_count_only_change_is_ignored_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "radar.sqlite")
+            config = SourceConfig(
+                name="proxy",
+                type="generic_page",
+                url="https://example.com/proxy",
+                keywords=["JSK"],
+                options={"title_template": "{source} page"},
+            )
+            original_fetch = generic_page.fetch_text
+            try:
+                generic_page.fetch_text = lambda *_args, **_kwargs: (
+                    "<html><body>JSK Shell Garden JSK. 浏览量: 123 view count: 5</body></html>"
+                )
+                first = generic_page.GenericPageAdapter(config).fetch_items()[0]
+                generic_page.fetch_text = lambda *_args, **_kwargs: (
+                    "<html><body>JSK Shell Garden JSK. 浏览量: 999 view count: 20</body></html>"
+                )
+                second = generic_page.GenericPageAdapter(config).fetch_items()[0]
+
+                first_events = diff_and_store(connection, [first])
+                second_events = diff_and_store(connection, [second])
+            finally:
+                generic_page.fetch_text = original_fetch
+                connection.close()
+
+            self.assertNotIn("浏览量", first.content)
+            self.assertNotIn("view count", first.content.lower())
+            self.assertEqual(first.content_hash, second.content_hash)
+            self.assertEqual([event.event_type for event in first_events], [EventType.NEW_ITEM])
+            self.assertEqual(second_events, [])
+
 
 if __name__ == "__main__":
     unittest.main()

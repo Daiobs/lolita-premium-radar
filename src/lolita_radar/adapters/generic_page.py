@@ -13,6 +13,8 @@ DEFAULT_IGNORE_PATTERNS = [
     r"updated at[:：]?\s*[0-9: /.-]+",
     r"last updated[:：]?\s*[0-9: /.-]+",
     r"\d{4}[./-]\d{1,2}[./-]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?",
+    r"\b(?:view count|views|page views)[:：]?\s*[\d,]+",
+    r"(?:浏览量|阅读量|访问量|閲覧数|ビュー)[:：]?\s*[\d,]+",
 ]
 NAVIGATION_PATTERNS = [
     r"\b(login|account|cart|privacy|contact|company|shop list)\b",
