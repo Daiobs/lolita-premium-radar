@@ -1100,7 +1100,13 @@ def audit_generic_shop_item_extraction() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("generic_shop_item_extraction", "fail", f"expected 1 linked item, got {len(items)}")
     item = items[0]
     metadata = item.metadata
-    if item.published_at != "2026-06-30" or metadata.get("image_url") != "https://example.com/images/shell.webp" or metadata.get("price") != "¥12,800":
+    if (
+        item.published_at != "2026-06-30"
+        or metadata.get("image_url") != "https://example.com/images/shell.webp"
+        or metadata.get("price") != "¥12,800"
+        or "2026-06-30" not in str(metadata.get("context") or "")
+        or "¥12,800" not in str(metadata.get("context") or "")
+    ):
         return FeedOsAuditCheck("generic_shop_item_extraction", "fail", f"linked item metadata incomplete: {metadata}")
     feed = build_home_feed(
         [
@@ -1133,7 +1139,10 @@ def audit_generic_shop_item_extraction() -> FeedOsAuditCheck:
     mismatches = [key for key, value in expected.items() if drop.get(key) != value]
     if mismatches or drop.get("visual", {}).get("image_url") != "https://example.com/images/shell.webp":
         return FeedOsAuditCheck("generic_shop_item_extraction", "fail", f"Drop card incomplete: {drop}")
-    return FeedOsAuditCheck("generic_shop_item_extraction", "pass", "GenericPage public item links produce Drop cards with source time, image, price, and keywords")
+    source_context = str(drop.get("source_context") or "")
+    if "2026-06-30" not in source_context or "¥12,800" not in source_context:
+        return FeedOsAuditCheck("generic_shop_item_extraction", "fail", f"Drop card missing source context: {drop}")
+    return FeedOsAuditCheck("generic_shop_item_extraction", "pass", "GenericPage public item links produce Drop cards with source time, source context, image, price, and keywords")
 
 
 def audit_crawler_health_contract(db_path: Path) -> FeedOsAuditCheck:

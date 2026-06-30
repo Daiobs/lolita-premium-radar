@@ -166,6 +166,7 @@ def linked_shop_items(html_text: str, config, page_text: str, page_matches: list
 
 def linked_item_metadata(config, shop_name: str, shop_url: str, title: str, link: LinkCandidate, matches: list[str]) -> dict[str, object]:
     price = extract_price(f"{link.text} {link.context}")
+    context = compact_metadata_context(link.context)
     metadata: dict[str, object] = {
         "shop": {"name": shop_name, "url": shop_url},
         "item": {"title": title, "url": link.url},
@@ -178,7 +179,16 @@ def linked_item_metadata(config, shop_name: str, shop_url: str, title: str, link
         metadata["image_url"] = link.image_url
     if price:
         metadata["price"] = price
+    if context:
+        metadata["context"] = context
     return metadata
+
+
+def compact_metadata_context(text: str, limit: int = 240) -> str:
+    cleaned = " ".join(str(text or "").split())
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[:limit].rstrip() + "..."
 
 
 def is_navigation_link(link: LinkCandidate) -> bool:

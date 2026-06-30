@@ -348,7 +348,7 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "pass")
         self.assertEqual(check.name, "generic_shop_item_extraction")
-        self.assertIn("source time, image, price", check.detail)
+        self.assertIn("source time, source context, image, price", check.detail)
 
     def test_trend_engine_audit_checks_three_directions_and_release_activity_input(self) -> None:
         check = audit_module.audit_trend_engine()
