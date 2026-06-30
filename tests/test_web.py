@@ -124,6 +124,12 @@ sources:
         self.assertNotIn("northStarRadar", FEED_INDEX_HTML)
         self.assertNotIn("brandCrownQueue", FEED_INDEX_HTML)
 
+    def test_feed_index_html_keeps_dashboard_concepts_out(self) -> None:
+        lowered = FEED_INDEX_HTML.lower()
+
+        for forbidden in ("dashboard", "northstar", "north star", "matrix", "salon", "brandcrown"):
+            self.assertNotIn(forbidden, lowered)
+
     def test_feed_state_source_health_alert_uses_configured_source_url(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
