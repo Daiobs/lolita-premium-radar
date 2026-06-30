@@ -21,6 +21,7 @@ from .web import DEFAULT_WEB_PORT, run_web
 
 
 DEFAULT_DB_PATH = Path(".data") / "lolita_radar.sqlite"
+DEFAULT_LOOP_CYCLES = 288
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -60,7 +61,12 @@ def main(argv: list[str] | None = None) -> int:
     loop_parser = subparsers.add_parser("run-loop", help="run repeated feed checks for long-running operation")
     loop_parser.add_argument("--config", type=Path, default=default_config_path())
     loop_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
-    loop_parser.add_argument("--cycles", type=int, default=288, help="number of check cycles; 288 at 5 minutes covers 24h")
+    loop_parser.add_argument(
+        "--cycles",
+        type=int,
+        default=DEFAULT_LOOP_CYCLES,
+        help="number of check cycles; 288 at 5 minutes covers 24h",
+    )
     loop_parser.add_argument("--interval-seconds", type=int, default=300)
     loop_parser.add_argument("--notify", action="store_true", help="send notifications during the loop")
     loop_parser.add_argument("--log-file", type=Path, help="write the loop audit table for later verify-loop audit")
@@ -71,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     verify_loop_parser.add_argument("--db", type=Path, required=True)
     verify_loop_parser.add_argument("--log", type=Path, required=True)
     verify_loop_parser.add_argument("--exit-file", type=Path)
-    verify_loop_parser.add_argument("--expected-cycles", type=int, default=96)
+    verify_loop_parser.add_argument("--expected-cycles", type=int, default=DEFAULT_LOOP_CYCLES)
 
     web_parser = subparsers.add_parser("web", help="start the local feed app")
     web_parser.add_argument("--config", type=Path, default=default_config_path())

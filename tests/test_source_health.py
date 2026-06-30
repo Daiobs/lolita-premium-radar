@@ -5,7 +5,7 @@ import io
 from pathlib import Path
 
 import lolita_radar.runner as runner
-from lolita_radar.cli import format_loop_results, main
+from lolita_radar.cli import DEFAULT_LOOP_CYCLES, format_loop_results, main
 from lolita_radar.runner import CheckLoopResult
 from lolita_radar.models import ItemStatus, RadarItem
 from lolita_radar.storage import connect, list_source_runs, record_source_run
@@ -281,6 +281,9 @@ class SourceHealthTests(unittest.TestCase):
         self.assertIn("cycle | ok | event_count | error_message", output)
         self.assertIn("1 | ok | 2 |", output)
         self.assertIn("2 | failed | 0 | boom", output)
+
+    def test_loop_default_cycles_cover_24h_at_five_minutes(self) -> None:
+        self.assertEqual(DEFAULT_LOOP_CYCLES, 288)
 
     def test_loop_help_exposes_audit_file_options(self) -> None:
         stdout = io.StringIO()
