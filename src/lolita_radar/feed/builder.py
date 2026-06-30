@@ -327,7 +327,6 @@ def localized_kind_label(kind: str) -> str:
         "new_item": "新着 / 新发现",
         "content_changed": "更新 / 内容变化",
         "update": "更新 / 状态变化",
-        "new_release": "新作 / 新发售",
         "high_premium": "高騰 / 高溢价",
         "sample_gap": "サンプル不足 / 样本不足",
         "rising": "上昇 / 上升",

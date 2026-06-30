@@ -534,7 +534,6 @@ FEED_INDEX_HTML = r"""<!doctype html>
           new_item: "新发现",
           content_changed: "内容更新",
           update: "状态变化",
-          new_release: "新发售",
           new_arrival: "新作",
           preorder: "预约",
           restock: "再贩",
@@ -549,7 +548,6 @@ FEED_INDEX_HTML = r"""<!doctype html>
           new_item: "新着",
           content_changed: "更新",
           update: "状態変化",
-          new_release: "発売情報",
           new_arrival: "新作",
           preorder: "予約",
           restock: "再入荷",
@@ -563,7 +561,6 @@ FEED_INDEX_HTML = r"""<!doctype html>
       };
       const REASON_TEXT = {
         zh: {
-          new_release: "新发售",
           new_item: "新商品",
           content_changed: "内容更新",
           new_arrival: "新作",
@@ -587,7 +584,6 @@ FEED_INDEX_HTML = r"""<!doctype html>
           release_activity: "近期发售",
         },
         ja: {
-          new_release: "発売情報",
           new_item: "新商品",
           content_changed: "更新",
           new_arrival: "新作",
