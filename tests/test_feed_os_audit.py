@@ -641,6 +641,33 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("invalid time_kind", check.detail)
 
+    def test_runtime_feed_audit_rejects_missing_release_source_context_field(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            state = self.runtime_state(
+                {
+                    "brand": "AP",
+                    "title": "Shell Garden JSK",
+                    "type": "new_arrival",
+                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time_kind": "published",
+                    "price": "¥38,280",
+                    "url": "https://example.com/ap",
+                }
+            )
+            state["feed"]["streams"]["release"][0].pop("source_context", None)
+            audit_module.get_feed_state = lambda **_kwargs: state
+
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("sources.yaml"),
+                db_path=Path("radar.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("missing source_context", check.detail)
+
     def test_runtime_feed_audit_rejects_release_alert_boundary(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         try:
@@ -1279,6 +1306,30 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("invalid time_kind", check.detail)
 
+    def test_runtime_feed_audit_rejects_missing_drop_source_context_field(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            state = self.drop_runtime_state(
+                {
+                    "price": "¥12,800",
+                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time_kind": "published",
+                    "visual": self.visual("SH", "D", "shop_news"),
+                }
+            )
+            state["feed"]["streams"]["drop"][0].pop("source_context", None)
+            audit_module.get_feed_state = lambda **_kwargs: state
+
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("missing source_context", check.detail)
+
     def test_runtime_feed_payload_audit_rejects_full_state_leak(self) -> None:
         original_get_feed_payload = audit_module.get_feed_payload
         expected_feed = {
@@ -1424,7 +1475,7 @@ sources:
         return config_path
 
     def runtime_state(self, release_row: dict, add_visual: bool = True) -> dict:
-        release_row = {"feed_type": "release", **release_row}
+        release_row = {"feed_type": "release", "source_context": "", **release_row}
         if add_visual and "visual" not in release_row:
             release_row = {**release_row, "visual": self.visual("AP", "R", str(release_row.get("type") or "release"))}
         return {
@@ -1449,6 +1500,7 @@ sources:
             "urgency": "high",
             "reason_codes": ["new_shop_item", "keyword_match", "kw:JSK"],
             "url": "https://example.com/drop",
+            "source_context": "",
             "visual": self.visual("SH", "D", "shop_news"),
             **overrides,
         }

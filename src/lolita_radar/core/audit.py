@@ -450,6 +450,9 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
         release_context_problem = release_card_context_problem(row)
         if release_context_problem:
             return release_context_problem
+        source_context_problem = source_context_card_problem(row, "release")
+        if source_context_problem:
+            return source_context_problem
     for row in feed_rows(streams, "drop"):
         urgency = str(row.get("urgency") or "")
         if urgency not in {"high", "medium", "low"}:
@@ -467,6 +470,9 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
         drop_context_problem = drop_card_context_problem(row)
         if drop_context_problem:
             return drop_context_problem
+        source_context_problem = source_context_card_problem(row, "drop")
+        if source_context_problem:
+            return source_context_problem
     for row in feed_rows(streams, "trend"):
         trend = str(row.get("trend") or "")
         if trend not in {"rising", "cooling", "stable"}:
@@ -526,6 +532,14 @@ def drop_card_context_problem(row: dict[str, Any]) -> str:
         image_url = str(visual.get("image_url") or "")
         if image_url and not image_url.startswith(("http://", "https://")):
             return f"stream drop row has invalid image_url: {image_url}"
+    return ""
+
+
+def source_context_card_problem(row: dict[str, Any], stream_name: str) -> str:
+    if "source_context" not in row:
+        return f"stream {stream_name} row missing source_context"
+    if not isinstance(row.get("source_context"), str):
+        return f"stream {stream_name} row has invalid source_context: {row.get('source_context')}"
     return ""
 
 
