@@ -53,6 +53,7 @@ class GenericPageNoiseTests(unittest.TestCase):
             <html><body>
               <a href="/login">Login</a>
               <article>
+                <time datetime="2026-06-30"></time>
                 <a href="/shop/shell-jsk">
                   <img alt="" data-src="/images/shell-jsk.webp">
                   Shell Garden JSK 预约
@@ -70,6 +71,7 @@ class GenericPageNoiseTests(unittest.TestCase):
         self.assertEqual([item.title for item in items], ["Shell Garden JSK 预约", "Ribbon OP"])
         self.assertEqual(items[0].source, "proxy_shop")
         self.assertEqual(items[0].url, "https://example.com/shop/shell-jsk")
+        self.assertEqual(items[0].published_at, "2026-06-30")
         self.assertEqual(items[0].metadata["shop"]["name"], "Tokyo Proxy")
         self.assertEqual(items[0].metadata["item"]["title"], "Shell Garden JSK 预约")
         self.assertEqual(items[0].metadata["source_type"], "generic_page")

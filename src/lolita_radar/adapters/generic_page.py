@@ -154,6 +154,7 @@ def linked_shop_items(html_text: str, config, page_text: str, page_matches: list
                 title=title,
                 url=link.url,
                 status=classify_title(f"{title} {haystack}"),
+                published_at=link.published_at,
                 content=content,
                 metadata=linked_item_metadata(config, shop_name, shop_url, title, link, matches),
             )

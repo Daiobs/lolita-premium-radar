@@ -395,6 +395,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "shop_news",
                 "title": "Shell Garden JSK 预约",
                 "url": "https://example.com/shop/shell",
+                "published_at": "2026-06-30",
                 "created_at": "2026-06-30T10:00:00+00:00",
                 "metadata": {
                     "source_type": "generic_page",
@@ -413,6 +414,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["drop"][0]["shop"], "Tokyo Proxy")
         self.assertEqual(feed["streams"]["drop"][0]["item"], "Shell Garden JSK 预约")
         self.assertEqual(feed["streams"]["drop"][0]["url"], "https://example.com/shop/shell")
+        self.assertEqual(feed["streams"]["drop"][0]["time"], "2026-06-30")
+        self.assertEqual(feed["streams"]["drop"][0]["time_kind"], "published")
         self.assertEqual(feed["streams"]["drop"][0]["price"], "¥12,800")
         self.assertEqual(feed["streams"]["drop"][0]["visual"]["image_url"], "https://example.com/images/shell-jsk.webp")
 

@@ -336,6 +336,7 @@ python -m unittest discover -s tests
 - Fetches any public URL.
 - Extracts visible text.
 - Extracts matching public item links as separate Shop -> Item candidates.
+- Keeps public item card dates as Drop Feed source time when present.
 - Keeps public item link images as Drop Feed card visuals when present.
 - Keeps public item prices as Drop Feed card chips when present.
 - Falls back to one synthetic page item when no matching item links are found.
