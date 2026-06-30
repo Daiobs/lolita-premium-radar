@@ -111,7 +111,8 @@ sources:
             self.assertEqual(state["events"][0]["event_type"], "new_item")
 
     def test_feed_index_html_is_feed_app(self) -> None:
-        self.assertIn("Lolita Radar OS", FEED_INDEX_HTML)
+        self.assertIn("Lolita Feed OS", FEED_INDEX_HTML)
+        self.assertNotIn("Lolita Radar OS", FEED_INDEX_HTML)
         self.assertIn("feedStream", FEED_INDEX_HTML)
         self.assertIn("data-filter=\"release\"", FEED_INDEX_HTML)
         self.assertIn("data-filter=\"drop\"", FEED_INDEX_HTML)
@@ -445,7 +446,8 @@ sources:
 
     def test_index_html_is_feed_app_alias(self) -> None:
         self.assertEqual(INDEX_HTML, FEED_INDEX_HTML)
-        self.assertIn("Lolita Radar OS", INDEX_HTML)
+        self.assertIn("Lolita Feed OS", INDEX_HTML)
+        self.assertNotIn("Lolita Radar OS", INDEX_HTML)
         self.assertIn("feedStream", INDEX_HTML)
         self.assertIn('data-filter="release"', INDEX_HTML)
         self.assertIn('data-filter="drop"', INDEX_HTML)
@@ -511,7 +513,8 @@ sources:
                 with urllib.request.urlopen(url) as response:
                     body = response.read().decode("utf-8")
 
-                self.assertIn("Lolita Radar OS", body)
+                self.assertIn("Lolita Feed OS", body)
+                self.assertNotIn("Lolita Radar OS", body)
                 self.assertIn("feedStream", body)
                 self.assertNotIn("northStarRadar", body)
             finally:

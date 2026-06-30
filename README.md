@@ -1,4 +1,4 @@
-# Lolita Radar OS
+# Lolita Feed OS
 
 Lightweight feed app for monitoring public Lolita and Japanese fashion release
 pages, reservation/preorder news, restock notices, public proxy-shop pages, and

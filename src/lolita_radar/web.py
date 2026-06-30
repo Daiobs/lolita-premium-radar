@@ -48,7 +48,7 @@ def run_web(
         market_path = default_market_observations_path()
     handler = make_handler(config_path=config_path, db_path=db_path, brands_path=brands_path, market_path=market_path)
     server = ThreadingHTTPServer((host, port), handler)
-    print(f"Lolita Radar OS web UI: http://{host}:{port}")
+    print(f"Lolita Feed OS web UI: http://{host}:{port}")
     print(f"Config: {config_path.resolve()}")
     print(f"Brand weights: {brands_path.resolve()}")
     print(f"Market observations: {market_path.resolve()}")
@@ -311,7 +311,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lolita Radar OS</title>
+    <title>Lolita Feed OS</title>
     <style>
       :root {
         color-scheme: light;
@@ -433,7 +433,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
     <main class="app">
       <header class="topbar">
         <div class="brand">
-          <h1>Lolita Radar OS</h1>
+          <h1>Lolita Feed OS</h1>
           <p id="tagline">日牌发售与二级市场信息流</p>
         </div>
         <div class="actions">

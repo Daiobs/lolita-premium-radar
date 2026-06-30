@@ -6,6 +6,8 @@ class ReadmeTests(unittest.TestCase):
     def test_24h_loop_example_writes_auditable_log_and_exit_files(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")
 
+        self.assertIn("# Lolita Feed OS", readme)
+        self.assertNotIn("# Lolita Radar OS", readme)
         self.assertIn("run-loop \\", readme)
         self.assertIn("--log-file .data/soak/lolita-radar-os-24h.log", readme)
         self.assertIn("--exit-file .data/soak/lolita-radar-os-24h.exit", readme)
