@@ -327,6 +327,7 @@ def visual_image_problem(row: dict[str, Any]) -> str:
 def feed_ordering_problem(rows: list[dict[str, Any]]) -> str:
     priority = {"release": 0, "drop": 1, "alert": 2, "trend": 3}
     previous = -1
+    seen_urls = set()
     for row in rows:
         feed_type = str(row.get("feed_type") or "")
         current = priority.get(feed_type)
@@ -335,8 +336,12 @@ def feed_ordering_problem(rows: list[dict[str, Any]]) -> str:
         if current < previous:
             return "state.feed.all violates RELEASE > DROP > ALERT > TREND ordering"
         previous = current
-        if not row.get("url"):
+        url = str(row.get("url") or "")
+        if not url:
             return "state.feed.all contains a row without url"
+        if url in seen_urls:
+            return f"state.feed.all contains duplicate url: {url}"
+        seen_urls.add(url)
     return ""
 
 
