@@ -192,6 +192,38 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("market alert localized title", check.detail)
 
+    def test_public_web_payload_audit_rejects_state_route_leak(self) -> None:
+        source = '''
+                elif parsed.path == "/api/state":
+                    self.send_json(get_feed_state(config_path, db_path, brands_path, market_path))
+'''
+
+        problem = audit_module.public_web_payload_problem(source)
+
+        self.assertIn("public Web API returns internal state", problem)
+
+    def test_public_web_payload_audit_rejects_mutation_state_leak(self) -> None:
+        source = '''
+                elif parsed.path == "/api/state":
+                    self.send_json(get_feed_payload(config_path, db_path, brands_path, market_path))
+            state = get_feed_state(config_path, db_path, brands_path, market_path)
+'''
+
+        problem = audit_module.public_web_payload_problem(source)
+
+        self.assertIn("public Web API returns internal state", problem)
+
+    def test_public_web_payload_audit_requires_mutation_feed_payloads(self) -> None:
+        source = '''
+                elif parsed.path == "/api/state":
+                    self.send_json(get_feed_payload(config_path, db_path, brands_path, market_path))
+            state = get_feed_payload(config_path, db_path, brands_path, market_path)
+'''
+
+        problem = audit_module.public_web_payload_problem(source)
+
+        self.assertIn("mutation APIs", problem)
+
     def test_generic_shop_item_extraction_audit_checks_drop_card_context(self) -> None:
         check = audit_module.audit_generic_shop_item_extraction()
 

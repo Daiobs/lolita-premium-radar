@@ -84,6 +84,7 @@ def audit_feed_os(
         audit_frontend_feed_os(),
         audit_feed_contract(),
         audit_runtime_feed_state(config_path, db_path, brands_path, market_path),
+        audit_public_web_payload_contract(root),
         audit_trend_engine(),
         audit_shop_drop_model(),
         audit_generic_shop_item_extraction(),
@@ -257,6 +258,42 @@ def audit_feed_contract() -> FeedOsAuditCheck:
             detail.append(f"ordering={ordering}")
         return FeedOsAuditCheck("feed_contract", "fail", "; ".join(detail))
     return FeedOsAuditCheck("feed_contract", "pass", "4 streams expose required fields, visuals, and priority ordering")
+
+
+def audit_public_web_payload_contract(project_root: Path) -> FeedOsAuditCheck:
+    web_path = project_root / "src" / "lolita_radar" / "web.py"
+    if not web_path.is_file():
+        return FeedOsAuditCheck("public_web_payload", "fail", "src/lolita_radar/web.py is missing")
+    problem = public_web_payload_problem(web_path.read_text(encoding="utf-8", errors="ignore"))
+    if problem:
+        return FeedOsAuditCheck("public_web_payload", "fail", problem)
+    return FeedOsAuditCheck(
+        "public_web_payload",
+        "pass",
+        "public Web APIs serve Feed OS payload without internal radar/state blocks",
+    )
+
+
+def public_web_payload_problem(source_text: str) -> str:
+    handler_source = source_text.split("\ndef get_feed_state", 1)[0]
+    blocked = (
+        "self.send_json(get_feed_state(",
+        "state = get_feed_state(config_path, db_path, brands_path, market_path)",
+    )
+    for pattern in blocked:
+        if pattern in handler_source:
+            return f"public Web API returns internal state: {pattern}"
+    required = (
+        'elif parsed.path == "/api/state":',
+        "self.send_json(get_feed_payload(config_path, db_path, brands_path, market_path))",
+    )
+    missing = [pattern for pattern in required if pattern not in handler_source]
+    if missing:
+        return "public Web API missing Feed OS payload route: " + ", ".join(missing)
+    update_payloads = handler_source.count("state = get_feed_payload(config_path, db_path, brands_path, market_path)")
+    if update_payloads < 3:
+        return "public Web mutation APIs must return Feed OS payload"
+    return ""
 
 
 def audit_runtime_feed_state(
