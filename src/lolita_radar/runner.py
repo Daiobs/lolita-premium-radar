@@ -19,7 +19,7 @@ from .adapters import (
 )
 from .config import load_sources
 from .crawler import enrich_source_runs
-from .models import RadarEvent, RadarItem
+from .models import RadarEvent, RadarItem, utc_now_iso
 from .notifiers import build_notifiers_from_env, notify_all
 from .storage import (
     connect,
@@ -57,6 +57,7 @@ class CheckLoopResult:
     ok: bool
     event_count: int
     error_message: str = ""
+    checked_at: str = ""
 
 
 @dataclass(frozen=True)
@@ -269,10 +270,11 @@ def run_check_loop(
     results: list[CheckLoopResult] = []
     for index in range(total_cycles):
         cycle = index + 1
+        checked_at = utc_now_iso()
         try:
             events = check_sources(config_path=config_path, db_path=db_path, source_name=None, notify=notify)
         except Exception as exc:
-            result = CheckLoopResult(cycle=cycle, ok=False, event_count=0, error_message=str(exc))
+            result = CheckLoopResult(cycle=cycle, ok=False, event_count=0, error_message=str(exc), checked_at=checked_at)
         else:
             unhealthy_sources = latest_unhealthy_sources(config_path, db_path)
             if unhealthy_sources:
@@ -281,9 +283,10 @@ def run_check_loop(
                     ok=False,
                     event_count=len(events),
                     error_message="unhealthy sources: " + ", ".join(unhealthy_sources),
+                    checked_at=checked_at,
                 )
             else:
-                result = CheckLoopResult(cycle=cycle, ok=True, event_count=len(events))
+                result = CheckLoopResult(cycle=cycle, ok=True, event_count=len(events), checked_at=checked_at)
         results.append(result)
         if on_result is not None:
             on_result(result)
@@ -388,13 +391,31 @@ def parse_check_loop_log(path: Path) -> list[CheckLoopResult]:
         if len(parts) < 3 or not parts[0].isdigit():
             continue
         cycle = int(parts[0])
-        ok = parts[1] == "ok"
+        if len(parts) >= 4 and parts[2] in {"ok", "failed"}:
+            checked_at = parts[1]
+            ok_index = 2
+            event_count_index = 3
+            error_index = 4
+        else:
+            checked_at = ""
+            ok_index = 1
+            event_count_index = 2
+            error_index = 3
+        ok = parts[ok_index] == "ok"
         try:
-            event_count = int(parts[2])
+            event_count = int(parts[event_count_index])
         except ValueError:
             event_count = 0
-        error_message = parts[3] if len(parts) > 3 else ""
-        results.append(CheckLoopResult(cycle=cycle, ok=ok, event_count=event_count, error_message=error_message))
+        error_message = parts[error_index] if len(parts) > error_index else ""
+        results.append(
+            CheckLoopResult(
+                cycle=cycle,
+                ok=ok,
+                event_count=event_count,
+                error_message=error_message,
+                checked_at=checked_at,
+            )
+        )
     return results
 
 

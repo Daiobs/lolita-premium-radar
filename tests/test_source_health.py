@@ -218,12 +218,13 @@ class SourceHealthTests(unittest.TestCase):
 
             output = stdout.getvalue()
             self.assertEqual(exit_code, 0)
-            self.assertIn("cycle | ok | event_count | error_message", output)
-            self.assertIn("1 | ok", output)
-            self.assertIn("2 | ok", output)
-            self.assertIn("cycle | ok | event_count | error_message", log_path.read_text(encoding="utf-8"))
-            self.assertIn("1 | ok", log_path.read_text(encoding="utf-8"))
-            self.assertIn("2 | ok", log_path.read_text(encoding="utf-8"))
+            self.assertIn("cycle | checked_at | ok | event_count | error_message", output)
+            self.assertRegex(output, r"1 \| .+ \| ok \|")
+            self.assertRegex(output, r"2 \| .+ \| ok \|")
+            log_text = log_path.read_text(encoding="utf-8")
+            self.assertIn("cycle | checked_at | ok | event_count | error_message", log_text)
+            self.assertRegex(log_text, r"1 \| .+ \| ok \|")
+            self.assertRegex(log_text, r"2 \| .+ \| ok \|")
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "0\n")
 
             verify_stdout = io.StringIO()
@@ -283,8 +284,8 @@ class SourceHealthTests(unittest.TestCase):
                 runner.ADAPTERS.update(original)
 
             self.assertEqual(exit_code, 1)
-            self.assertIn("1 | failed", stdout.getvalue())
-            self.assertIn("1 | failed", log_path.read_text(encoding="utf-8"))
+            self.assertRegex(stdout.getvalue(), r"1 \| .+ \| failed \|")
+            self.assertRegex(log_path.read_text(encoding="utf-8"), r"1 \| .+ \| failed \|")
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "1\n")
 
     def test_run_loop_writes_sigterm_exit_file(self) -> None:
@@ -328,7 +329,7 @@ class SourceHealthTests(unittest.TestCase):
             self.assertEqual(exit_code, 143)
             self.assertIn("interrupted by SIGTERM", stderr.getvalue())
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "143\n")
-            self.assertIn("cycle | ok | event_count | error_message", log_path.read_text(encoding="utf-8"))
+            self.assertIn("cycle | checked_at | ok | event_count | error_message", log_path.read_text(encoding="utf-8"))
 
     def test_run_loop_ignores_old_source_failure_after_latest_success(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -374,20 +375,66 @@ class SourceHealthTests(unittest.TestCase):
                 runner.ADAPTERS.update(original)
 
             self.assertEqual(exit_code, 0)
-            self.assertIn("1 | ok", stdout.getvalue())
+            self.assertRegex(stdout.getvalue(), r"1 \| .+ \| ok \|")
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "0\n")
 
     def test_loop_result_formatter_keeps_audit_table_shape(self) -> None:
         output = format_loop_results(
             [
-                CheckLoopResult(cycle=1, ok=True, event_count=2),
-                CheckLoopResult(cycle=2, ok=False, event_count=0, error_message="boom"),
+                CheckLoopResult(cycle=1, ok=True, event_count=2, checked_at="2026-06-30T00:00:00+00:00"),
+                CheckLoopResult(cycle=2, ok=False, event_count=0, error_message="boom", checked_at="2026-06-30T00:05:00+00:00"),
             ]
         )
 
-        self.assertIn("cycle | ok | event_count | error_message", output)
-        self.assertIn("1 | ok | 2 |", output)
-        self.assertIn("2 | failed | 0 | boom", output)
+        self.assertIn("cycle | checked_at | ok | event_count | error_message", output)
+        self.assertIn("1 | 2026-06-30T00:00:00+00:00 | ok | 2 |", output)
+        self.assertIn("2 | 2026-06-30T00:05:00+00:00 | failed | 0 | boom", output)
+
+    def test_loop_log_parser_accepts_checked_at_column(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "loop.log"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "cycle | checked_at | ok | event_count | error_message",
+                        "1 | 2026-06-30T00:00:00+00:00 | ok | 2 |",
+                        "2 | 2026-06-30T00:05:00+00:00 | failed | 0 | boom",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            rows = runner.parse_check_loop_log(log_path)
+
+            self.assertEqual(rows[0].checked_at, "2026-06-30T00:00:00+00:00")
+            self.assertTrue(rows[0].ok)
+            self.assertEqual(rows[0].event_count, 2)
+            self.assertEqual(rows[1].checked_at, "2026-06-30T00:05:00+00:00")
+            self.assertFalse(rows[1].ok)
+            self.assertEqual(rows[1].error_message, "boom")
+
+    def test_loop_log_parser_keeps_legacy_log_compatibility(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "loop.log"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 2 |",
+                        "2 | failed | 0 | boom",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            rows = runner.parse_check_loop_log(log_path)
+
+            self.assertEqual(rows[0].checked_at, "")
+            self.assertTrue(rows[0].ok)
+            self.assertEqual(rows[0].event_count, 2)
+            self.assertEqual(rows[1].checked_at, "")
+            self.assertFalse(rows[1].ok)
+            self.assertEqual(rows[1].error_message, "boom")
 
     def test_loop_default_cycles_cover_24h_at_five_minutes(self) -> None:
         self.assertEqual(DEFAULT_LOOP_CYCLES, 288)

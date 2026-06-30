@@ -152,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
         print(format_health_rows(latest_source_health(config_path=args.config, db_path=args.db)))
         return 0
     if args.command == "run-loop":
-        header = "cycle | ok | event_count | error_message"
+        header = "cycle | checked_at | ok | event_count | error_message"
         loop_started_at = utc_now_iso()
         print(header, flush=True)
         write_loop_log_header(args.log_file, header, loop_started_at)
@@ -331,7 +331,7 @@ def format_health_rows(rows: list[dict[str, object]]) -> str:
 
 
 def format_loop_results(results: list[CheckLoopResult]) -> str:
-    lines = ["cycle | ok | event_count | error_message"]
+    lines = ["cycle | checked_at | ok | event_count | error_message"]
     for result in results:
         lines.append(format_loop_result_line(result))
     return "\n".join(lines)
@@ -341,6 +341,7 @@ def format_loop_result_line(result: CheckLoopResult) -> str:
     return " | ".join(
         [
             str(result.cycle),
+            result.checked_at,
             "ok" if result.ok else "failed",
             str(result.event_count),
             result.error_message,
