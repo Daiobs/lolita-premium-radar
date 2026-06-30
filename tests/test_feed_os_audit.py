@@ -123,21 +123,54 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.name, "generic_shop_item_extraction")
         self.assertIn("source time, image, price", check.detail)
 
-    def test_trend_engine_audit_checks_release_activity_input(self) -> None:
+    def test_trend_engine_audit_checks_three_directions_and_release_activity_input(self) -> None:
         check = audit_module.audit_trend_engine()
 
         self.assertEqual(check.status, "pass")
+        self.assertIn("rising/cooling/stable", check.detail)
         self.assertIn("release activity", check.detail)
+
+    def test_trend_engine_audit_rejects_missing_direction_brand(self) -> None:
+        original_build_trend_feed = audit_module.build_trend_feed
+        try:
+            audit_module.build_trend_feed = lambda *_args, **_kwargs: [
+                {
+                    "brand": "AP",
+                    "trend": "rising",
+                    "confidence": 70,
+                    "reason_codes": ["sample_supported", "premium_rising", "release_activity"],
+                }
+            ]
+
+            check = audit_module.audit_trend_engine()
+        finally:
+            audit_module.build_trend_feed = original_build_trend_feed
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("missing trend brands", check.detail)
 
     def test_trend_engine_audit_rejects_missing_release_activity(self) -> None:
         original_build_trend_feed = audit_module.build_trend_feed
         try:
             audit_module.build_trend_feed = lambda *_args, **_kwargs: [
                 {
+                    "brand": "AP",
                     "trend": "rising",
                     "confidence": 70,
                     "reason_codes": ["sample_supported", "premium_rising", "momentum_observed"],
-                }
+                },
+                {
+                    "brand": "Meta",
+                    "trend": "cooling",
+                    "confidence": 50,
+                    "reason_codes": ["sample_supported", "premium_cooling"],
+                },
+                {
+                    "brand": "BABY",
+                    "trend": "stable",
+                    "confidence": 0,
+                    "reason_codes": ["sample_gap", "premium_stable"],
+                },
             ]
 
             check = audit_module.audit_trend_engine()

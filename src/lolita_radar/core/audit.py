@@ -548,23 +548,37 @@ def required_keys(row: dict[str, Any], keys: tuple[str, ...]) -> str:
 
 
 def audit_trend_engine() -> FeedOsAuditCheck:
-    market_summary = {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]}
+    market_summary = {
+        "brands": [
+            {"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5},
+            {"brand_alias": "Meta", "sample_count": 3, "avg_premium_rate": -0.2},
+        ]
+    }
     momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}]
     trends = build_trend_feed(
         market_summary,
         momentum,
         [{"source": "angelic_pretty", "status": "new_arrival"}],
+        brand_weights=[{"alias": "BABY"}],
     )
     if not trends:
         return FeedOsAuditCheck("trend_engine", "fail", "no trend cards produced")
-    trend = trends[0]
-    confidence = int(trend.get("confidence") or -1)
-    if trend.get("trend") not in {"rising", "cooling", "stable"} or not (0 <= confidence <= 100):
-        return FeedOsAuditCheck("trend_engine", "fail", f"invalid trend output: {trend}")
-    if not trend.get("reason_codes"):
-        return FeedOsAuditCheck("trend_engine", "fail", "missing reason_codes")
+    trends_by_brand = {str(trend.get("brand") or ""): trend for trend in trends}
+    expected_directions = {"AP": "rising", "Meta": "cooling", "BABY": "stable"}
+    missing_brands = sorted(set(expected_directions) - set(trends_by_brand))
+    if missing_brands:
+        return FeedOsAuditCheck("trend_engine", "fail", "missing trend brands: " + ", ".join(missing_brands))
+    for brand, direction in expected_directions.items():
+        trend = trends_by_brand[brand]
+        raw_confidence = trend.get("confidence")
+        confidence = int(raw_confidence) if raw_confidence is not None else -1
+        if trend.get("trend") != direction or not (0 <= confidence <= 100):
+            return FeedOsAuditCheck("trend_engine", "fail", f"invalid trend output for {brand}: {trend}")
+        if not trend.get("reason_codes"):
+            return FeedOsAuditCheck("trend_engine", "fail", f"missing reason_codes for {brand}")
     without_release = build_trend_feed(market_summary, momentum, [])[0]
-    if "release_activity" not in trend.get("reason_codes", []) or int(trend.get("confidence") or 0) <= int(without_release.get("confidence") or 0):
+    ap_trend = trends_by_brand["AP"]
+    if "release_activity" not in ap_trend.get("reason_codes", []) or int(ap_trend.get("confidence") or 0) <= int(without_release.get("confidence") or 0):
         return FeedOsAuditCheck("trend_engine", "fail", "release events did not affect trend reasons/confidence")
     return FeedOsAuditCheck("trend_engine", "pass", "rule-based rising/cooling/stable output with confidence, release activity, and reasons")
 
