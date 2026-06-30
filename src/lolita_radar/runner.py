@@ -65,6 +65,8 @@ class CheckLoopVerification:
     complete: bool
     expected_cycles: int
     observed_cycles: int
+    window_start: str
+    window_end: str
     min_duration_seconds: int
     duration_seconds: int
     failed_cycles: tuple[int, ...]
@@ -81,6 +83,8 @@ class CheckLoopVerification:
             "complete": self.complete,
             "expected_cycles": self.expected_cycles,
             "observed_cycles": self.observed_cycles,
+            "window_start": self.window_start,
+            "window_end": self.window_end,
             "min_duration_seconds": self.min_duration_seconds,
             "duration_seconds": self.duration_seconds,
             "exit_code": self.exit_code,
@@ -346,6 +350,8 @@ def verify_check_loop(
         complete=complete,
         expected_cycles=expected,
         observed_cycles=len(results),
+        window_start=format_datetime(window_start),
+        window_end=format_datetime(window_end),
         min_duration_seconds=min_duration,
         duration_seconds=duration_seconds,
         failed_cycles=failed_cycles,
@@ -458,6 +464,12 @@ def source_run_in_window(checked_at: str, window_start: datetime | None, window_
     if checked is None:
         return False
     return window_start <= checked <= window_end
+
+
+def format_datetime(value: datetime | None) -> str:
+    if value is None:
+        return ""
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def count_unhealthy_source_runs(source_runs: dict[str, list[dict[str, object]]]) -> dict[str, int]:

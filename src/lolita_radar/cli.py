@@ -354,6 +354,8 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
         f"status: {verification.status}",
         f"expected_cycles: {verification.expected_cycles}",
         f"observed_cycles: {verification.observed_cycles}",
+        f"window_start: {verification.window_start or '-'}",
+        f"window_end: {verification.window_end or '-'}",
         f"min_duration_seconds: {verification.min_duration_seconds}",
         f"duration_seconds: {verification.duration_seconds}",
         f"exit_code: {exit_code}",

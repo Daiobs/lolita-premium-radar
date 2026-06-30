@@ -577,6 +577,8 @@ class SourceHealthTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertIn("status: complete", stdout.getvalue())
             self.assertIn("duration_seconds: 86400", stdout.getvalue())
+            self.assertIn("window_start: 2026-06-30T00:00:00Z", stdout.getvalue())
+            self.assertIn("window_end: 2026-07-01T00:00:00Z", stdout.getvalue())
 
     def test_verify_loop_rejects_source_runs_outside_loop_window(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -914,6 +916,8 @@ class SourceHealthTests(unittest.TestCase):
             self.assertTrue(payload["complete"])
             self.assertEqual(payload["expected_cycles"], 1)
             self.assertEqual(payload["observed_cycles"], 1)
+            self.assertEqual(payload["window_start"], "2026-06-30T00:00:00Z")
+            self.assertEqual(payload["window_end"], "2026-06-30T00:05:00Z")
             self.assertEqual(payload["duration_seconds"], 300)
             self.assertEqual(payload["expected_sources"], ["good"])
             self.assertEqual(payload["source_cycle_counts"], {"good": 1})
