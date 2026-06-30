@@ -159,6 +159,7 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "feed-card",
         "badge",
         "summary",
+        "/api/feed",
         'data-filter="release"',
         'data-filter="drop"',
         'data-filter="trend"',
