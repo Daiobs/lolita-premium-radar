@@ -160,12 +160,19 @@ python -m lolita_radar.cli health
 Run a 24-hour lightweight check loop:
 
 ```bash
-python -m lolita_radar.cli run-loop --cycles 288 --interval-seconds 300
+mkdir -p .data/soak
+python -m lolita_radar.cli run-loop \
+  --db .data/soak/lolita-radar-os-24h.sqlite \
+  --cycles 288 \
+  --interval-seconds 300 \
+  --log-file .data/soak/lolita-radar-os-24h.log \
+  --exit-file .data/soak/lolita-radar-os-24h.exit
 ```
 
 The loop keeps notifications off by default and records source health every
-cycle. Add `--notify` only when you intentionally want live alerts during the
-long run.
+cycle. It also writes a machine-checkable audit log and exit-code file when
+`--log-file` and `--exit-file` are set. Add `--notify` only when you
+intentionally want live alerts during the long run.
 
 Verify a completed long run before calling it stable:
 
@@ -174,12 +181,14 @@ python -m lolita_radar.cli verify-loop \
   --log .data/soak/lolita-radar-os-24h.log \
   --db .data/soak/lolita-radar-os-24h.sqlite \
   --exit-file .data/soak/lolita-radar-os-24h.exit \
-  --expected-cycles 96
+  --expected-cycles 288
 ```
 
 `verify-loop` reports `complete` only when the loop log has the expected cycle
-count, the exit file is `0`, and every enabled source has enough `source_runs`
-records in the database. This keeps the 24-hour stability check auditable.
+coverage, the exit file is `0`, every enabled source has enough recent
+`source_runs` records in the database, and those recent source runs are healthy.
+This keeps the 24-hour stability check auditable and prevents old failures or
+duplicate log lines from producing a false result.
 
 Start the local feed app:
 
