@@ -759,10 +759,22 @@ def audit_shop_drop_model() -> FeedOsAuditCheck:
     missing_keywords = [keyword for keyword in required_keywords if f"kw:{keyword}" not in signal.reason_codes]
     if missing_keywords:
         return FeedOsAuditCheck("shop_drop_model", "fail", "missing DROP keywords: " + ", ".join(missing_keywords))
+    page_level_signal = build_drop_signal(
+        {
+            "source": "generic_page",
+            "event_type": "content_changed",
+            "status": "shop_news",
+            "title": "Whole shop page JSK 预约",
+            "url": "https://example.com/shop",
+            "metadata": {"matched_keywords": ["JSK", "预约"]},
+        }
+    )
+    if page_level_signal is not None:
+        return FeedOsAuditCheck("shop_drop_model", "fail", "page-level keyword match produced DROP without item")
     return FeedOsAuditCheck(
         "shop_drop_model",
         "pass",
-        "Shop -> Item DROP triggers on new item and JSK/OP/再贩/预约/尾款 keywords",
+        "Shop -> Item DROP triggers on new item and JSK/OP/再贩/预约/尾款 keywords without page-level keyword noise",
     )
 
 

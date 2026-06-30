@@ -222,7 +222,7 @@ class FeedOsTests(unittest.TestCase):
                 "title": "Shop drop",
                 "url": "https://example.com/drop",
                 "published_at": "2026-01-01",
-                "metadata": {"matched_keywords": ["JSK"]},
+                "metadata": {"item_title": "Shop drop JSK", "matched_keywords": ["JSK"]},
             },
         ]
         source_runs = [

@@ -38,6 +38,8 @@ def build_drop_signal(row: dict[str, Any]) -> DropSignal | None:
         return None
     if not keywords and not is_new_shop_item(row, metadata):
         return None
+    if not has_shop_item(metadata):
+        return None
     shop = shop_from_metadata(row, metadata)
     item = item_from_metadata(row, metadata, keywords)
     reasons = drop_reasons(row, keywords)
@@ -47,6 +49,10 @@ def build_drop_signal(row: dict[str, Any]) -> DropSignal | None:
 def is_new_shop_item(row: dict[str, Any], metadata: dict[str, Any]) -> bool:
     if str(row.get("event_type") or "") != "new_item":
         return False
+    return has_shop_item(metadata)
+
+
+def has_shop_item(metadata: dict[str, Any]) -> bool:
     raw_item = metadata.get("item")
     if isinstance(raw_item, dict) and str(raw_item.get("title") or "").strip():
         return True

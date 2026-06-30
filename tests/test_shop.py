@@ -41,6 +41,19 @@ class ShopModelTests(unittest.TestCase):
 
         self.assertIsNone(signal)
 
+    def test_build_drop_signal_requires_structured_item_for_keyword_match(self) -> None:
+        signal = build_drop_signal(
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "title": "Whole shop page JSK 预约",
+                "url": "https://example.com/shop",
+                "metadata": {"matched_keywords": ["JSK", "预约"]},
+            }
+        )
+
+        self.assertIsNone(signal)
+
     def test_build_drop_signal_accepts_required_drop_keywords(self) -> None:
         required_keywords = ("JSK", "OP", "再贩", "预约", "尾款")
         for keyword in required_keywords:
