@@ -482,6 +482,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           confidence: "信心",
           price: "价格",
           urgency: "紧急度",
+          sampleCount: "样本",
           priceDelta: "价差",
         },
         ja: {
@@ -502,6 +503,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           confidence: "信頼度",
           price: "価格",
           urgency: "優先度",
+          sampleCount: "サンプル",
           priceDelta: "価格差",
         },
       };
@@ -632,7 +634,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         const attrs = hasUrl
           ? `href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer"`
           : `aria-disabled="true"`;
-        const confidence = row.confidence !== undefined ? ` · ${text.confidence} ${row.confidence}` : "";
+        const meta = metaHtml(row, text);
         const reasons = reasonHtml(row.reason_codes);
         const titleAlt = titleAltHtml(row);
         const detail = detailHtml(row);
@@ -653,7 +655,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
             </div>
             <h2>${escapeHtml(row.title || "-")}</h2>
             ${titleAlt}
-            <p class="meta">${escapeHtml(row.meta || "")}${escapeHtml(confidence)}</p>
+            ${meta}
             ${detail}
             ${reasons}
             <div class="foot"><span>${escapeHtml(timeLabel(row))}</span><span class="cta">${hasUrl ? text.cta : text.noLink}</span></div>
@@ -669,6 +671,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         if (row.price) chips.push(`${TEXT[language].price} · ${row.price}`);
         if (row.urgency) chips.push(`${TEXT[language].urgency} · ${urgencyLabel(row.urgency)}`);
         if (row.price_delta !== undefined) chips.push(`${TEXT[language].priceDelta} · ${formatPercent(row.price_delta)}`);
+        if (row.sample_count !== undefined) chips.push(`${TEXT[language].sampleCount} · ${row.sample_count}`);
         if (row.status_label) chips.push(row.status_label);
         if (row.source_label) chips.push(row.source_label);
         if (row.time_kind) chips.push((TEXT[language][row.time_kind] || row.time_kind) + (row.time ? ` · ${displayDate(row.time)}` : ""));
@@ -704,6 +707,12 @@ FEED_INDEX_HTML = r"""<!doctype html>
       function reasonHtml(reasonCodes) {
         const reasons = Array.isArray(reasonCodes) ? reasonCodes.filter(Boolean).slice(0, 4) : [];
         return reasons.length ? `<p class="reasons">${escapeHtml(reasons.map(reasonLabel).join(" · "))}</p>` : "";
+      }
+      function metaHtml(row, text) {
+        const parts = [];
+        if (row.meta) parts.push(row.meta);
+        if (row.confidence !== undefined) parts.push(`${text.confidence} ${row.confidence}`);
+        return parts.length ? `<p class="meta">${escapeHtml(parts.join(" · "))}</p>` : "";
       }
       function reasonLabel(value) {
         const raw = String(value || "");

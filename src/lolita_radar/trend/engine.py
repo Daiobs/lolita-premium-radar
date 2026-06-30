@@ -38,7 +38,7 @@ def build_trend_feed(
                 "trend": direction,
                 "brand": alias,
                 "title": f"{alias} {direction}",
-                "meta": trend_meta(avg_premium, sample_count, reasons),
+                "meta": "",
                 "time": str(movement.get("observed_at") or ""),
                 "url": str(brand.get("url") or ""),
                 "confidence": confidence,
@@ -188,18 +188,6 @@ def trend_reasons(
     if release_count:
         reasons.append("release_activity")
     return reasons
-
-
-def format_percent(value: float) -> str:
-    return f"{round(value * 100)}%"
-
-
-def trend_meta(avg_premium: float, sample_count: int, reasons: list[str]) -> str:
-    reason_text = ", ".join(reasons[:3])
-    parts = [f"{format_percent(avg_premium)} avg premium", f"{sample_count} samples"]
-    if reason_text:
-        parts.append(f"reason: {reason_text}")
-    return " · ".join(parts)
 
 
 def trend_visual(alias: str, direction: str) -> dict[str, str]:

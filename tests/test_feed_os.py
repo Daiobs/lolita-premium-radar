@@ -569,7 +569,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["avg_premium_rate"], 0.5)
         self.assertEqual(trends[0]["price_delta"], 0.5)
         self.assertEqual(trends[0]["sample_count"], 4)
-        self.assertIn("reason: sample_supported, premium_rising", trends[0]["meta"])
+        self.assertEqual(trends[0]["meta"], "")
         self.assertIn("sample_supported", trends[0]["reason_codes"])
         self.assertIn("premium_rising", trends[0]["reason_codes"])
 
@@ -615,7 +615,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["brand"], "AP")
         self.assertEqual(trends[0]["kind"], "stable")
         self.assertEqual(trends[0]["url"], "https://jp.mercari.com/search?keyword=AP")
-        self.assertIn("reason: sample_gap", trends[0]["meta"])
+        self.assertEqual(trends[0]["meta"], "")
         self.assertIn("sample_gap", trends[0]["reason_codes"])
 
     def test_trend_engine_normalizes_brand_aliases_for_watch_urls_and_momentum(self) -> None:

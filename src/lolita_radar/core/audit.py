@@ -172,6 +172,8 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "kindLabel",
         "REASON_TEXT",
         "reasonLabel",
+        "metaHtml",
+        "sampleCount",
         "visual.image_url",
         'loading="lazy"',
         "has-image",
