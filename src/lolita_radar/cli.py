@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import signal
 import sys
 from pathlib import Path
+from types import FrameType
+from typing import Callable
 
 from .brands import default_brand_weights_path
 from .config import default_config_path
@@ -22,6 +25,17 @@ from .web import DEFAULT_WEB_PORT, run_web
 
 DEFAULT_DB_PATH = Path(".data") / "lolita_radar.sqlite"
 DEFAULT_LOOP_CYCLES = 288
+
+
+class LoopSignalInterrupt(Exception):
+    def __init__(self, signum: int) -> None:
+        self.signum = int(signum)
+        self.exit_code = 128 + self.signum
+        try:
+            self.signal_name = signal.Signals(signum).name
+        except ValueError:
+            self.signal_name = f"signal {signum}"
+        super().__init__(self.signal_name)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -114,10 +128,13 @@ def main(argv: list[str] | None = None) -> int:
         header = "cycle | ok | event_count | error_message"
         print(header, flush=True)
         write_loop_log_header(args.log_file, header)
+
         def on_loop_result(result: CheckLoopResult) -> None:
             line = format_loop_result_line(result)
             print(line, flush=True)
             append_loop_log_line(args.log_file, line)
+
+        restore_loop_signal_handlers = install_loop_signal_handlers()
         try:
             results = run_check_loop(
                 config_path=args.config,
@@ -127,10 +144,16 @@ def main(argv: list[str] | None = None) -> int:
                 notify=args.notify,
                 on_result=on_loop_result,
             )
+        except LoopSignalInterrupt as exc:
+            print(f"interrupted by {exc.signal_name}", file=sys.stderr)
+            write_exit_file(args.exit_file, exc.exit_code)
+            return exc.exit_code
         except KeyboardInterrupt:
             print("interrupted", file=sys.stderr)
             write_exit_file(args.exit_file, 130)
             return 130
+        finally:
+            restore_loop_signal_handlers()
         exit_code = 0 if all(result.ok for result in results) else 1
         write_exit_file(args.exit_file, exit_code)
         return exit_code
@@ -193,6 +216,29 @@ def write_exit_file(path: Path | None, exit_code: int) -> None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"{int(exit_code)}\n", encoding="utf-8")
+
+
+def install_loop_signal_handlers() -> Callable[[], None]:
+    previous_handlers: dict[int, signal.Handlers] = {}
+
+    def handle_signal(signum: int, frame: FrameType | None) -> None:
+        raise LoopSignalInterrupt(signum)
+
+    for signum in (signal.SIGINT, signal.SIGTERM):
+        try:
+            previous_handlers[int(signum)] = signal.getsignal(signum)
+            signal.signal(signum, handle_signal)
+        except (OSError, RuntimeError, ValueError):
+            continue
+
+    def restore() -> None:
+        for signum, previous_handler in previous_handlers.items():
+            try:
+                signal.signal(signum, previous_handler)
+            except (OSError, RuntimeError, ValueError):
+                continue
+
+    return restore
 
 
 def write_loop_log_header(path: Path | None, header: str) -> None:

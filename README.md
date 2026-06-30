@@ -173,6 +173,8 @@ The loop keeps notifications off by default and records source health every
 cycle. It also writes a machine-checkable audit log and exit-code file when
 `--log-file` and `--exit-file` are set. Add `--notify` only when you
 intentionally want live alerts during the long run.
+If the loop is stopped with Ctrl-C or SIGTERM, the exit-code file records the
+interruption as a non-zero code so the run cannot be mistaken for a clean soak.
 
 Verify a completed long run before calling it stable:
 

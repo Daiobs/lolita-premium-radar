@@ -1,9 +1,12 @@
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 import io
+import os
 from pathlib import Path
+import signal
 
+import lolita_radar.cli as cli
 import lolita_radar.runner as runner
 from lolita_radar.cli import DEFAULT_LOOP_CYCLES, format_loop_results, main
 from lolita_radar.runner import CheckLoopResult
@@ -240,6 +243,49 @@ class SourceHealthTests(unittest.TestCase):
             self.assertIn("1 | failed", stdout.getvalue())
             self.assertIn("1 | failed", log_path.read_text(encoding="utf-8"))
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "1\n")
+
+    def test_run_loop_writes_sigterm_exit_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            def terminate_loop(**kwargs) -> list[CheckLoopResult]:
+                os.kill(os.getpid(), signal.SIGTERM)
+                raise AssertionError("SIGTERM handler should interrupt run-loop")
+
+            original_run_check_loop = cli.run_check_loop
+            try:
+                cli.run_check_loop = terminate_loop
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    exit_code = main(
+                        [
+                            "run-loop",
+                            "--config",
+                            str(config_path),
+                            "--db",
+                            str(db_path),
+                            "--cycles",
+                            "2",
+                            "--interval-seconds",
+                            "0",
+                            "--log-file",
+                            str(log_path),
+                            "--exit-file",
+                            str(exit_path),
+                        ]
+                    )
+            finally:
+                cli.run_check_loop = original_run_check_loop
+
+            self.assertEqual(exit_code, 143)
+            self.assertIn("interrupted by SIGTERM", stderr.getvalue())
+            self.assertEqual(exit_path.read_text(encoding="utf-8"), "143\n")
+            self.assertIn("cycle | ok | event_count | error_message", log_path.read_text(encoding="utf-8"))
 
     def test_run_loop_ignores_old_source_failure_after_latest_success(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
