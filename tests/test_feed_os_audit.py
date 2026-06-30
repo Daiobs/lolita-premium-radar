@@ -41,6 +41,21 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertEqual(check.status, "fail")
             self.assertIn("forbidden product direction", check.detail)
 
+    def test_product_constraint_audit_checks_workflow_and_env_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package_root = root / "src" / "lolita_radar"
+            workflow_root = root / ".github" / "workflows"
+            package_root.mkdir(parents=True)
+            workflow_root.mkdir(parents=True)
+            (package_root / "ok.py").write_text("VALUE = True\n", encoding="utf-8")
+            (workflow_root / "check.yml").write_text("env:\n  DISCORD_WEBHOOK_URL: ${{ secrets.X }}\n", encoding="utf-8")
+
+            check = audit_module.audit_product_constraints(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn(".github/workflows/check.yml", check.detail)
+
     def test_home_feed_ui_audit_requires_image_card_tokens(self) -> None:
         original_html = audit_module.FEED_INDEX_HTML
         try:

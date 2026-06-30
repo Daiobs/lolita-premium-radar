@@ -121,17 +121,28 @@ def forbidden_product_findings(project_root: Path) -> list[str]:
     roots = [
         project_root / "src" / "lolita_radar",
         project_root / "pyproject.toml",
+        project_root / ".env.example",
+        project_root / ".github",
     ]
     tokens = forbidden_product_tokens()
     findings = []
-    for root in roots:
-        paths = [root] if root.is_file() else sorted(root.rglob("*.py")) if root.exists() else []
-        for path in paths:
-            text = path.read_text(encoding="utf-8", errors="ignore").casefold()
-            for token in tokens:
-                if token.casefold() in text:
-                    findings.append(f"{path.relative_to(project_root)} contains {token}")
+    for path in audited_product_constraint_paths(roots):
+        text = path.read_text(encoding="utf-8", errors="ignore").casefold()
+        for token in tokens:
+            if token.casefold() in text:
+                findings.append(f"{path.relative_to(project_root)} contains {token}")
     return findings
+
+
+def audited_product_constraint_paths(roots: list[Path]) -> list[Path]:
+    suffixes = {".py", ".toml", ".yml", ".yaml", ".example"}
+    paths = []
+    for root in roots:
+        if root.is_file():
+            paths.append(root)
+        elif root.exists():
+            paths.extend(path for path in sorted(root.rglob("*")) if path.is_file() and path.suffix in suffixes)
+    return paths
 
 
 def forbidden_product_tokens() -> tuple[str, ...]:
