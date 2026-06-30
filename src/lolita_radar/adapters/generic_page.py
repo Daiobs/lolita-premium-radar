@@ -94,6 +94,7 @@ class GenericPageAdapter(SourceAdapter):
                     "source_type": "generic_page",
                     "matched_keywords": matches,
                     "drop_keywords": matches,
+                    "context": compact_metadata_context(text),
                     "content_change_alert": bool(self.config.options.get("content_change_alert", True)),
                 },
             )

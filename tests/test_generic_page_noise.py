@@ -37,6 +37,8 @@ class GenericPageNoiseTests(unittest.TestCase):
         self.assertEqual(item.metadata["item"]["title"], "proxy watched page")
         self.assertTrue(item.metadata["page_level"])
         self.assertEqual(item.metadata["source_type"], "generic_page")
+        self.assertIn("JSK 预约", item.metadata["context"])
+        self.assertNotIn("updated at", item.metadata["context"].lower())
         self.assertNotIn("updated at", item.content.lower())
         self.assertLessEqual(len(item.content), 40)
 

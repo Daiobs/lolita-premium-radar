@@ -7,7 +7,13 @@ import re
 from typing import Any
 
 from ..adapters import SourceConfig
-from ..adapters.generic_page import apply_ignore_patterns, linked_shop_items, strip_navigation_tokens, suppress_duplicate_segments
+from ..adapters.generic_page import (
+    apply_ignore_patterns,
+    compact_metadata_context,
+    linked_shop_items,
+    strip_navigation_tokens,
+    suppress_duplicate_segments,
+)
 from ..crawler import enrich_source_runs
 from ..feed import build_home_feed
 from ..models import EventType, ItemStatus, RadarEvent, RadarItem
@@ -1241,6 +1247,9 @@ def audit_generic_noise_controls() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("generic_noise_control", "fail", "noise tokens survived: " + ", ".join(blocked))
     if "新作ジャンパースカート" not in cleaned:
         return FeedOsAuditCheck("generic_noise_control", "fail", "navigation filter stripped jumper skirt content")
+    fallback_context = compact_metadata_context(cleaned)
+    if "updated at" in fallback_context.lower() or "view count" in fallback_context.lower() or "JSK" not in fallback_context:
+        return FeedOsAuditCheck("generic_noise_control", "fail", f"fallback context retained noise: {fallback_context}")
     first = generic_noise_item("updated at: 2026-06-30 10:00 JSK Shell Garden JSK. view count: 5")
     second = generic_noise_item("updated at: 2026-06-30 11:30 JSK Shell Garden JSK. view count: 999")
     if first.content_hash != second.content_hash:
@@ -1250,7 +1259,7 @@ def audit_generic_noise_controls() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("generic_noise_control", "fail", "linked item noise fixture produced no item")
     if first_linked.content_hash != second_linked.content_hash:
         return FeedOsAuditCheck("generic_noise_control", "fail", "outer page changes altered linked item content hash")
-    return FeedOsAuditCheck("generic_noise_control", "pass", "timestamp/view-count/navigation/outer-page noise is ignored without stripping item text")
+    return FeedOsAuditCheck("generic_noise_control", "pass", "timestamp/view-count/navigation/outer-page noise is ignored without stripping item text or fallback context")
 
 
 def generic_noise_cleaned_content(text: str) -> str:
