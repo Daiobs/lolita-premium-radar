@@ -152,7 +152,8 @@ class FeedOsAuditTests(unittest.TestCase):
             audit_module.FEED_INDEX_HTML = (
                 original_html
                 .replace("源头发布时间", "发布时间")
-                .replace("`${localized} · ${row.title}`", "row.title")
+                .replace('if (language === "zh" && localized) return localized;', "return row.title;")
+                .replace("TEXT[language].original", "row.title")
             )
 
             check = audit_module.audit_frontend_feed_os()
@@ -161,7 +162,8 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "fail")
         self.assertIn("源头发布时间", check.detail)
-        self.assertIn("`${localized} · ${row.title}`", check.detail)
+        self.assertIn('if (language === "zh" && localized) return localized;', check.detail)
+        self.assertIn("TEXT[language].original", check.detail)
 
     def test_home_feed_ui_audit_rejects_title_link_lists(self) -> None:
         original_html = audit_module.FEED_INDEX_HTML

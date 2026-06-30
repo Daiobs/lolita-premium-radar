@@ -679,7 +679,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
       function titleText(row) {
         const localized = localizedTitle(row);
         if (row.use_localized_title && localized) return localized;
-        if (language === "zh" && localized && row.title) return `${localized} · ${row.title}`;
+        if (language === "zh" && localized) return localized;
         return row.title || localized || "";
       }
       function titleAltHtml(row) {
@@ -688,8 +688,8 @@ FEED_INDEX_HTML = r"""<!doctype html>
         if (row.use_localized_title && row.title && row.title !== primary) {
           return `<p class="title-alt">${escapeHtml(row.title)}</p>`;
         }
-        if (!row.use_localized_title && language === "zh" && row.title_zh && primary !== `${row.title_zh} · ${row.title}`) {
-          return `<p class="title-alt">${escapeHtml(row.title_zh)}</p>`;
+        if (!row.use_localized_title && language === "zh" && row.title_zh && row.title && row.title !== primary) {
+          return `<p class="title-alt">${escapeHtml(TEXT[language].original)} · ${escapeHtml(row.title)}</p>`;
         }
         if (!row.use_localized_title && language === "ja" && row.title_ja) {
           return `<p class="title-alt">${escapeHtml(row.title_ja)}</p>`;
