@@ -33,7 +33,14 @@ class ReadmeTests(unittest.TestCase):
         self.assertIn("not exposed by", readme)
         self.assertIn("page_level", readme)
         self.assertIn("without becoming Drop Feed item cards", readme)
-        self.assertIn("DROP candidates require concrete item context", readme)
+        self.assertIn("Drop Feed: first-seen public proxy-shop or Taobao-style Shop -> Item links", readme)
+        self.assertIn("linked item hashes scoped to the item link and parent item context", readme)
+        self.assertIn("DROP candidates require a first-seen `new_item` event", readme)
+        self.assertIn("Explicit `content_changed` rows are kept out of Drop", readme)
+        self.assertIn("Feed so copy edits and outer-page noise do not masquerade as new items", readme)
+        self.assertIn("Console notifications render local Feed OS card-style summaries", readme)
+        self.assertNotIn("Drop Feed: public proxy-shop or Taobao-style page changes", readme)
+        self.assertNotIn("either a new item event or one of the configured", readme)
 
 
 if __name__ == "__main__":

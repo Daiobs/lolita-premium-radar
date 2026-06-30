@@ -252,7 +252,7 @@ It keeps the product focused on daily scanning instead of heavy analysis panels.
 The feed app renders four lightweight streams:
 
 - Release Feed: brand release, preorder, and restock events from AP, BABY, AATP, Meta, and MMM.
-- Drop Feed: public proxy-shop or Taobao-style page changes from `generic_page` sources.
+- Drop Feed: first-seen public proxy-shop or Taobao-style Shop -> Item links from `generic_page` sources.
 - Trend Feed: rule-based rising/stable/cooling premium signals with confidence, price_delta, and reason codes.
 - Alert Feed: system-level market and source-health warnings such as
   high-premium signals, sample gaps, degraded sources, and failed sources.
@@ -338,6 +338,8 @@ python -m unittest discover -s tests
 - Keeps public item card dates as Drop Feed source time when present.
 - Keeps public item link images as Drop Feed card visuals when present.
 - Keeps public item prices as Drop Feed card chips when present.
+- Keeps linked item hashes scoped to the item link and parent item context so
+  unrelated outer-page banner or notice edits do not create item updates.
 - Falls back to one synthetic page-level item when no matching item links are
   found.
 - Marks synthetic page-level fallback rows with `page_level` so broad page text
@@ -353,17 +355,18 @@ python -m unittest discover -s tests
 - `title_template` lets a source keep a stable item title.
 
 Drop Feed treats non-page-level `generic_page` rows as public Shop -> Item
-signals. DROP candidates require concrete item context plus either a new item
-event or one of the configured item/action keywords such as `JSK`, `OP`,
-`再贩`, `预约`, or `尾款`; new item events and reservation/restock keywords are
-ranked as higher urgency.
+signals. DROP candidates require a first-seen `new_item` event, concrete item
+context, and one of the configured item/action keywords such as `JSK`, `OP`,
+`再贩`, `预约`, or `尾款`. Explicit `content_changed` rows are kept out of Drop
+Feed so copy edits and outer-page noise do not masquerade as new items.
+Reservation/restock keywords are ranked as higher urgency.
 
 ## Notifications
 
-Console notifications include `brand`, `source`, `event_type`, `status`,
-`title`, `published_at`, `url`, and matched keywords when present.
-`content_changed` messages include short previous/current content hashes
-instead of sending long page bodies. No external notification API is used.
+Console notifications render local Feed OS card-style summaries with bilingual
+labels for source publish time, status, source, price, keywords, and URL.
+`content_changed` messages include short previous/current content hashes instead
+of sending long page bodies. No external notification API is used.
 
 ## Roadmap
 
