@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 from pathlib import Path
 from typing import Any, Iterable
 
 from .models import EventType, RadarEvent, RadarItem, item_content_hash, utc_now_iso
+
+
+SOURCE_RUN_STATUSES = {"ok", "failed", "degraded"}
 
 
 def connect(path: Path) -> sqlite3.Connection:
@@ -280,6 +284,8 @@ def record_source_run(
     status: str = "",
     error_rate: float = 0.0,
 ) -> None:
+    item_total = max(0, int(item_count))
+    event_total = max(0, int(event_count))
     connection.execute(
         """
         INSERT INTO source_runs (
@@ -291,13 +297,30 @@ def record_source_run(
             source,
             checked_at or utc_now_iso(),
             1 if ok else 0,
-            status or ("ok" if ok else "failed"),
-            float(error_rate),
-            int(item_count),
-            int(event_count),
+            normalize_source_run_status(ok, status),
+            normalize_error_rate(error_rate),
+            item_total,
+            event_total,
             str(error_message or ""),
         ),
     )
+
+
+def normalize_source_run_status(ok: bool, status: object) -> str:
+    normalized = str(status or "").strip().lower()
+    if normalized in SOURCE_RUN_STATUSES and (ok or normalized != "ok"):
+        return normalized
+    return "ok" if ok else "failed"
+
+
+def normalize_error_rate(value: object) -> float:
+    try:
+        rate = float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(rate):
+        return 0.0
+    return max(0.0, min(1.0, rate))
 
 
 def list_source_runs(connection: sqlite3.Connection, limit: int = 50) -> list[dict[str, Any]]:

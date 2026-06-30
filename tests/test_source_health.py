@@ -121,6 +121,24 @@ class SourceHealthTests(unittest.TestCase):
             self.assertEqual(rows[0]["status"], "degraded")
             self.assertEqual(rows[0]["error_rate"], 0.5)
 
+    def test_source_run_storage_normalizes_status_and_error_rate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "radar.sqlite"
+            connection = connect(db_path)
+            try:
+                record_source_run(connection, "good", ok=True, status="strange", error_rate=float("nan"), item_count=1)
+                record_source_run(connection, "bad", ok=False, status="ok", error_rate=2.5, error_message="boom")
+                connection.commit()
+                rows = list_source_runs(connection)
+            finally:
+                connection.close()
+
+            by_source = {row["source"]: row for row in rows}
+            self.assertEqual(by_source["good"]["status"], "ok")
+            self.assertEqual(by_source["good"]["error_rate"], 0.0)
+            self.assertEqual(by_source["bad"]["status"], "failed")
+            self.assertEqual(by_source["bad"]["error_rate"], 1.0)
+
     def test_run_loop_runs_multiple_cycles_without_notifications(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
