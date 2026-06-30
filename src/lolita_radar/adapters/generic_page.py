@@ -155,17 +155,24 @@ def linked_shop_items(html_text: str, config, page_text: str, page_matches: list
                 url=link.url,
                 status=classify_title(f"{title} {haystack}"),
                 content=content,
-                metadata={
-                    "shop": {"name": shop_name, "url": shop_url},
-                    "item": {"title": title, "url": link.url},
-                    "source_type": "generic_page",
-                    "matched_keywords": matches,
-                    "drop_keywords": matches,
-                    "content_change_alert": bool(config.options.get("content_change_alert", True)),
-                },
+                metadata=linked_item_metadata(config, shop_name, shop_url, title, link, matches),
             )
         )
     return dedupe_items(items)
+
+
+def linked_item_metadata(config, shop_name: str, shop_url: str, title: str, link: LinkCandidate, matches: list[str]) -> dict[str, object]:
+    metadata: dict[str, object] = {
+        "shop": {"name": shop_name, "url": shop_url},
+        "item": {"title": title, "url": link.url},
+        "source_type": "generic_page",
+        "matched_keywords": matches,
+        "drop_keywords": matches,
+        "content_change_alert": bool(config.options.get("content_change_alert", True)),
+    }
+    if link.image_url:
+        metadata["image_url"] = link.image_url
+    return metadata
 
 
 def is_navigation_link(link: LinkCandidate) -> bool:

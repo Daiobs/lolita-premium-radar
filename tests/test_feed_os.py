@@ -400,6 +400,7 @@ class FeedOsTests(unittest.TestCase):
                     "source_type": "generic_page",
                     "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
                     "item": {"title": "Shell Garden JSK 预约", "url": "https://example.com/shop/shell"},
+                    "image_url": "https://example.com/images/shell-jsk.webp",
                     "matched_keywords": ["JSK", "预约"],
                 },
             }
@@ -411,6 +412,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["drop"][0]["shop"], "Tokyo Proxy")
         self.assertEqual(feed["streams"]["drop"][0]["item"], "Shell Garden JSK 预约")
         self.assertEqual(feed["streams"]["drop"][0]["url"], "https://example.com/shop/shell")
+        self.assertEqual(feed["streams"]["drop"][0]["visual"]["image_url"], "https://example.com/images/shell-jsk.webp")
 
     def test_alert_feed_uses_latest_source_health_per_source(self) -> None:
         source_runs = [
