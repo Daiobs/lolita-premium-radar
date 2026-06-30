@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from lolita_radar.crawler import enrich_source_runs
 from lolita_radar.feed import build_home_feed
+from lolita_radar.source_dates import current_source_date
 from lolita_radar.trend import build_trend_feed
 
 
@@ -147,8 +148,9 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("2026.06.30", card["source_context"])
 
     def test_release_feed_requires_current_source_publish_time(self) -> None:
-        future_date = (datetime.now(timezone.utc).date() + timedelta(days=1)).strftime("%Y-%m-%d")
-        stale_current_year_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
+        source_today = current_source_date()
+        future_date = (source_today + timedelta(days=1)).strftime("%Y-%m-%d")
+        stale_current_year_date = (source_today - timedelta(days=120)).strftime("%Y-%m-%d")
         events = [
             {
                 "source": "angelic_pretty",
@@ -264,7 +266,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(len({row["url"] for row in feed["all"]}), 30)
 
     def test_home_all_feed_uses_feed_type_priority(self) -> None:
-        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+        today = current_source_date().strftime("%Y-%m-%d")
         events = [
             {
                 "source": "angelic_pretty",
@@ -547,8 +549,9 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["summary"]["drops"], 0)
 
     def test_drop_feed_requires_current_source_publish_time(self) -> None:
-        future_date = (datetime.now(timezone.utc).date() + timedelta(days=1)).strftime("%Y-%m-%d")
-        stale_current_year_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
+        source_today = current_source_date()
+        future_date = (source_today + timedelta(days=1)).strftime("%Y-%m-%d")
+        stale_current_year_date = (source_today - timedelta(days=120)).strftime("%Y-%m-%d")
         events = [
             {
                 "source": "generic_page",
@@ -771,11 +774,11 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts, [])
 
     def test_trend_engine_outputs_direction_confidence_and_reasons(self) -> None:
-        current_year = datetime.now(timezone.utc).year
+        today = current_source_date().strftime("%Y-%m-%d")
         trends = build_trend_feed(
             {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]},
-            [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
-            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+            [{"brand_alias": "AP", "direction": "rising", "observed_at": today}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
             brand_weights=[
                 {
                     "alias": "AP",
@@ -842,7 +845,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("sample_gap", trends[0]["reason_codes"])
 
     def test_trend_engine_normalizes_brand_aliases_for_watch_urls_and_momentum(self) -> None:
-        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+        today = current_source_date().strftime("%Y-%m-%d")
         trends = build_trend_feed(
             {"brands": [{"brand_alias": " ap ", "sample_count": 3, "avg_premium_rate": 0.4}]},
             [{"brand_alias": "AP", "direction": "rising", "observed_at": today}],
@@ -866,10 +869,11 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("release_activity", trends[0]["reason_codes"])
 
     def test_trend_engine_ignores_stale_release_events(self) -> None:
-        current_year = datetime.now(timezone.utc).year
+        current_year = current_source_date().year
         stale_year = current_year - 1
-        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
-        stale_window_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
+        source_today = current_source_date()
+        today = source_today.strftime("%Y-%m-%d")
+        stale_window_date = (source_today - timedelta(days=120)).strftime("%Y-%m-%d")
         base_market = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.4}]}
         momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": today}]
 
@@ -896,7 +900,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertGreater(current_trends[0]["confidence"], stale_window_trends[0]["confidence"])
 
     def test_trend_engine_ignores_release_events_without_source_publish_time(self) -> None:
-        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+        today = current_source_date().strftime("%Y-%m-%d")
         base_market = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.4}]}
         momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": today}]
 

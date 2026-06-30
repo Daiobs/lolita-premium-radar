@@ -10,6 +10,7 @@ import lolita_radar.core.audit as audit_module
 from lolita_radar.cli import format_feed_os_audit, format_feed_os_audit_json, main
 from lolita_radar.core import audit_feed_os
 from lolita_radar.models import ItemStatus, RadarItem
+from lolita_radar.source_dates import current_source_date
 from lolita_radar.storage import connect, diff_and_store, record_source_run
 
 
@@ -462,7 +463,7 @@ class FeedOsAuditTests(unittest.TestCase):
             ap_reasons = ["sample_supported", "premium_rising", "momentum_observed"]
             if events:
                 event = events[0]
-                if event.get("published_at") != f"{datetime.now(timezone.utc).year - 1}-12-31":
+                if event.get("published_at") != f"{current_source_date().year - 1}-12-31":
                     ap_reasons.append("release_activity")
             return [
                 {
@@ -500,7 +501,7 @@ class FeedOsAuditTests(unittest.TestCase):
 
     def test_trend_engine_audit_rejects_missing_date_release_activity(self) -> None:
         original_build_trend_feed = audit_module.build_trend_feed
-        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+        today = current_source_date().strftime("%Y-%m-%d")
 
         def fake_build_trend_feed(_market, _momentum, events, **_kwargs):
             ap_reasons = ["sample_supported", "premium_rising", "momentum_observed"]
@@ -816,7 +817,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Login",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "price": "未取得",
                     "url": "https://example.com/login",
@@ -858,7 +859,7 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertIn("stale source time", check.detail)
 
     def test_runtime_feed_audit_rejects_current_year_release_outside_feed_window(self) -> None:
-        stale_current_year_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
+        stale_current_year_date = (current_source_date() - timedelta(days=120)).strftime("%Y-%m-%d")
         original_get_feed_state = audit_module.get_feed_state
         try:
             audit_module.get_feed_state = lambda **_kwargs: self.runtime_state(
@@ -917,7 +918,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Shell Garden JSK",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "price": "¥38,280",
                     "url": "https://example.com/ap",
@@ -1170,7 +1171,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Shell Garden JSK",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "price": "未取得",
                     "url": "https://example.com/ap/shell",
                     "visual": {},
@@ -1220,7 +1221,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Shell Garden JSK",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "price": "¥38,280",
                     "url": "https://example.com/ap",
@@ -1248,7 +1249,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Shell Garden JSK",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "price": "¥38,280",
                     "url": "https://example.com/ap",
@@ -1269,7 +1270,7 @@ class FeedOsAuditTests(unittest.TestCase):
 
     def test_runtime_feed_audit_checks_all_rows_not_only_first_items(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
-        current_year = datetime.now(timezone.utc).year
+        current_year = current_source_date().year
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
                 "feed": {
@@ -1699,7 +1700,7 @@ class FeedOsAuditTests(unittest.TestCase):
             state = self.drop_runtime_state(
                 {
                     "price": "¥12,800",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "visual": self.visual("SH", "D", "shop_news"),
                 }

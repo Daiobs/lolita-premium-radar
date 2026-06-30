@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 
 
 CURRENT_SOURCE_WINDOW_DAYS = 90
@@ -25,7 +25,7 @@ def parse_source_date(value: str) -> date | None:
 
 
 def current_source_date() -> date:
-    return datetime.now(timezone.utc).date()
+    return datetime.now().astimezone().date()
 
 
 def recent_source_cutoff_date(today: date | None = None) -> date:
@@ -33,4 +33,4 @@ def recent_source_cutoff_date(today: date | None = None) -> date:
 
 
 def current_year() -> int:
-    return datetime.now(timezone.utc).year
+    return current_source_date().year

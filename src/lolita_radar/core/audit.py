@@ -20,6 +20,7 @@ from ..models import EventType, ItemStatus, RadarEvent, RadarItem
 from ..notifiers import format_event
 from ..runner import verify_check_loop
 from ..shop import build_drop_signal
+from ..source_dates import current_source_date
 from ..storage import connect
 from ..trend import build_trend_feed
 from ..web import FEED_INDEX_HTML, get_feed_payload, get_feed_state
@@ -962,9 +963,10 @@ def required_keys(row: dict[str, Any], keys: tuple[str, ...]) -> str:
 
 
 def audit_trend_engine() -> FeedOsAuditCheck:
-    year = datetime.now(timezone.utc).year
-    today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
-    stale_window_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
+    source_today = current_source_date()
+    year = source_today.year
+    today = source_today.strftime("%Y-%m-%d")
+    stale_window_date = (source_today - timedelta(days=120)).strftime("%Y-%m-%d")
     market_summary = {
         "brands": [
             {"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5},
