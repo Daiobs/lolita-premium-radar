@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+import re
 from typing import Any
 
 from ..adapters.generic_page import apply_ignore_patterns, strip_navigation_tokens, suppress_duplicate_segments
@@ -193,6 +195,9 @@ def audit_runtime_feed_state(
     field_problem = runtime_feed_field_problem(streams)
     if field_problem:
         return FeedOsAuditCheck("runtime_feed_state", "fail", field_problem)
+    noise_problem = runtime_feed_noise_problem(streams)
+    if noise_problem:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", noise_problem)
     counts = ", ".join(f"{name}={len(streams.get(name, []))}" for name in expected_streams)
     return FeedOsAuditCheck("runtime_feed_state", "pass", f"current config/db builds Feed OS streams ({counts})")
 
@@ -231,6 +236,56 @@ def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
             if missing:
                 return f"stream {name} row missing fields: {missing}"
     return ""
+
+
+def runtime_feed_noise_problem(streams: dict[str, Any]) -> str:
+    for name, rows in streams.items():
+        if not isinstance(rows, list):
+            continue
+        for row in rows[:30]:
+            if not isinstance(row, dict):
+                continue
+            token = navigation_noise_token(row)
+            if token:
+                return f"stream {name} row contains navigation noise: {token}"
+            if name == "release" and stale_release_time(row):
+                return f"stream release row has stale source time: {row.get('time')}"
+    return ""
+
+
+NAVIGATION_NOISE_TOKENS = {
+    "account",
+    "cart",
+    "company",
+    "contact",
+    "login",
+    "privacy",
+    "ログイン",
+    "お問い合わせ",
+    "カート",
+    "会社概要",
+    "登录",
+    "登入",
+    "购物车",
+    "联系",
+    "隐私",
+}
+
+
+def navigation_noise_token(row: dict[str, Any]) -> str:
+    haystack = " ".join(str(row.get(key) or "") for key in ("title", "url"))
+    tokens = {token.casefold() for token in re.split(r"[\s\W_]+", haystack) if token}
+    for token in NAVIGATION_NOISE_TOKENS:
+        if token.casefold() in tokens:
+            return token
+    return ""
+
+
+def stale_release_time(row: dict[str, Any]) -> bool:
+    value = str(row.get("time") or "")
+    if len(value) < 4 or not value[:4].isdigit():
+        return True
+    return int(value[:4]) < datetime.now(timezone.utc).year
 
 
 def sample_home_feed() -> dict[str, Any]:

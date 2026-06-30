@@ -3,8 +3,10 @@ import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from datetime import datetime, timezone
 from pathlib import Path
 
+import lolita_radar.core.audit as audit_module
 from lolita_radar.cli import format_feed_os_audit, format_feed_os_audit_json, main
 from lolita_radar.core import audit_feed_os
 from lolita_radar.models import ItemStatus, RadarItem
@@ -181,6 +183,54 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertIn("trend=1", text)
             self.assertIn("alert=", text)
 
+    def test_runtime_feed_audit_rejects_navigation_noise(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.runtime_state(
+                {
+                    "feed_type": "release",
+                    "brand": "AP",
+                    "title": "Login",
+                    "type": "new_arrival",
+                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "price": "未取得",
+                    "url": "https://example.com/login",
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("navigation noise", check.detail)
+
+    def test_runtime_feed_audit_rejects_stale_release_time(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.runtime_state(
+                {
+                    "feed_type": "release",
+                    "brand": "AP",
+                    "title": "Old Release JSK",
+                    "type": "new_arrival",
+                    "time": "2025-12-31",
+                    "price": "未取得",
+                    "url": "https://example.com/ap/old",
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("stale source time", check.detail)
+
     def test_cli_audit_returns_nonzero_when_evidence_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -259,6 +309,20 @@ sources:
             encoding="utf-8",
         )
         return config_path
+
+    def runtime_state(self, release_row: dict) -> dict:
+        return {
+            "feed": {
+                "summary": {"drops": 1, "shops": 0, "trends": 0, "alerts": 0},
+                "streams": {
+                    "release": [release_row],
+                    "drop": [],
+                    "trend": [],
+                    "alert": [],
+                },
+                "all": [release_row],
+            }
+        }
 
 
 if __name__ == "__main__":
