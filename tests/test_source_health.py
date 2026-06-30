@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 import io
+import json
 import os
 from pathlib import Path
 import signal
@@ -789,6 +790,65 @@ class SourceHealthTests(unittest.TestCase):
             self.assertIn("status: incomplete", stdout.getvalue())
             self.assertIn("observed_cycles: 1", stdout.getvalue())
             self.assertIn("exit_code: -", stdout.getvalue())
+
+    def test_verify_loop_can_emit_machine_readable_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 1 |",
+                        "# finished_at: 2026-06-30T00:05:00+00:00",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(connection, "good", ok=True, status="ok", item_count=1, latency_ms=12)
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "1",
+                        "--min-duration-seconds",
+                        "0",
+                        "--json",
+                    ]
+                )
+
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(payload["status"], "complete")
+            self.assertTrue(payload["complete"])
+            self.assertEqual(payload["expected_cycles"], 1)
+            self.assertEqual(payload["observed_cycles"], 1)
+            self.assertEqual(payload["duration_seconds"], 300)
+            self.assertEqual(payload["expected_sources"], ["good"])
+            self.assertEqual(payload["source_cycle_counts"], {"good": 1})
+            self.assertEqual(payload["unhealthy_source_runs"], {})
+            self.assertEqual(payload["source_health_summary"]["good"]["max_latency_ms"], 12)
 
     def test_verify_loop_reports_failed_cycle(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

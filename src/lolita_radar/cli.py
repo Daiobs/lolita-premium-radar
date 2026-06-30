@@ -102,6 +102,7 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_LOOP_MIN_DURATION_SECONDS,
         help="minimum elapsed time required in the loop log; default is 86400 seconds",
     )
+    verify_loop_parser.add_argument("--json", action="store_true", help="print machine-readable verification output")
 
     audit_parser = subparsers.add_parser("audit-feed-os", help="audit Feed OS product acceptance evidence")
     audit_parser.add_argument("--config", type=Path, default=default_config_path())
@@ -196,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
             exit_path=args.exit_file,
             min_duration_seconds=args.min_duration_seconds,
         )
-        print(format_loop_verification(verification))
+        print(format_loop_verification_json(verification) if args.json else format_loop_verification(verification))
         return 0 if verification.complete else 1
     if args.command == "audit-feed-os":
         audit = audit_feed_os(
@@ -391,6 +392,29 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
             )
         )
     return "\n".join(lines)
+
+
+def format_loop_verification_json(verification: CheckLoopVerification) -> str:
+    return json.dumps(
+        {
+            "status": verification.status,
+            "complete": verification.complete,
+            "expected_cycles": verification.expected_cycles,
+            "observed_cycles": verification.observed_cycles,
+            "min_duration_seconds": verification.min_duration_seconds,
+            "duration_seconds": verification.duration_seconds,
+            "exit_code": verification.exit_code,
+            "failed_cycles": list(verification.failed_cycles),
+            "missing_cycles": list(verification.missing_cycles),
+            "expected_sources": list(verification.expected_sources),
+            "source_cycle_counts": verification.source_cycle_counts,
+            "unhealthy_source_runs": verification.unhealthy_source_runs,
+            "source_health_summary": verification.source_health_summary,
+        },
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
 
 
 def format_feed_os_audit(audit: FeedOsAudit) -> str:

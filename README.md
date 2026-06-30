@@ -195,6 +195,16 @@ every enabled source has enough recent `source_runs` records in the database,
 and those recent source runs are healthy. This keeps the 24-hour stability check
 auditable and prevents old failures, duplicate log lines, or fast synthetic
 cycles from producing a false result.
+Add `--json` when saving review evidence or wiring a CI/manual gate:
+
+```bash
+python -m lolita_radar.cli verify-loop \
+  --log .data/soak/lolita-radar-os-24h.log \
+  --db .data/soak/lolita-radar-os-24h.sqlite \
+  --exit-file .data/soak/lolita-radar-os-24h.exit \
+  --expected-cycles 288 \
+  --json > .data/soak/lolita-radar-os-24h.verify.json
+```
 
 For local smoke tests that intentionally are not 24-hour evidence, pass:
 
