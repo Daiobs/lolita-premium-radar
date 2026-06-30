@@ -36,7 +36,7 @@ def build_drop_signal(row: dict[str, Any]) -> DropSignal | None:
         metadata = {}
     if str(row.get("source") or "") != "generic_page" and str(metadata.get("source_type") or "") != "generic_page":
         return None
-    if not keywords and not is_new_shop_item(row, metadata):
+    if not keywords:
         return None
     if not has_shop_item(metadata):
         return None
