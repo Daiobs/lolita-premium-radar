@@ -436,6 +436,9 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
         release_alert_problem = release_alert_boundary_problem(row)
         if release_alert_problem:
             return release_alert_problem
+        alert_kind_problem = alert_kind_boundary_problem(row)
+        if alert_kind_problem:
+            return alert_kind_problem
         source_health_problem = source_health_alert_problem(row)
         if source_health_problem:
             return source_health_problem
@@ -499,6 +502,16 @@ def release_alert_boundary_problem(row: dict[str, Any]) -> str:
     ):
         return "stream alert row must be system-level, not new_release"
     return ""
+
+
+def alert_kind_boundary_problem(row: dict[str, Any]) -> str:
+    reason_codes = row.get("reason_codes")
+    if isinstance(reason_codes, list) and "source_health" in reason_codes:
+        return ""
+    kind = str(row.get("kind") or "")
+    if kind in {"high_premium", "sample_gap"}:
+        return ""
+    return f"stream alert row has unsupported system alert kind: {kind}"
 
 
 def runtime_feed_noise_problem(streams: dict[str, Any]) -> str:

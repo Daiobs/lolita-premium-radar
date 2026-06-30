@@ -547,6 +547,40 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("stream alert row must be system-level", check.detail)
 
+    def test_runtime_feed_audit_rejects_unknown_alert_kind(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"releases": 0, "drops": 0, "trends": 0, "alerts": 1, "shops": 0},
+                    "streams": {
+                        "release": [],
+                        "drop": [],
+                        "trend": [],
+                        "alert": [
+                            {
+                                "feed_type": "alert",
+                                "kind": "promo",
+                                "title": "Generic promo",
+                                "reason_codes": ["promo"],
+                                "url": "https://example.com/promo",
+                                "visual": self.visual("AL", "!", "promo"),
+                            }
+                        ],
+                    },
+                    "all": [{"feed_type": "alert", "url": "https://example.com/promo"}],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("unsupported system alert kind: promo", check.detail)
+
     def test_runtime_feed_audit_allows_old_source_health_alert_time(self) -> None:
         streams = {
             "release": [],
