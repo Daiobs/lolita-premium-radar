@@ -24,6 +24,7 @@ from .storage import (
     connect,
     count_items_for_sources,
     diff_and_store,
+    list_latest_source_runs,
     list_source_runs,
     record_source_run,
 )
@@ -250,11 +251,16 @@ def run_check_loop(
 
 
 def latest_unhealthy_sources(config_path: Path, db_path: Path) -> list[str]:
-    rows = latest_source_health(config_path=config_path, db_path=db_path)
+    expected_sources = {source.name for source in select_sources(load_sources(config_path), None)}
+    connection = connect(db_path)
+    try:
+        rows = list_latest_source_runs(connection)
+    finally:
+        connection.close()
     return [
         str(row["source"])
         for row in rows
-        if str(row.get("status") or "") in {"failed", "degraded"} or row.get("ok") is False
+        if str(row.get("source") or "") in expected_sources and is_unhealthy_source_run(row)
     ]
 
 

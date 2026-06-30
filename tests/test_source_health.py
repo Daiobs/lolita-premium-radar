@@ -192,6 +192,53 @@ class SourceHealthTests(unittest.TestCase):
             self.assertIn("1 | failed", stdout.getvalue())
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "1\n")
 
+    def test_run_loop_ignores_old_source_failure_after_latest_success(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            exit_path = root / "loop.exit"
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=False,
+                    status="failed",
+                    error_message="old timeout",
+                    checked_at="2026-06-29T23:50:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            original = dict(runner.ADAPTERS)
+            stdout = io.StringIO()
+            try:
+                runner.ADAPTERS.update({"fake_good": FakeGoodAdapter})
+                with redirect_stdout(stdout):
+                    exit_code = main(
+                        [
+                            "run-loop",
+                            "--config",
+                            str(config_path),
+                            "--db",
+                            str(db_path),
+                            "--cycles",
+                            "1",
+                            "--interval-seconds",
+                            "0",
+                            "--exit-file",
+                            str(exit_path),
+                        ]
+                    )
+            finally:
+                runner.ADAPTERS.clear()
+                runner.ADAPTERS.update(original)
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("1 | ok", stdout.getvalue())
+            self.assertEqual(exit_path.read_text(encoding="utf-8"), "0\n")
+
     def test_loop_result_formatter_keeps_audit_table_shape(self) -> None:
         output = format_loop_results(
             [
