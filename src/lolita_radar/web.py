@@ -9,18 +9,14 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .adapters import SourceConfig
-from .brands import build_focus_queue, default_brand_weights_path, load_brand_weights, save_brand_weights
+from .brands import default_brand_weights_path, load_brand_weights, save_brand_weights
 from .config import load_sources
 from .crawler import enrich_source_runs
 from .feed import build_home_feed
 from .market import (
     append_market_observation,
-    build_brand_weight_profile,
     build_market_alerts,
     build_market_momentum,
-    build_opportunity_radar,
-    build_pattern_radar,
-    build_sample_collection_plan,
     default_market_observations_path,
     load_market_observations,
     summarize_market_observations,
@@ -227,16 +223,10 @@ def get_feed_state(
             "enabled_sources": sum(1 for source in sources.values() if source.enabled),
         },
         "brand_weights": brand_weights,
-        "brand_weight_profile": build_brand_weight_profile(brand_weights, market_summary["brands"]),
-        "market_alerts": market_alerts,
-        "focus_queue": build_focus_queue(brand_weights, items, events, market_summary["brands"]),
-        "opportunity_radar": build_opportunity_radar(brand_weights, market_summary["brands"]),
         "market": {
             "observations": market_observations,
             "summary": market_summary,
             "momentum": momentum,
-            "patterns": build_pattern_radar(brand_weights, market_observations),
-            "sample_plan": build_sample_collection_plan(brand_weights, market_summary["brands"]),
         },
         "feed": build_home_feed(
             events,
