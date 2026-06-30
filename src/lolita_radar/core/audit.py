@@ -605,6 +605,7 @@ def audit_stable_loop_evidence(
             "stable_loop_evidence",
             "missing",
             "provide --loop-log and --loop-exit-file after run-loop to prove crawler stability",
+            missing_loop_evidence_requirements(expected_cycles, min_duration_seconds),
         )
     verification = verify_check_loop(
         config_path=config_path,
@@ -636,3 +637,25 @@ def audit_stable_loop_evidence(
         ),
         verification.to_dict(),
     )
+
+
+def missing_loop_evidence_requirements(expected_cycles: int, min_duration_seconds: int) -> dict[str, Any]:
+    return {
+        "required": {
+            "loop_log": True,
+            "loop_exit_file": True,
+            "source_runs": True,
+        },
+        "expected_cycles": max(1, int(expected_cycles)),
+        "min_duration_seconds": max(0, int(min_duration_seconds)),
+        "required_checks": [
+            "loop log contains expected cycle coverage",
+            "loop log duration meets min_duration_seconds",
+            "exit file contains 0",
+            "source_runs fall inside loop evidence window",
+            "source_runs are healthy",
+            "no duplicate cycles",
+            "no missing cycle timestamps in checked_at logs",
+            "no cycle timestamps outside loop evidence window",
+        ],
+    }

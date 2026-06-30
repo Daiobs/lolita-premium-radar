@@ -620,7 +620,14 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertFalse(payload["complete"])
             self.assertEqual(payload["counts"]["missing"], 1)
             self.assertIn("checks", payload)
-            self.assertTrue(any(check["name"] == "stable_loop_evidence" for check in payload["checks"]))
+            stable_check = next(check for check in payload["checks"] if check["name"] == "stable_loop_evidence")
+            self.assertEqual(stable_check["status"], "missing")
+            self.assertTrue(stable_check["evidence"]["required"]["loop_log"])
+            self.assertTrue(stable_check["evidence"]["required"]["loop_exit_file"])
+            self.assertTrue(stable_check["evidence"]["required"]["source_runs"])
+            self.assertEqual(stable_check["evidence"]["expected_cycles"], 2)
+            self.assertEqual(stable_check["evidence"]["min_duration_seconds"], 86400)
+            self.assertIn("no duplicate cycles", stable_check["evidence"]["required_checks"])
 
     def test_format_feed_os_audit_json_includes_counts_and_checks(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
