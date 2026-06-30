@@ -13,19 +13,21 @@ class NotificationTests(unittest.TestCase):
             url="https://example.com/shell",
             status=ItemStatus.NEW_ARRIVAL,
             published_at="2026-06-30",
-            metadata={"brand": "Angelic Pretty", "matched_keywords": ["Shell", "JSK"]},
+            metadata={"brand": "Angelic Pretty", "matched_keywords": ["Shell", "JSK"], "price": "¥38,280"},
         )
 
         text = format_event(RadarEvent(source=item.source, event_type=EventType.NEW_ITEM, item=item))
 
-        self.assertIn("brand: Angelic Pretty", text)
-        self.assertIn("source: angelic_pretty", text)
-        self.assertIn("event_type: new_item", text)
-        self.assertIn("status: new_arrival", text)
-        self.assertIn("title: New Arrival: Shell JSK", text)
-        self.assertIn("published_at: 2026-06-30", text)
-        self.assertIn("url: https://example.com/shell", text)
-        self.assertIn("matched_keywords: Shell, JSK", text)
+        self.assertIn("RELEASE · Angelic Pretty", text)
+        self.assertIn("New Arrival: Shell JSK", text)
+        self.assertIn("源头发布时间 / 掲載元日: 2026-06-30", text)
+        self.assertIn("状态 / 状態: 新作上架 / 新着", text)
+        self.assertIn("来源 / ソース: angelic_pretty", text)
+        self.assertIn("价格 / 価格: ¥38,280", text)
+        self.assertIn("链接 / URL: https://example.com/shell", text)
+        self.assertIn("关键词 / キーワード: Shell, JSK", text)
+        self.assertNotIn("event_type:", text)
+        self.assertNotIn("published_at:", text)
 
     def test_content_changed_notification_includes_short_hashes(self) -> None:
         item = RadarItem(
@@ -45,8 +47,8 @@ class NotificationTests(unittest.TestCase):
             )
         )
 
-        self.assertIn("event_type: content_changed", text)
-        self.assertIn("content_hash: abcdef1234 ->", text)
+        self.assertIn("ALERT · generic_page", text)
+        self.assertIn("变化 / 変更: abcdef1234 ->", text)
 
     def test_build_notifiers_from_env_stays_local_only(self) -> None:
         with patch.dict(

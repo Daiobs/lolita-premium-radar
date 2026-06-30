@@ -95,7 +95,7 @@ class ShopModelTests(unittest.TestCase):
                 self.assertEqual(signal.item.keywords, (keyword,))
                 self.assertIn(f"kw:{keyword}", signal.reason_codes)
 
-    def test_build_drop_signal_accepts_new_structured_shop_item_without_keywords(self) -> None:
+    def test_build_drop_signal_rejects_new_structured_shop_item_without_keywords(self) -> None:
         signal = build_drop_signal(
             {
                 "source": "generic_page",
@@ -110,13 +110,7 @@ class ShopModelTests(unittest.TestCase):
             }
         )
 
-        self.assertIsNotNone(signal)
-        assert signal is not None
-        self.assertEqual(signal.shop.name, "Tokyo Proxy")
-        self.assertEqual(signal.item.title, "Ribbon OP")
-        self.assertEqual(signal.item.keywords, ())
-        self.assertEqual(signal.urgency, "high")
-        self.assertEqual(signal.reason_codes, ("new_shop_item",))
+        self.assertIsNone(signal)
 
     def test_build_drop_signal_accepts_named_generic_page_source(self) -> None:
         signal = build_drop_signal(

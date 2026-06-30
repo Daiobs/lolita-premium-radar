@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from lolita_radar.brands import build_focus_queue, keyword_matches, load_brand_weights, save_brand_weights
+from lolita_radar.brands import build_watch_signals, keyword_matches, load_brand_weights, save_brand_weights
 
 
 class BrandTests(unittest.TestCase):
@@ -97,7 +97,7 @@ class BrandTests(unittest.TestCase):
         self.assertFalse(keyword_matches("ap", "public-shop-page"))
         self.assertTrue(keyword_matches("ap", "ap special set"))
 
-    def test_focus_queue_uses_observed_brand_matches(self) -> None:
+    def test_watch_signals_uses_observed_brand_matches(self) -> None:
         brands = load_brand_weights()
         items = [
             {
@@ -116,20 +116,20 @@ class BrandTests(unittest.TestCase):
             }
         ]
 
-        queue = build_focus_queue(brands, items, events)
+        signals = build_watch_signals(brands, items, events)
 
-        self.assertIn("Meta", [brand["alias"] for brand in queue])
-        meta = next(brand for brand in queue if brand["alias"] == "Meta")
+        self.assertIn("Meta", [brand["alias"] for brand in signals])
+        meta = next(brand for brand in signals if brand["alias"] == "Meta")
         self.assertEqual(meta["item_count"], 1)
         self.assertEqual(meta["event_count"], 1)
 
-    def test_focus_queue_uses_market_premium(self) -> None:
+    def test_watch_signals_uses_market_premium(self) -> None:
         brands = load_brand_weights()
         market_brands = [{"brand_alias": "BABY", "sample_count": 2, "avg_premium_rate": 0.4}]
 
-        queue = build_focus_queue(brands, items=[], events=[], market_brands=market_brands)
+        signals = build_watch_signals(brands, items=[], events=[], market_brands=market_brands)
 
-        baby = next(brand for brand in queue if brand["alias"] == "BABY")
+        baby = next(brand for brand in signals if brand["alias"] == "BABY")
         self.assertEqual(baby["market_count"], 2)
         self.assertEqual(baby["avg_premium_rate"], 0.4)
         self.assertEqual(baby["score"], 100)

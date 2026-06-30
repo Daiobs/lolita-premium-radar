@@ -10,6 +10,8 @@ from ..adapters import SourceConfig
 from ..adapters.generic_page import apply_ignore_patterns, linked_shop_items, strip_navigation_tokens, suppress_duplicate_segments
 from ..crawler import enrich_source_runs
 from ..feed import build_home_feed
+from ..models import EventType, ItemStatus, RadarEvent, RadarItem
+from ..notifiers import format_event
 from ..runner import verify_check_loop
 from ..shop import build_drop_signal
 from ..storage import connect
@@ -83,6 +85,7 @@ def audit_feed_os(
         audit_product_constraints(root),
         audit_frontend_feed_os(),
         audit_feed_contract(),
+        audit_notification_contract(),
         audit_runtime_feed_state(config_path, db_path, brands_path, market_path),
         audit_public_web_payload_contract(root),
         audit_trend_engine(),
@@ -108,11 +111,32 @@ def audit_required_modules(project_root: Path) -> FeedOsAuditCheck:
     missing = [name for name in required if not (root / name).is_dir()]
     if missing:
         return FeedOsAuditCheck("structure", "fail", "missing product modules: " + ", ".join(missing))
-    return FeedOsAuditCheck("structure", "pass", "feed/trend/shop/crawler/core modules exist")
+    required_files = (
+        root / "feed" / "builder.py",
+        root / "trend" / "engine.py",
+        root / "trend" / "signals.py",
+        root / "shop" / "model.py",
+        root / "crawler" / "health.py",
+        root / "core" / "audit.py",
+    )
+    missing_files = [path.relative_to(root).as_posix() for path in required_files if not path.is_file()]
+    if missing_files:
+        return FeedOsAuditCheck("structure", "fail", "missing product module files: " + ", ".join(missing_files))
+    trend_init = root / "trend" / "__init__.py"
+    trend_exports = trend_init.read_text(encoding="utf-8", errors="ignore") if trend_init.exists() else ""
+    required_exports = ("build_trend_feed", "build_trend_candidates", "build_sample_backlog")
+    missing_exports = [name for name in required_exports if name not in trend_exports]
+    if missing_exports:
+        return FeedOsAuditCheck("structure", "fail", "trend module missing exports: " + ", ".join(missing_exports))
+    return FeedOsAuditCheck("structure", "pass", "feed/trend/shop/crawler/core modules and key files exist")
 
 
 def audit_product_constraints(project_root: Path) -> FeedOsAuditCheck:
-    findings = forbidden_product_findings(project_root)
+    findings = (
+        forbidden_product_findings(project_root)
+        + legacy_analysis_symbol_findings(project_root)
+        + trend_boundary_findings(project_root)
+    )
     if findings:
         return FeedOsAuditCheck("product_constraints", "fail", "forbidden product direction found: " + findings[0])
     return FeedOsAuditCheck("product_constraints", "pass", "no blocked product-direction or purchase-automation tokens found")
@@ -132,6 +156,71 @@ def forbidden_product_findings(project_root: Path) -> list[str]:
         for token in tokens:
             if token.casefold() in text:
                 findings.append(f"{path.relative_to(project_root)} contains {token}")
+    return findings
+
+
+def legacy_analysis_symbol_findings(project_root: Path) -> list[str]:
+    blocked_by_file = {
+        project_root / "src" / "lolita_radar" / "brands.py": ("def build_focus_queue(",),
+        project_root / "src" / "lolita_radar" / "market.py": (
+            "def build_opportunity_radar(",
+            "def build_brand_weight_profile(",
+            "def build_sample_collection_plan(",
+            "def build_pattern_radar(",
+            "def opportunity_band(",
+            "def opportunity_reasons(",
+            "def sample_plan_",
+            "def build_trend_candidates(",
+            "def build_brand_signal_profile(",
+            "def build_sample_backlog(",
+            "def build_pattern_trends(",
+        ),
+        project_root / "src" / "lolita_radar" / "trend" / "signals.py": (
+            "def build_opportunity_radar(",
+            "def build_brand_weight_profile(",
+            "def build_sample_collection_plan(",
+            "def build_pattern_radar(",
+        ),
+    }
+    findings = []
+    for path, tokens in blocked_by_file.items():
+        if not path.exists():
+            continue
+        source = path.read_text(encoding="utf-8", errors="ignore")
+        for token in tokens:
+            if token in source:
+                findings.append(f"{path.relative_to(project_root)} defines legacy analysis API {token}")
+    return findings
+
+
+def trend_boundary_findings(project_root: Path) -> list[str]:
+    trend_root = project_root / "src" / "lolita_radar" / "trend"
+    if not trend_root.exists():
+        return []
+    blocked_tokens = (
+        "import random",
+        "from random",
+        "requests",
+        "urllib",
+        "httpx",
+        "urlopen",
+        "fetch_text",
+        "socket",
+        "subprocess",
+        "open" + "ai",
+        "anth" + "ropic",
+        "tensor" + "flow",
+        "sk" + "learn",
+        "scikit",
+        "numpy",
+        "pandas",
+    )
+    findings = []
+    for path in sorted(trend_root.rglob("*.py")):
+        source = path.read_text(encoding="utf-8", errors="ignore").casefold()
+        for token in blocked_tokens:
+            if token in source:
+                findings.append(f"{path.relative_to(project_root)} violates rule-only trend boundary with {token}")
     return findings
 
 
@@ -222,14 +311,54 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "brand" + "crown",
     )
     forbidden = [token for token in legacy_tokens if token in lowered]
-    if missing or forbidden:
+    title_list_tokens = ("<ul", "<ol", "<li", "title-list", "link-list")
+    title_list = [token for token in title_list_tokens if token in lowered]
+    if missing or forbidden or title_list:
         detail = []
         if missing:
             detail.append("missing UI tokens: " + ", ".join(missing))
         if forbidden:
             detail.append("legacy product tokens present: " + ", ".join(forbidden))
+        if title_list:
+            detail.append("title-list UI markup present: " + ", ".join(title_list))
         return FeedOsAuditCheck("home_feed_ui", "fail", "; ".join(detail))
     return FeedOsAuditCheck("home_feed_ui", "pass", "card UI, badges, summary bar, and 4 filters are present")
+
+
+def audit_notification_contract() -> FeedOsAuditCheck:
+    item = RadarItem(
+        source="angelic_pretty",
+        title="Shell Garden JSK",
+        url="https://example.com/ap/shell",
+        status=ItemStatus.NEW_ARRIVAL,
+        published_at="2026-06-30",
+        metadata={
+            "brand": "Angelic Pretty",
+            "price": "¥38,280",
+            "matched_keywords": ["JSK", "预约"],
+        },
+    )
+    text = format_event(RadarEvent(source=item.source, event_type=EventType.NEW_ITEM, item=item))
+    required = (
+        "RELEASE",
+        "Angelic Pretty",
+        "Shell Garden JSK",
+        "源头发布时间 / 掲載元日: 2026-06-30",
+        "价格 / 価格: ¥38,280",
+        "关键词 / キーワード: JSK, 预约",
+        "链接 / URL: https://example.com/ap/shell",
+    )
+    missing = [token for token in required if token not in text]
+    legacy_fields = ("brand:", "source:", "event_type:", "status:", "title:", "published_at:", "url:", "matched_keywords:")
+    leaked = [token for token in legacy_fields if token in text]
+    if missing or leaked:
+        detail = []
+        if missing:
+            detail.append("missing notification tokens: " + ", ".join(missing))
+        if leaked:
+            detail.append("legacy notification fields present: " + ", ".join(leaked))
+        return FeedOsAuditCheck("notification_contract", "fail", "; ".join(detail))
+    return FeedOsAuditCheck("notification_contract", "pass", "local notifications render Feed OS card summaries with source publish time")
 
 
 def audit_feed_contract() -> FeedOsAuditCheck:
@@ -921,6 +1050,22 @@ def audit_shop_drop_model() -> FeedOsAuditCheck:
     )
     if page_level_item_signal is not None:
         return FeedOsAuditCheck("shop_drop_model", "fail", "page-level generic fallback produced DROP")
+    no_keyword_signal = build_drop_signal(
+        {
+            "source": "generic_page",
+            "event_type": "new_item",
+            "status": "shop_news",
+            "title": "Ribbon blouse",
+            "url": "https://example.com/shop/blouse",
+            "metadata": {
+                "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+                "item": {"title": "Ribbon blouse", "url": "https://example.com/shop/blouse"},
+                "matched_keywords": [],
+            },
+        }
+    )
+    if no_keyword_signal is not None:
+        return FeedOsAuditCheck("shop_drop_model", "fail", "new shop item without DROP keywords produced DROP")
     return FeedOsAuditCheck(
         "shop_drop_model",
         "pass",
@@ -1023,11 +1168,7 @@ def audit_generic_noise_controls() -> FeedOsAuditCheck:
         "Login Cart updated at: 2026-06-30 10:00 view count: 5 "
         "JSK Shell Garden JSK. JSK Shell Garden JSK. カート ログイン 新作ジャンパースカート"
     )
-    cleaned = suppress_duplicate_segments(strip_navigation_tokens(apply_ignore_patterns(text, [
-        r"updated at[:：]?\s*[0-9: /.-]+",
-        r"\b(?:view count|views|page views)[:：]?\s*[\d,]+",
-        r"\b(login|account|cart|privacy|contact|company|shop list)\b",
-    ])))
+    cleaned = generic_noise_cleaned_content(text)
     lowered = cleaned.lower()
     cleaned_tokens = {token.strip(" |/\\-_:：[]()（）・,，.。!！?？").casefold() for token in cleaned.split()}
     blocked = []
@@ -1041,7 +1182,29 @@ def audit_generic_noise_controls() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("generic_noise_control", "fail", "noise tokens survived: " + ", ".join(blocked))
     if "新作ジャンパースカート" not in cleaned:
         return FeedOsAuditCheck("generic_noise_control", "fail", "navigation filter stripped jumper skirt content")
+    first = generic_noise_item("updated at: 2026-06-30 10:00 JSK Shell Garden JSK. view count: 5")
+    second = generic_noise_item("updated at: 2026-06-30 11:30 JSK Shell Garden JSK. view count: 999")
+    if first.content_hash != second.content_hash:
+        return FeedOsAuditCheck("generic_noise_control", "fail", "noise-only changes altered content hash")
     return FeedOsAuditCheck("generic_noise_control", "pass", "timestamp/view-count/navigation noise is ignored without stripping item text")
+
+
+def generic_noise_cleaned_content(text: str) -> str:
+    return suppress_duplicate_segments(strip_navigation_tokens(apply_ignore_patterns(text, [
+        r"updated at[:：]?\s*[0-9: /.-]+",
+        r"\b(?:view count|views|page views)[:：]?\s*[\d,]+",
+        r"\b(login|account|cart|privacy|contact|company|shop list)\b",
+    ])))
+
+
+def generic_noise_item(text: str) -> RadarItem:
+    return RadarItem(
+        source="generic_page",
+        title="Generic noise sample",
+        url="https://example.com/noise",
+        status=ItemStatus.SHOP_NEWS,
+        content=generic_noise_cleaned_content(text),
+    )
 
 
 def audit_stable_loop_evidence(

@@ -32,29 +32,55 @@ def notify_all(notifiers: list[Notifier], events: list[RadarEvent]) -> None:
 
 def format_event(event: RadarEvent) -> str:
     metadata = event.item.metadata or {}
-    brand = str(metadata.get("brand") or "-")
+    brand = str(metadata.get("brand") or event.source or "-")
     matched_keywords = metadata.get("matched_keywords") or []
     if isinstance(matched_keywords, list):
         matched_keyword_text = ", ".join(str(keyword) for keyword in matched_keywords[:8])
     else:
         matched_keyword_text = str(matched_keywords)
+    price = str(metadata.get("price") or "")
+    status = event.item.status.value
     lines = [
-        f"brand: {brand}",
-        f"source: {event.source}",
-        f"event_type: {event.event_type.value}",
-        f"status: {event.item.status.value}",
-        f"title: {event.item.title[:240]}",
-        f"published_at: {event.item.published_at or '-'}",
-        f"url: {event.item.url}",
+        f"{notification_kind(event)} · {brand}",
+        event.item.title[:240],
+        f"源头发布时间 / 掲載元日: {event.item.published_at or '-'}",
+        f"状态 / 状態: {status_label(status)}",
+        f"来源 / ソース: {event.source}",
     ]
+    if price:
+        lines.append(f"价格 / 価格: {price}")
     if matched_keyword_text:
-        lines.append(f"matched_keywords: {matched_keyword_text}")
+        lines.append(f"关键词 / キーワード: {matched_keyword_text}")
+    lines.append(f"链接 / URL: {event.item.url}")
     if event.event_type.value == "content_changed":
         lines.append(
-            "content_hash: "
+            "变化 / 変更: "
             f"{short_hash(event.previous_content_hash)} -> {short_hash(event.item.content_hash)}"
         )
     return "\n".join(lines)
+
+
+def notification_kind(event: RadarEvent) -> str:
+    status = event.item.status.value
+    if event.event_type.value == "content_changed":
+        return "ALERT"
+    return {
+        "new_arrival": "RELEASE",
+        "preorder": "RELEASE",
+        "restock": "RELEASE",
+        "shop_news": "DROP",
+        "sold_out": "ALERT",
+    }.get(status, "ALERT")
+
+
+def status_label(status: str) -> str:
+    return {
+        "new_arrival": "新作上架 / 新着",
+        "preorder": "预约 / 予約",
+        "restock": "再贩 / 再入荷",
+        "shop_news": "店铺上新 / ショップ更新",
+        "sold_out": "售罄 / 完売",
+    }.get(status, status)
 
 
 def short_hash(value: str) -> str:

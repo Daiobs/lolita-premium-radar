@@ -5,18 +5,15 @@ from pathlib import Path
 
 from lolita_radar.market import (
     append_market_observation,
-    build_brand_weight_profile,
     build_market_alerts,
     build_market_momentum,
-    build_opportunity_radar,
-    build_pattern_radar,
-    build_sample_collection_plan,
     load_market_observations,
     premium_band,
     premium_priority_score,
     premium_score_breakdown,
     summarize_market_observations,
 )
+from lolita_radar.trend import build_brand_signal_profile, build_pattern_trends, build_sample_backlog, build_trend_candidates
 
 
 class MarketTests(unittest.TestCase):
@@ -121,8 +118,8 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(premium_band(0), "near_retail")
         self.assertEqual(premium_band(-0.2), "discount")
 
-    def test_build_opportunity_radar_labels_next_action(self) -> None:
-        opportunities = build_opportunity_radar(
+    def test_build_trend_candidates_labels_next_action(self) -> None:
+        candidates = build_trend_candidates(
             brand_weights=[
                 {"alias": "AP", "name": "Angelic Pretty", "weight": 100, "tier": "core", "style": "sweet print"},
                 {"alias": "Meta", "name": "Metamorphose", "weight": 86, "tier": "watch", "style": "release/restock"},
@@ -133,14 +130,14 @@ class MarketTests(unittest.TestCase):
             ],
         )
 
-        self.assertEqual(opportunities[0]["alias"], "AP")
-        self.assertEqual(opportunities[0]["band"], "lead")
-        self.assertIn("score_breakdown", opportunities[0])
-        self.assertIn("strong_premium", opportunities[0]["reason_codes"])
-        self.assertEqual(opportunities[1]["band"], "watch")
+        self.assertEqual(candidates[0]["alias"], "AP")
+        self.assertEqual(candidates[0]["band"], "lead")
+        self.assertIn("score_breakdown", candidates[0])
+        self.assertIn("strong_premium", candidates[0]["reason_codes"])
+        self.assertEqual(candidates[1]["band"], "watch")
 
-    def test_build_brand_weight_profile_explains_weight_and_evidence(self) -> None:
-        profile = build_brand_weight_profile(
+    def test_build_brand_signal_profile_explains_weight_and_evidence(self) -> None:
+        profile = build_brand_signal_profile(
             brand_weights=[
                 {
                     "alias": "AP",
@@ -171,8 +168,8 @@ class MarketTests(unittest.TestCase):
         self.assertIn("score_breakdown", ap)
         self.assertEqual(meta["evidence_level"], "missing")
 
-    def test_build_sample_collection_plan_prioritizes_core_gaps(self) -> None:
-        plan = build_sample_collection_plan(
+    def test_build_sample_backlog_prioritizes_core_gaps(self) -> None:
+        backlog = build_sample_backlog(
             brand_weights=[
                 {
                     "alias": "AP",
@@ -189,13 +186,13 @@ class MarketTests(unittest.TestCase):
             ],
         )
 
-        self.assertEqual(plan[0]["alias"], "AP")
-        self.assertEqual(plan[0]["target_samples"], 5)
-        self.assertEqual(plan[0]["missing_samples"], 5)
-        self.assertEqual(plan[0]["urgency"], "critical")
-        self.assertEqual(plan[0]["next_action"], "seed")
-        self.assertEqual(plan[0]["market_keywords"], ["贝壳", "Holy Lantern"])
-        self.assertEqual(plan[0]["watch_urls"][0]["label"], "闲鱼")
+        self.assertEqual(backlog[0]["alias"], "AP")
+        self.assertEqual(backlog[0]["target_samples"], 5)
+        self.assertEqual(backlog[0]["missing_samples"], 5)
+        self.assertEqual(backlog[0]["urgency"], "critical")
+        self.assertEqual(backlog[0]["next_action"], "seed")
+        self.assertEqual(backlog[0]["market_keywords"], ["贝壳", "Holy Lantern"])
+        self.assertEqual(backlog[0]["watch_urls"][0]["label"], "闲鱼")
 
     def test_build_market_alerts_prioritizes_spikes_and_sample_gaps(self) -> None:
         summary = summarize_market_observations(
@@ -244,8 +241,8 @@ class MarketTests(unittest.TestCase):
         baby_gap = next(alert for alert in alerts["alerts"] if alert["kind"] == "sample_gap" and alert["alias"] == "BABY")
         self.assertEqual(baby_gap["url"], "https://example.com/baby-watch")
 
-    def test_build_pattern_radar_matches_market_keywords(self) -> None:
-        patterns = build_pattern_radar(
+    def test_build_pattern_trends_matches_market_keywords(self) -> None:
+        patterns = build_pattern_trends(
             brand_weights=[
                 {
                     "alias": "AP",

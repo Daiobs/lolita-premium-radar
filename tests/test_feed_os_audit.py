@@ -29,6 +29,40 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertIn("provide --loop-log", text)
             self.assertIn("pass | product_constraints", text)
 
+    def test_structure_audit_requires_key_module_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package_root = root / "src" / "lolita_radar"
+            for name in ("feed", "trend", "shop", "crawler", "core"):
+                (package_root / name).mkdir(parents=True)
+
+            check = audit_module.audit_required_modules(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn("missing product module files", check.detail)
+
+    def test_structure_audit_requires_trend_signal_exports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package_root = root / "src" / "lolita_radar"
+            files = (
+                package_root / "feed" / "builder.py",
+                package_root / "trend" / "engine.py",
+                package_root / "trend" / "signals.py",
+                package_root / "shop" / "model.py",
+                package_root / "crawler" / "health.py",
+                package_root / "core" / "audit.py",
+            )
+            for path in files:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("", encoding="utf-8")
+            (package_root / "trend" / "__init__.py").write_text("from .engine import build_trend_feed\n", encoding="utf-8")
+
+            check = audit_module.audit_required_modules(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn("trend module missing exports", check.detail)
+
     def test_product_constraint_audit_rejects_forbidden_direction_tokens(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -55,6 +89,38 @@ class FeedOsAuditTests(unittest.TestCase):
 
             self.assertEqual(check.status, "fail")
             self.assertIn(".github/workflows/check.yml", check.detail)
+
+    def test_product_constraint_audit_rejects_legacy_analysis_api_defs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package_root = root / "src" / "lolita_radar"
+            package_root.mkdir(parents=True)
+            (package_root / "brands.py").write_text("def build_focus_queue():\n    return []\n", encoding="utf-8")
+            (package_root / "market.py").write_text(
+                "def build_opportunity_radar():\n    return []\n"
+                "def build_trend_candidates():\n    return []\n",
+                encoding="utf-8",
+            )
+
+            check = audit_module.audit_product_constraints(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn("legacy analysis API", check.detail)
+
+    def test_product_constraint_audit_rejects_non_rule_trend_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            trend_root = root / "src" / "lolita_radar" / "trend"
+            trend_root.mkdir(parents=True)
+            (trend_root / "engine.py").write_text(
+                "import random\nfrom urllib.request import urlopen\n",
+                encoding="utf-8",
+            )
+
+            check = audit_module.audit_product_constraints(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn("rule-only trend boundary", check.detail)
 
     def test_home_feed_ui_audit_requires_image_card_tokens(self) -> None:
         original_html = audit_module.FEED_INDEX_HTML
@@ -96,6 +162,40 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("源头发布时间", check.detail)
         self.assertIn("`${localized} · ${row.title}`", check.detail)
+
+    def test_home_feed_ui_audit_rejects_title_link_lists(self) -> None:
+        original_html = audit_module.FEED_INDEX_HTML
+        try:
+            audit_module.FEED_INDEX_HTML = (
+                original_html
+                + '<ul class="title-list"><li><a href="/shell">Shell Garden JSK</a></li></ul>'
+            )
+
+            check = audit_module.audit_frontend_feed_os()
+        finally:
+            audit_module.FEED_INDEX_HTML = original_html
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("title-list UI markup", check.detail)
+
+    def test_notification_contract_audit_rejects_engineering_field_format(self) -> None:
+        original_format_event = audit_module.format_event
+        try:
+            audit_module.format_event = lambda _event: "\n".join(
+                [
+                    "brand: Angelic Pretty",
+                    "event_type: new_item",
+                    "published_at: 2026-06-30",
+                    "url: https://example.com/ap/shell",
+                ]
+            )
+
+            check = audit_module.audit_notification_contract()
+        finally:
+            audit_module.format_event = original_format_event
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("legacy notification fields", check.detail)
 
     def test_feed_contract_requires_release_visual_image(self) -> None:
         original_sample_home_feed = audit_module.sample_home_feed
@@ -224,6 +324,24 @@ class FeedOsAuditTests(unittest.TestCase):
         problem = audit_module.public_web_payload_problem(source)
 
         self.assertIn("mutation APIs", problem)
+
+    def test_generic_noise_audit_rejects_hash_changing_noise(self) -> None:
+        original_generic_noise_item = audit_module.generic_noise_item
+        try:
+            audit_module.generic_noise_item = lambda text: RadarItem(
+                source="generic_page",
+                title="Generic noise sample",
+                url="https://example.com/noise",
+                status=ItemStatus.SHOP_NEWS,
+                content=text,
+            )
+
+            check = audit_module.audit_generic_noise_controls()
+        finally:
+            audit_module.generic_noise_item = original_generic_noise_item
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("noise-only changes altered content hash", check.detail)
 
     def test_generic_shop_item_extraction_audit_checks_drop_card_context(self) -> None:
         check = audit_module.audit_generic_shop_item_extraction()
