@@ -407,7 +407,7 @@ def unique_drop_shop_count(rows: list[Any]) -> int:
 def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
     required_by_stream = {
         "release": ("brand", "title", "type", "time", "price", "url"),
-        "drop": ("shop", "item", "keywords", "urgency", "url"),
+        "drop": ("shop", "item", "keywords", "urgency", "reason_codes", "url"),
         "trend": ("brand", "trend", "confidence", "price_delta", "reason_codes"),
         "alert": ("feed_type", "kind", "title", "reason_codes", "url"),
     }
@@ -451,6 +451,13 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
         keywords = row.get("keywords")
         if not isinstance(keywords, list):
             return "stream drop row keywords is not a list"
+        reason_codes = row.get("reason_codes")
+        if not non_empty_list(reason_codes):
+            return "stream drop row reason_codes must be a non-empty list"
+        if not any(reason in {"new_shop_item", "keyword_match"} for reason in reason_codes):
+            return "stream drop row reason_codes must include a DROP trigger"
+        if keywords and "keyword_match" not in reason_codes:
+            return "stream drop row with keywords must include keyword_match"
         drop_context_problem = drop_card_context_problem(row)
         if drop_context_problem:
             return drop_context_problem

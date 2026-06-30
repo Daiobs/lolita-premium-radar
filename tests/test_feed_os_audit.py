@@ -882,7 +882,8 @@ class FeedOsAuditTests(unittest.TestCase):
                 "shop": "Proxy Shop",
                 "item": f"Shell Garden {index}",
                 "keywords": ["JSK"],
-                "urgency": "watch",
+                "urgency": "high",
+                "reason_codes": ["keyword_match", "kw:JSK"],
                 "url": f"https://example.com/drop/{index}",
                 "visual": self.visual("SH", "D", "shop_news"),
             }
@@ -1018,6 +1019,7 @@ class FeedOsAuditTests(unittest.TestCase):
                                 "item": "Shell Garden JSK",
                                 "keywords": ["JSK"],
                                 "urgency": "soon",
+                                "reason_codes": ["keyword_match", "kw:JSK"],
                                 "url": "https://example.com/drop",
                                 "visual": self.visual("SH", "D", "shop_news"),
                             }
@@ -1037,6 +1039,28 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "fail")
         self.assertIn("invalid urgency", check.detail)
+
+    def test_runtime_feed_audit_rejects_missing_drop_trigger_reason(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.drop_runtime_state(
+                {
+                    "reason_codes": ["generic_page"],
+                    "price": "¥12,800",
+                    "time": "2026-06-30",
+                    "time_kind": "published",
+                    "visual": self.visual("SH", "D", "shop_news"),
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("must include a DROP trigger", check.detail)
 
     def test_runtime_feed_audit_rejects_invalid_drop_context_values(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
@@ -1308,6 +1332,7 @@ sources:
             "item": "Shell Garden JSK",
             "keywords": ["JSK"],
             "urgency": "high",
+            "reason_codes": ["new_shop_item", "keyword_match", "kw:JSK"],
             "url": "https://example.com/drop",
             "visual": self.visual("SH", "D", "shop_news"),
             **overrides,
