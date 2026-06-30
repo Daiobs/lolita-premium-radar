@@ -413,6 +413,7 @@ def is_aatp_link(link: LinkCandidate) -> bool:
 
 def brand_metadata(brand: str, source: str, category: str, link: LinkCandidate) -> dict[str, str]:
     price = extract_price(link.text)
+    context = compact_context(link.context)
     metadata = {
         "brand": brand,
         "parser": source,
@@ -423,7 +424,16 @@ def brand_metadata(brand: str, source: str, category: str, link: LinkCandidate) 
         metadata["price"] = price
     if link.image_url:
         metadata["image_url"] = link.image_url
+    if context:
+        metadata["context"] = context
     return metadata
+
+
+def compact_context(text: str, limit: int = 240) -> str:
+    cleaned = clean_text(text)
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[:limit].rstrip() + "..."
 
 
 def infer_section(link: LinkCandidate) -> str:

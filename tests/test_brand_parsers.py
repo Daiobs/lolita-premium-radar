@@ -46,6 +46,24 @@ class BrandParserTests(unittest.TestCase):
         self.assertEqual(items[0].published_at, "2026-06-27")
         self.assertEqual(items[0].status, ItemStatus.PREORDER)
 
+    def test_brand_metadata_keeps_bounded_parent_context(self) -> None:
+        long_context = " ".join(["新作"] * 120)
+        html = f"""
+        <article>
+          <time datetime="2026-06-28"></time>
+          <span class="category">NEW ARRIVAL</span>
+          <p>{long_context}</p>
+          <a href="/Page/Feature/NewsDetail.aspx?news=long-context">Long Context JSK</a>
+        </article>
+        """
+
+        items = parse_angelic_pretty_news(html, "https://angelicpretty.com/Page/news/")
+
+        self.assertEqual(len(items), 1)
+        self.assertIn("2026-06-28", items[0].metadata["context"])
+        self.assertLessEqual(len(items[0].metadata["context"]), 243)
+        self.assertTrue(items[0].metadata["context"].endswith("..."))
+
     def test_angelic_pretty_replaces_image_path_titles(self) -> None:
         html = """
         <article>

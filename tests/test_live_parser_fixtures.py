@@ -30,6 +30,8 @@ class LiveParserFixtureTests(unittest.TestCase):
         self.assertEqual(items[0].metadata["section"], "dress")
         self.assertEqual(items[0].metadata["price"], "¥38,280")
         self.assertEqual(items[0].metadata["image_url"], "https://angelicpretty.com/Contents/Feature/shell-garden.webp")
+        self.assertIn("2026-06-20", items[0].metadata["context"])
+        self.assertIn("NEW ARRIVAL", items[0].metadata["context"])
         self.assert_no_navigation(items)
 
     def test_baby_fixture_maps_parent_context(self) -> None:
@@ -48,6 +50,8 @@ class LiveParserFixtureTests(unittest.TestCase):
         self.assertEqual(items[0].metadata["section"], "accessory")
         self.assertEqual(items[0].metadata["price"], "12,980円")
         self.assertEqual(items[0].metadata["image_url"], "https://www.babyssb.co.jp/uploads/usakumya.webp")
+        self.assertIn("2026/06/21", items[0].metadata["context"])
+        self.assertIn("ご予約", items[0].metadata["context"])
         self.assertEqual(items[1].metadata["brand"], "ALICE and the PIRATES")
         self.assert_no_navigation(items)
 
@@ -66,6 +70,8 @@ class LiveParserFixtureTests(unittest.TestCase):
         self.assertEqual(items[0].metadata["category"], "restock")
         self.assertEqual(items[0].metadata["section"], "dress")
         self.assertEqual(items[0].metadata["image_url"], "https://www.babyssb.co.jp/uploads/vampire-requiem.webp")
+        self.assertIn("2026-06-22", items[0].metadata["context"])
+        self.assertIn("再入荷", items[0].metadata["context"])
         self.assert_no_navigation(items)
 
     def test_moitie_fixture_maps_parent_context(self) -> None:
@@ -84,6 +90,8 @@ class LiveParserFixtureTests(unittest.TestCase):
         self.assertEqual(items[0].metadata["section"], "dress")
         self.assertEqual(items[0].metadata["price"], "￥49,500")
         self.assertEqual(items[0].metadata["image_url"], "https://moi-meme-moitie.com/cdn/shop/files/iron-gate.webp")
+        self.assertIn("2026.06.23", items[0].metadata["context"])
+        self.assertIn("New item", items[0].metadata["context"])
         self.assert_no_navigation(items)
 
     def assert_no_navigation(self, items) -> None:
