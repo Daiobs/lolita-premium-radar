@@ -54,6 +54,24 @@ class ShopModelTests(unittest.TestCase):
 
         self.assertIsNone(signal)
 
+    def test_build_drop_signal_ignores_page_level_generic_matches(self) -> None:
+        signal = build_drop_signal(
+            {
+                "source": "generic_page",
+                "event_type": "new_item",
+                "title": "Proxy watched page",
+                "url": "https://example.com/shop",
+                "metadata": {
+                    "shop": {"name": "Tokyo Proxy"},
+                    "item": {"title": "Proxy watched page", "url": "https://example.com/shop"},
+                    "page_level": True,
+                    "matched_keywords": ["JSK", "预约"],
+                },
+            }
+        )
+
+        self.assertIsNone(signal)
+
     def test_build_drop_signal_accepts_required_drop_keywords(self) -> None:
         required_keywords = ("JSK", "OP", "再贩", "预约", "尾款")
         for keyword in required_keywords:

@@ -73,6 +73,7 @@ class GenericPageAdapter(SourceAdapter):
         )
         if matches and not self.config.options.get("title_template"):
             title = f"{title}: {', '.join(matches[:5])}"
+        explicit_item_title = str(self.config.options.get("item_title") or "").strip()
         return [
             RadarItem(
                 source=self.config.name,
@@ -86,9 +87,10 @@ class GenericPageAdapter(SourceAdapter):
                         "url": self.config.url,
                     },
                     "item": {
-                        "title": str(self.config.options.get("item_title") or title),
+                        "title": explicit_item_title or title,
                         "url": self.config.url,
                     },
+                    "page_level": not bool(explicit_item_title),
                     "source_type": "generic_page",
                     "matched_keywords": matches,
                     "drop_keywords": matches,

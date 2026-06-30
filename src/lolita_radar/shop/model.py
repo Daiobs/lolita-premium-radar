@@ -53,6 +53,8 @@ def is_new_shop_item(row: dict[str, Any], metadata: dict[str, Any]) -> bool:
 
 
 def has_shop_item(metadata: dict[str, Any]) -> bool:
+    if bool(metadata.get("page_level")):
+        return False
     raw_item = metadata.get("item")
     if isinstance(raw_item, dict) and str(raw_item.get("title") or "").strip():
         return True

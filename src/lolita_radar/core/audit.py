@@ -771,6 +771,23 @@ def audit_shop_drop_model() -> FeedOsAuditCheck:
     )
     if page_level_signal is not None:
         return FeedOsAuditCheck("shop_drop_model", "fail", "page-level keyword match produced DROP without item")
+    page_level_item_signal = build_drop_signal(
+        {
+            "source": "generic_page",
+            "event_type": "new_item",
+            "status": "shop_news",
+            "title": "Whole shop page JSK 预约",
+            "url": "https://example.com/shop",
+            "metadata": {
+                "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+                "item": {"title": "Whole shop page JSK 预约", "url": "https://example.com/shop"},
+                "page_level": True,
+                "matched_keywords": ["JSK", "预约"],
+            },
+        }
+    )
+    if page_level_item_signal is not None:
+        return FeedOsAuditCheck("shop_drop_model", "fail", "page-level generic fallback produced DROP")
     return FeedOsAuditCheck(
         "shop_drop_model",
         "pass",
