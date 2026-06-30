@@ -16,6 +16,7 @@ class FeedOsTests(unittest.TestCase):
                 "url": "https://example.com/ap",
                 "published_at": "2026-06-30",
                 "created_at": "2026-06-30T10:00:00+00:00",
+                "metadata": {"price": "¥38,280"},
             },
             {
                 "source": "generic_page",
@@ -45,6 +46,9 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["summary"]["trends"], 1)
         self.assertGreaterEqual(feed["summary"]["alerts"], 2)
         self.assertEqual(feed["streams"]["release"][0]["brand"], "AP")
+        self.assertEqual(feed["streams"]["release"][0]["type"], "new_arrival")
+        self.assertEqual(feed["streams"]["release"][0]["price"], "¥38,280")
+        self.assertEqual(feed["streams"]["release"][0]["url"], "https://example.com/ap")
         self.assertEqual(feed["streams"]["drop"][0]["feed_type"], "drop")
         self.assertEqual(feed["streams"]["drop"][0]["shop"], "Tokyo Proxy")
         self.assertEqual(feed["streams"]["drop"][0]["item"], "Shell Garden JSK")
@@ -53,6 +57,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("keywords: JSK, 预约", feed["streams"]["drop"][0]["meta"])
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
         self.assertEqual(feed["streams"]["trend"][0]["kind"], "rising")
+        self.assertEqual(feed["streams"]["trend"][0]["trend"], "rising")
+        self.assertEqual(feed["streams"]["trend"][0]["price_delta"], 0.45)
         alert_titles = {row["title"] for row in feed["streams"]["alert"]}
         self.assertIn("Shell Garden JSK", alert_titles)
         self.assertNotIn("Proxy JSK 预约", alert_titles)
@@ -83,6 +89,7 @@ class FeedOsTests(unittest.TestCase):
         card = feed["streams"]["release"][0]
 
         self.assertEqual(card["title"], "2026.06.22 New Arrival OP")
+        self.assertEqual(card["type"], "new_arrival")
         self.assertEqual(card["time"], "2026-06-22")
         self.assertEqual(card["time_kind"], "published")
         self.assertEqual(feed["streams"]["release"][1]["time"], "2026-06-20")
@@ -466,6 +473,7 @@ class FeedOsTests(unittest.TestCase):
         )
 
         self.assertEqual(trends[0]["kind"], "rising")
+        self.assertEqual(trends[0]["trend"], "rising")
         self.assertEqual(trends[0]["url"], "https://www.goofish.com/search?q=AP")
         self.assertGreaterEqual(trends[0]["confidence"], 60)
         self.assertEqual(trends[0]["avg_premium_rate"], 0.5)

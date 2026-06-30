@@ -455,6 +455,9 @@ FEED_INDEX_HTML = r"""<!doctype html>
           published: "发布时间",
           seen: "检查时间",
           confidence: "信心",
+          price: "价格",
+          urgency: "紧急度",
+          priceDelta: "价差",
         },
         ja: {
           tagline: "ロリィタ発売情報と二次流通シグナル",
@@ -472,6 +475,9 @@ FEED_INDEX_HTML = r"""<!doctype html>
           published: "掲載日",
           seen: "確認時刻",
           confidence: "信頼度",
+          price: "価格",
+          urgency: "優先度",
+          priceDelta: "価格差",
         },
       };
       const FILTER_TEXT = {
@@ -554,10 +560,18 @@ FEED_INDEX_HTML = r"""<!doctype html>
       }
       function detailHtml(row) {
         const chips = [];
+        if (row.price) chips.push(`${TEXT[language].price} · ${row.price}`);
+        if (row.urgency) chips.push(`${TEXT[language].urgency} · ${row.urgency}`);
+        if (row.price_delta !== undefined) chips.push(`${TEXT[language].priceDelta} · ${formatPercent(row.price_delta)}`);
         if (row.status_label) chips.push(row.status_label);
         if (row.source_label) chips.push(row.source_label);
         if (row.time_kind) chips.push((TEXT[language][row.time_kind] || row.time_kind) + (row.time ? ` · ${displayDate(row.time)}` : ""));
-        return chips.length ? `<div class="detail-row">${chips.slice(0, 4).map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join("")}</div>` : "";
+        return chips.length ? `<div class="detail-row">${chips.slice(0, 5).map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join("")}</div>` : "";
+      }
+      function formatPercent(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return String(value ?? "");
+        return `${Math.round(number * 100)}%`;
       }
       function timeLabel(row) {
         if (!row.time) return "";

@@ -191,11 +191,13 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
     time_value, time_kind = feed_time(row)
     brand = brand_label(source, str(row.get("title") or ""))
     resolved_kind = kind or str(row.get("event_type") or status or feed_type)
+    price = metadata_text(row, "price")
     return {
         "id": f"{feed_type}:{source}:{row.get('item_hash') or row.get('url') or row.get('title')}",
         "feed_type": feed_type,
         "kind": resolved_kind,
         "kind_label": localized_kind_label(resolved_kind),
+        "type": status or resolved_kind,
         "brand": brand,
         "title": str(row.get("title") or ""),
         "title_zh": title_hint(str(row.get("title") or ""), status),
@@ -205,6 +207,7 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
         "url": str(row.get("url") or ""),
         "status": status,
         "status_label": localized_status_label(status),
+        "price": price,
         "source_label": source_label(source),
         "visual": visual_token(feed_type, brand, status),
     }
@@ -246,6 +249,14 @@ def matched_keywords(row: dict[str, Any]) -> list[str]:
         return [str(keyword) for keyword in raw if str(keyword)]
     text = str(raw)
     return [text] if text else []
+
+
+def metadata_text(row: dict[str, Any], key: str) -> str:
+    metadata = row.get("metadata")
+    if not isinstance(metadata, dict):
+        return ""
+    value = metadata.get(key)
+    return str(value).strip() if value not in (None, "") else ""
 
 
 def brand_label(source: str, title: str) -> str:

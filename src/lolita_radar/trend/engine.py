@@ -34,6 +34,7 @@ def build_trend_feed(
                 "id": f"trend:{alias}",
                 "feed_type": "trend",
                 "kind": direction,
+                "trend": direction,
                 "brand": alias,
                 "title": f"{alias} {direction}",
                 "meta": trend_meta(avg_premium, sample_count, reasons),
