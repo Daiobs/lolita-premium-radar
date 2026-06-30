@@ -262,7 +262,6 @@ def drop_card(row: dict[str, Any]) -> dict[str, Any]:
         part
         for part in [
             signal.shop.name,
-            f"urgency: {signal.urgency}",
             "keywords: " + ", ".join(keywords[:6]) if keywords else "",
         ]
         if part

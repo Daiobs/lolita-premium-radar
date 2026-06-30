@@ -509,6 +509,10 @@ FEED_INDEX_HTML = r"""<!doctype html>
         zh: { all: "全部 / All", release: "发售 / Release", drop: "上新 / Drop", trend: "趋势 / Trend", alert: "提醒 / Alert" },
         ja: { all: "すべて", release: "発売", drop: "入荷", trend: "トレンド", alert: "通知" },
       };
+      const URGENCY_TEXT = {
+        zh: { high: "高", medium: "中", low: "低" },
+        ja: { high: "高", medium: "中", low: "低" },
+      };
       let state = {};
       let activeFilter = "all";
       let language = localStorage.getItem("lolitaRadarLanguage") || "zh";
@@ -589,12 +593,16 @@ FEED_INDEX_HTML = r"""<!doctype html>
       function detailHtml(row) {
         const chips = [];
         if (row.price) chips.push(`${TEXT[language].price} · ${row.price}`);
-        if (row.urgency) chips.push(`${TEXT[language].urgency} · ${row.urgency}`);
+        if (row.urgency) chips.push(`${TEXT[language].urgency} · ${urgencyLabel(row.urgency)}`);
         if (row.price_delta !== undefined) chips.push(`${TEXT[language].priceDelta} · ${formatPercent(row.price_delta)}`);
         if (row.status_label) chips.push(row.status_label);
         if (row.source_label) chips.push(row.source_label);
         if (row.time_kind) chips.push((TEXT[language][row.time_kind] || row.time_kind) + (row.time ? ` · ${displayDate(row.time)}` : ""));
         return chips.length ? `<div class="detail-row">${chips.slice(0, 5).map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join("")}</div>` : "";
+      }
+      function urgencyLabel(value) {
+        const raw = String(value || "");
+        return URGENCY_TEXT[language]?.[raw] || raw;
       }
       function formatPercent(value) {
         const number = Number(value);

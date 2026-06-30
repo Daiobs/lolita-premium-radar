@@ -61,6 +61,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["drop"][0]["keywords"], ["JSK", "预约"])
         self.assertEqual(feed["streams"]["drop"][0]["visual"]["mark"], "D")
         self.assertIn("keywords: JSK, 预约", feed["streams"]["drop"][0]["meta"])
+        self.assertNotIn("urgency:", feed["streams"]["drop"][0]["meta"])
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
         self.assertEqual(feed["streams"]["trend"][0]["kind"], "rising")
         self.assertEqual(feed["streams"]["trend"][0]["trend"], "rising")

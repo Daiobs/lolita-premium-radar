@@ -131,6 +131,8 @@ sources:
         self.assertIn("detailHtml(row)", FEED_INDEX_HTML)
         self.assertIn("row.price", FEED_INDEX_HTML)
         self.assertIn("row.urgency", FEED_INDEX_HTML)
+        self.assertIn("URGENCY_TEXT", FEED_INDEX_HTML)
+        self.assertIn("urgencyLabel(row.urgency)", FEED_INDEX_HTML)
         self.assertIn("row.price_delta", FEED_INDEX_HTML)
         self.assertIn("formatPercent(row.price_delta)", FEED_INDEX_HTML)
         self.assertIn("timeLabel(row)", FEED_INDEX_HTML)
