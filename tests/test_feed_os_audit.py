@@ -942,6 +942,31 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("duplicate url: https://example.com/shell", check.detail)
 
+    def test_runtime_feed_audit_rejects_stream_over_thirty_rows(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"releases": 0, "drops": 0, "trends": 0, "alerts": 31, "shops": 0},
+                    "streams": {
+                        "release": [],
+                        "drop": [],
+                        "trend": [],
+                        "alert": [{} for _ in range(31)],
+                    },
+                    "all": [],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("state.feed.streams.alert has 31 rows", check.detail)
+
     def test_runtime_feed_audit_rejects_invalid_trend_values(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         try:

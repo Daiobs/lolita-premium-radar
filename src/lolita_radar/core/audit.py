@@ -289,6 +289,9 @@ def audit_runtime_feed_state(
         return FeedOsAuditCheck("runtime_feed_state", "fail", "state.feed.all is not a list")
     if len(all_rows) > 30:
         return FeedOsAuditCheck("runtime_feed_state", "fail", f"state.feed.all has {len(all_rows)} rows")
+    stream_limit_problem = feed_stream_limit_problem(streams)
+    if stream_limit_problem:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", stream_limit_problem)
     ordering_problem = feed_ordering_problem(all_rows)
     if ordering_problem:
         return FeedOsAuditCheck("runtime_feed_state", "fail", ordering_problem)
@@ -332,6 +335,13 @@ def runtime_feed_payload_problem(
         return "api feed payload leaks full state keys: " + ", ".join(leaked)
     if "counts" not in payload:
         return "api feed payload missing counts"
+    return ""
+
+
+def feed_stream_limit_problem(streams: dict[str, Any]) -> str:
+    for name, rows in streams.items():
+        if isinstance(rows, list) and len(rows) > 30:
+            return f"state.feed.streams.{name} has {len(rows)} rows"
     return ""
 
 

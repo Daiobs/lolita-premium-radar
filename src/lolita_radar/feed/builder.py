@@ -137,7 +137,7 @@ def alert_feed(
                     "visual": visual_token("alert", label or "Source", status),
                 }
             )
-    return unique_cards(sort_cards(alerts))[:40]
+    return unique_cards(sort_cards(alerts))[:HOME_LINK_LIMIT]
 
 
 def latest_source_runs_by_source(source_runs: list[dict[str, Any]]) -> list[dict[str, Any]]:

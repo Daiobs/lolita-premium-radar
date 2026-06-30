@@ -342,6 +342,29 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[0]["kind"], "sample_gap")
         self.assertEqual(alerts[0]["brand"], "BABY")
 
+    def test_alert_feed_is_limited_to_thirty_rows(self) -> None:
+        source_runs = [
+            {
+                "source": f"source_{index:02d}",
+                "status": "failed",
+                "ok": False,
+                "error_rate": 1.0,
+                "checked_at": f"2026-06-30T10:{index % 60:02d}:00+00:00",
+                "error_message": "timeout",
+            }
+            for index in range(35)
+        ]
+        source_urls = {
+            f"source_{index:02d}": f"https://example.com/source/{index:02d}"
+            for index in range(35)
+        }
+
+        feed = build_home_feed([], [], {"brands": []}, {"alerts": []}, [], source_runs, source_urls=source_urls)
+        alerts = feed["streams"]["alert"]
+
+        self.assertEqual(len(alerts), 30)
+        self.assertEqual(len({row["url"] for row in alerts}), 30)
+
     def test_alert_feed_keeps_release_events_out(self) -> None:
         noisy_events = [
             {
