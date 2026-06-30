@@ -380,6 +380,9 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
         keywords = row.get("keywords")
         if not isinstance(keywords, list):
             return "stream drop row keywords is not a list"
+        drop_context_problem = drop_card_context_problem(row)
+        if drop_context_problem:
+            return drop_context_problem
     for row in feed_rows(streams, "trend"):
         trend = str(row.get("trend") or "")
         if trend not in {"rising", "cooling", "stable"}:
@@ -394,6 +397,21 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
     for row in feed_rows(streams, "alert"):
         if not non_empty_list(row.get("reason_codes")):
             return "stream alert row reason_codes must be a non-empty list"
+    return ""
+
+
+def drop_card_context_problem(row: dict[str, Any]) -> str:
+    price = row.get("price")
+    if price not in (None, "") and not isinstance(price, str):
+        return f"stream drop row has invalid price: {price}"
+    time_value = str(row.get("time") or "")
+    if time_value and row.get("time_kind") != "published":
+        return f"stream drop row has invalid time_kind: {row.get('time_kind')}"
+    visual = row.get("visual")
+    if isinstance(visual, dict):
+        image_url = str(visual.get("image_url") or "")
+        if image_url and not image_url.startswith(("http://", "https://")):
+            return f"stream drop row has invalid image_url: {image_url}"
     return ""
 
 

@@ -624,6 +624,69 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("invalid urgency", check.detail)
 
+    def test_runtime_feed_audit_rejects_invalid_drop_context_values(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.drop_runtime_state(
+                {
+                    "price": 12800,
+                    "time": "2026-06-30",
+                    "time_kind": "seen",
+                    "visual": self.visual("SH", "D", "shop_news"),
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("invalid price", check.detail)
+
+    def test_runtime_feed_audit_rejects_invalid_drop_image_url(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.drop_runtime_state(
+                {
+                    "price": "¥12,800",
+                    "time": "2026-06-30",
+                    "time_kind": "published",
+                    "visual": {"initials": "SH", "mark": "D", "tone": "shop_news", "image_url": "/relative.webp"},
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("invalid image_url", check.detail)
+
+    def test_runtime_feed_audit_rejects_invalid_drop_time_kind(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.drop_runtime_state(
+                {
+                    "price": "¥12,800",
+                    "time": "2026-06-30",
+                    "time_kind": "seen",
+                    "visual": self.visual("SH", "D", "shop_news"),
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("invalid time_kind", check.detail)
+
     def test_runtime_feed_payload_audit_rejects_full_state_leak(self) -> None:
         original_get_feed_payload = audit_module.get_feed_payload
         expected_feed = {
@@ -781,6 +844,25 @@ sources:
                     "alert": [],
                 },
                 "all": [release_row],
+            }
+        }
+
+    def drop_runtime_state(self, overrides: dict) -> dict:
+        row = {
+            "feed_type": "drop",
+            "shop": "Tokyo Proxy",
+            "item": "Shell Garden JSK",
+            "keywords": ["JSK"],
+            "urgency": "high",
+            "url": "https://example.com/drop",
+            "visual": self.visual("SH", "D", "shop_news"),
+            **overrides,
+        }
+        return {
+            "feed": {
+                "summary": {"drops": 0, "shops": 1, "trends": 0, "alerts": 0},
+                "streams": {"release": [], "drop": [row], "trend": [], "alert": []},
+                "all": [row],
             }
         }
 
