@@ -175,6 +175,8 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "REASON_TEXT",
         "reasonLabel",
         "metaHtml",
+        "row.keywords",
+        "keywords",
         "sampleCount",
         "visual.image_url",
         'loading="lazy"',

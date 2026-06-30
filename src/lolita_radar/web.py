@@ -482,6 +482,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           confidence: "信心",
           price: "价格",
           urgency: "紧急度",
+          keywords: "关键词",
           sampleCount: "样本",
           priceDelta: "价差",
         },
@@ -503,6 +504,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           confidence: "信頼度",
           price: "価格",
           urgency: "優先度",
+          keywords: "キーワード",
           sampleCount: "サンプル",
           priceDelta: "価格差",
         },
@@ -674,6 +676,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         const chips = [];
         if (row.price) chips.push(`${TEXT[language].price} · ${row.price}`);
         if (row.urgency) chips.push(`${TEXT[language].urgency} · ${urgencyLabel(row.urgency)}`);
+        if (Array.isArray(row.keywords) && row.keywords.length) chips.push(`${TEXT[language].keywords} · ${row.keywords.slice(0, 6).join(", ")}`);
         if (row.price_delta !== undefined) chips.push(`${TEXT[language].priceDelta} · ${formatPercent(row.price_delta)}`);
         if (row.sample_count !== undefined) chips.push(`${TEXT[language].sampleCount} · ${row.sample_count}`);
         if (row.status) chips.push(statusLabel(row.status));

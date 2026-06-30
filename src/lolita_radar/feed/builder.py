@@ -258,14 +258,7 @@ def drop_card(row: dict[str, Any]) -> dict[str, Any]:
     card["url"] = signal.item.url or signal.shop.url or card.get("url", "")
     card["keywords"] = keywords
     card["urgency"] = signal.urgency
-    card["meta"] = " · ".join(
-        part
-        for part in [
-            signal.shop.name,
-            "keywords: " + ", ".join(keywords[:6]) if keywords else "",
-        ]
-        if part
-    )
+    card["meta"] = signal.shop.name
     card["reason_codes"] = list(signal.reason_codes)
     return card
 
