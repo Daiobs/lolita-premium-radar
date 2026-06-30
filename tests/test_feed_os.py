@@ -558,10 +558,11 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts, [])
 
     def test_trend_engine_outputs_direction_confidence_and_reasons(self) -> None:
+        current_year = datetime.now(timezone.utc).year
         trends = build_trend_feed(
             {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]},
             [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
-            [{"source": "angelic_pretty", "status": "new_arrival"}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
             brand_weights=[
                 {
                     "alias": "AP",
@@ -628,10 +629,11 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("sample_gap", trends[0]["reason_codes"])
 
     def test_trend_engine_normalizes_brand_aliases_for_watch_urls_and_momentum(self) -> None:
+        current_year = datetime.now(timezone.utc).year
         trends = build_trend_feed(
             {"brands": [{"brand_alias": " ap ", "sample_count": 3, "avg_premium_rate": 0.4}]},
             [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
-            [{"source": "angelic_pretty", "status": "new_arrival"}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
             brand_weights=[
                 {
                     "alias": "AP",
@@ -670,6 +672,26 @@ class FeedOsTests(unittest.TestCase):
         self.assertNotIn("release_activity", stale_trends[0]["reason_codes"])
         self.assertIn("release_activity", current_trends[0]["reason_codes"])
         self.assertGreater(current_trends[0]["confidence"], stale_trends[0]["confidence"])
+
+    def test_trend_engine_ignores_release_events_without_source_publish_time(self) -> None:
+        current_year = datetime.now(timezone.utc).year
+        base_market = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.4}]}
+        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": f"{current_year}-06-30"}]
+
+        missing_date_trends = build_trend_feed(
+            base_market,
+            momentum,
+            [{"source": "angelic_pretty", "status": "new_arrival"}],
+        )
+        current_trends = build_trend_feed(
+            base_market,
+            momentum,
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+        )
+
+        self.assertNotIn("release_activity", missing_date_trends[0]["reason_codes"])
+        self.assertIn("release_activity", current_trends[0]["reason_codes"])
+        self.assertGreater(current_trends[0]["confidence"], missing_date_trends[0]["confidence"])
 
     def test_crawler_health_marks_failed_and_degraded(self) -> None:
         rows = enrich_source_runs(

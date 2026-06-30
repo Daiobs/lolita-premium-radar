@@ -134,7 +134,7 @@ def is_current_release_event(event: dict[str, Any]) -> bool:
     published_at = str(event.get("published_at") or "")
     if len(published_at) >= 4 and published_at[:4].isdigit():
         return int(published_at[:4]) >= current_year()
-    return True
+    return False
 
 
 def current_year() -> int:

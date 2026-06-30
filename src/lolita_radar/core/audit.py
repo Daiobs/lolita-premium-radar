@@ -712,10 +712,24 @@ def audit_trend_engine() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("trend_engine", "fail", "stale release events affected trend reasons")
     if int(ap_trend.get("confidence") or 0) <= int(stale_ap.get("confidence") or 0):
         return FeedOsAuditCheck("trend_engine", "fail", "current release events did not outrank stale release confidence")
+    missing_date_trends = build_trend_feed(
+        market_summary,
+        momentum,
+        [{"source": "angelic_pretty", "status": "new_arrival"}],
+        brand_weights=[{"alias": "BABY"}],
+    )
+    missing_date_by_brand = {str(trend.get("brand") or ""): trend for trend in missing_date_trends}
+    missing_date_ap = missing_date_by_brand.get("AP")
+    if not missing_date_ap:
+        return FeedOsAuditCheck("trend_engine", "fail", "missing-date release check missing AP trend")
+    if "release_activity" in missing_date_ap.get("reason_codes", []):
+        return FeedOsAuditCheck("trend_engine", "fail", "release events without source publish time affected trend reasons")
+    if int(ap_trend.get("confidence") or 0) <= int(missing_date_ap.get("confidence") or 0):
+        return FeedOsAuditCheck("trend_engine", "fail", "current release events did not outrank missing-date release confidence")
     return FeedOsAuditCheck(
         "trend_engine",
         "pass",
-        "rule-based rising/cooling/stable output with confidence, current release activity, stale release filtering, and reasons",
+        "rule-based rising/cooling/stable output with confidence, current release activity, stale release filtering, missing-date release filtering, and reasons",
     )
 
 
