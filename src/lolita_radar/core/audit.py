@@ -541,6 +541,9 @@ def source_health_alert_problem(row: dict[str, Any]) -> str:
     reason_codes = row.get("reason_codes")
     if not (isinstance(reason_codes, list) and "source_health" in reason_codes):
         return ""
+    kind = str(row.get("kind") or "")
+    if kind not in {"failed", "degraded"}:
+        return f"stream alert source_health row has invalid kind: {kind}"
     missing = [key for key in ("error_rate", "latency_ms", "item_count") if key not in row]
     if missing:
         return "stream alert source_health row missing metrics: " + ", ".join(missing)
