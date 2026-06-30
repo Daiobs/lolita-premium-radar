@@ -250,8 +250,9 @@ def verify_check_loop(
     results = parse_check_loop_log(log_path)
     failed_cycles = tuple(result.cycle for result in results if not result.ok)
     sources = tuple(source.name for source in select_sources(load_sources(config_path), None))
-    source_cycle_counts = count_source_runs(db_path, sources)
-    unhealthy_source_runs = count_unhealthy_source_runs(db_path, sources)
+    source_runs = recent_source_runs_by_source(db_path, sources, expected)
+    source_cycle_counts = {source: len(source_runs.get(source, [])) for source in sources}
+    unhealthy_source_runs = count_unhealthy_source_runs(source_runs)
     exit_code = read_exit_code(exit_path) if exit_path else None
     enough_log_cycles = len(results) >= expected
     enough_source_runs = all(source_cycle_counts.get(source, 0) >= expected for source in sources)
@@ -295,45 +296,43 @@ def parse_check_loop_log(path: Path) -> list[CheckLoopResult]:
     return results
 
 
-def count_source_runs(db_path: Path, sources: tuple[str, ...]) -> dict[str, int]:
+def recent_source_runs_by_source(
+    db_path: Path,
+    sources: tuple[str, ...],
+    limit_per_source: int,
+) -> dict[str, list[dict[str, object]]]:
     connection = connect(db_path)
     try:
-        counts = {source: 0 for source in sources}
-        rows = connection.execute(
-            """
-            SELECT source, COUNT(*) AS count
-            FROM source_runs
-            GROUP BY source
-            """
-        ).fetchall()
-        for row in rows:
-            source = str(row["source"])
-            if source in counts:
-                counts[source] = int(row["count"])
-        return counts
+        runs: dict[str, list[dict[str, object]]] = {source: [] for source in sources}
+        limit = max(1, int(limit_per_source))
+        for source in sources:
+            rows = connection.execute(
+                """
+                SELECT source, checked_at, ok, status, error_rate, item_count, event_count, error_message
+                FROM source_runs
+                WHERE source = ?
+                ORDER BY checked_at DESC, id DESC
+                LIMIT ?
+                """,
+                (source, limit),
+            ).fetchall()
+            runs[source] = [{**dict(row), "ok": bool(row["ok"])} for row in rows]
+        return runs
     finally:
         connection.close()
 
 
-def count_unhealthy_source_runs(db_path: Path, sources: tuple[str, ...]) -> dict[str, int]:
-    connection = connect(db_path)
-    try:
-        counts = {source: 0 for source in sources}
-        rows = connection.execute(
-            """
-            SELECT source, COUNT(*) AS count
-            FROM source_runs
-            WHERE ok = 0 OR status IN ('failed', 'degraded')
-            GROUP BY source
-            """
-        ).fetchall()
-        for row in rows:
-            source = str(row["source"])
-            if source in counts:
-                counts[source] = int(row["count"])
-        return {source: count for source, count in counts.items() if count > 0}
-    finally:
-        connection.close()
+def count_unhealthy_source_runs(source_runs: dict[str, list[dict[str, object]]]) -> dict[str, int]:
+    counts = {}
+    for source, runs in source_runs.items():
+        count = sum(1 for run in runs if is_unhealthy_source_run(run))
+        if count:
+            counts[source] = count
+    return counts
+
+
+def is_unhealthy_source_run(run: dict[str, object]) -> bool:
+    return not bool(run.get("ok")) or str(run.get("status") or "") in {"failed", "degraded"}
 
 
 def read_exit_code(path: Path | None) -> int | None:
