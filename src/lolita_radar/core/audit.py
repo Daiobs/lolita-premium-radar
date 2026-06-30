@@ -178,6 +178,7 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "row.keywords",
         "keywords",
         "sampleCount",
+        "premiumRate",
         "errorRate",
         "latency",
         "itemCount",

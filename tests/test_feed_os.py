@@ -247,9 +247,12 @@ class FeedOsTests(unittest.TestCase):
 
         self.assertEqual(alerts[0]["kind"], "high_premium")
         self.assertEqual(alerts[0]["title"], "Shell Garden JSK")
-        self.assertIn("82% premium", alerts[0]["meta"])
+        self.assertEqual(alerts[0]["meta"], "")
+        self.assertEqual(alerts[0]["premium_rate"], 0.82)
+        self.assertNotIn("% premium", alerts[0]["meta"])
         self.assertIn("sample_spike", alerts[0]["reason_codes"])
         self.assertEqual(alerts[1]["kind"], "high_premium")
+        self.assertEqual(alerts[1]["premium_rate"], 0.55)
         self.assertIn("brand_heat", alerts[1]["reason_codes"])
         self.assertEqual(alerts[2]["kind"], "sample_gap")
         self.assertIn("sample_gap", alerts[2]["reason_codes"])

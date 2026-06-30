@@ -484,6 +484,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           urgency: "紧急度",
           keywords: "关键词",
           sampleCount: "样本",
+          premiumRate: "溢价",
           errorRate: "错误率",
           latency: "延迟",
           itemCount: "条目",
@@ -509,6 +510,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           urgency: "優先度",
           keywords: "キーワード",
           sampleCount: "サンプル",
+          premiumRate: "プレミア",
           errorRate: "エラー率",
           latency: "遅延",
           itemCount: "件数",
@@ -572,7 +574,11 @@ FEED_INDEX_HTML = r"""<!doctype html>
           keyword_match: "关键词命中",
           source_health: "来源健康",
           high_premium: "高溢价",
+          sample_spike: "样本溢价",
+          brand_heat: "品牌热度",
           sample_gap: "样本不足",
+          critical: "重点关注",
+          watch: "观察",
           sample_supported: "样本支持",
           premium_rising: "溢价上升",
           premium_cooling: "溢价降温",
@@ -592,7 +598,11 @@ FEED_INDEX_HTML = r"""<!doctype html>
           keyword_match: "キーワード一致",
           source_health: "取得状態",
           high_premium: "高プレミア",
+          sample_spike: "サンプル高騰",
+          brand_heat: "ブランド注目",
           sample_gap: "サンプル不足",
+          critical: "重点",
+          watch: "ウォッチ",
           sample_supported: "サンプルあり",
           premium_rising: "プレミア上昇",
           premium_cooling: "プレミア低下",
@@ -683,6 +693,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         if (row.price) chips.push(`${TEXT[language].price} · ${row.price}`);
         if (row.urgency) chips.push(`${TEXT[language].urgency} · ${urgencyLabel(row.urgency)}`);
         if (Array.isArray(row.keywords) && row.keywords.length) chips.push(`${TEXT[language].keywords} · ${row.keywords.slice(0, 6).join(", ")}`);
+        if (row.premium_rate !== undefined && row.premium_rate !== "") chips.push(`${TEXT[language].premiumRate} · ${formatPercent(row.premium_rate)}`);
         if (row.price_delta !== undefined) chips.push(`${TEXT[language].priceDelta} · ${formatPercent(row.price_delta)}`);
         if (row.sample_count !== undefined) chips.push(`${TEXT[language].sampleCount} · ${row.sample_count}`);
         if (row.error_rate !== undefined) chips.push(`${TEXT[language].errorRate} · ${formatPercent(row.error_rate)}`);

@@ -117,6 +117,7 @@ def alert_feed(
                 "brand": str(alert.get("alias") or ""),
                 "title": str(alert.get("item_name") or alert.get("title") or alert.get("reason") or "Market alert"),
                 "meta": market_alert_meta(alert),
+                "premium_rate": alert.get("premium_rate", ""),
                 "time": "",
                 "url": str(alert.get("url") or ""),
                 "reason_codes": market_alert_reasons(alert, kind),
@@ -176,14 +177,7 @@ def market_alert_kind(alert: dict[str, Any]) -> str:
 
 
 def market_alert_meta(alert: dict[str, Any]) -> str:
-    parts = [str(alert.get("reason") or alert.get("severity") or "")]
-    premium_rate = alert.get("premium_rate")
-    if premium_rate not in (None, ""):
-        try:
-            parts.append(f"{round(float(premium_rate) * 100)}% premium")
-        except (TypeError, ValueError):
-            parts.append(f"{premium_rate} premium")
-    return " · ".join(part for part in parts if part)
+    return ""
 
 
 def market_alert_reasons(alert: dict[str, Any], kind: str) -> list[str]:
