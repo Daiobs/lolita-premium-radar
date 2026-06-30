@@ -11,6 +11,12 @@ class ReadmeTests(unittest.TestCase):
         self.assertIn("--exit-file .data/soak/lolita-radar-os-24h.exit", readme)
         self.assertIn("--expected-cycles 288", readme)
         self.assertIn("verify-loop \\", readme)
+        self.assertIn("cycle | checked_at | ok | event_count | error_message", readme)
+        self.assertIn("source runs must fall inside that same window", readme)
+        self.assertIn("Duplicate cycle", readme)
+        self.assertIn("cycle `checked_at` values outside the evidence window", readme)
+        self.assertIn("duplicate_cycles", readme)
+        self.assertIn("cycle_time_mismatches", readme)
         self.assertIn("pull_request", readme)
         self.assertIn("Feed OS audit JSON", readme)
 
