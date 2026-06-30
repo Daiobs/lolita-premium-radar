@@ -393,6 +393,64 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("invalid urgency", check.detail)
 
+    def test_runtime_feed_payload_audit_rejects_full_state_leak(self) -> None:
+        original_get_feed_payload = audit_module.get_feed_payload
+        expected_feed = {
+            "summary": {"drops": 0, "shops": 0, "trends": 0, "alerts": 0},
+            "streams": {"release": [], "drop": [], "trend": [], "alert": []},
+            "all": [],
+        }
+        try:
+            audit_module.get_feed_payload = lambda **_kwargs: {
+                "ok": True,
+                "counts": {},
+                "feed": expected_feed,
+                "items": [],
+                "events": [],
+            }
+            problem = audit_module.runtime_feed_payload_problem(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+                brands_path=None,
+                market_path=None,
+                expected_feed=expected_feed,
+            )
+        finally:
+            audit_module.get_feed_payload = original_get_feed_payload
+
+        self.assertIn("leaks full state keys", problem)
+        self.assertIn("items", problem)
+        self.assertIn("events", problem)
+
+    def test_runtime_feed_payload_audit_rejects_feed_mismatch(self) -> None:
+        original_get_feed_payload = audit_module.get_feed_payload
+        expected_feed = {
+            "summary": {"drops": 0, "shops": 0, "trends": 0, "alerts": 0},
+            "streams": {"release": [], "drop": [], "trend": [], "alert": []},
+            "all": [],
+        }
+        try:
+            audit_module.get_feed_payload = lambda **_kwargs: {
+                "ok": True,
+                "counts": {},
+                "feed": {
+                    "summary": {"drops": 1, "shops": 0, "trends": 0, "alerts": 0},
+                    "streams": {"release": [], "drop": [], "trend": [], "alert": []},
+                    "all": [],
+                },
+            }
+            problem = audit_module.runtime_feed_payload_problem(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+                brands_path=None,
+                market_path=None,
+                expected_feed=expected_feed,
+            )
+        finally:
+            audit_module.get_feed_payload = original_get_feed_payload
+
+        self.assertIn("does not match", problem)
+
     def test_cli_audit_returns_nonzero_when_evidence_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

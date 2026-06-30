@@ -13,7 +13,7 @@ from ..runner import verify_check_loop
 from ..shop import build_drop_signal
 from ..storage import connect
 from ..trend import build_trend_feed
-from ..web import FEED_INDEX_HTML, get_feed_state
+from ..web import FEED_INDEX_HTML, get_feed_payload, get_feed_state
 
 
 AUDIT_STATUSES = {"pass", "fail", "missing"}
@@ -256,8 +256,38 @@ def audit_runtime_feed_state(
     noise_problem = runtime_feed_noise_problem(streams)
     if noise_problem:
         return FeedOsAuditCheck("runtime_feed_state", "fail", noise_problem)
+    payload_problem = runtime_feed_payload_problem(config_path, db_path, brands_path, market_path, feed)
+    if payload_problem:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", payload_problem)
     counts = ", ".join(f"{name}={len(streams.get(name, []))}" for name in expected_streams)
     return FeedOsAuditCheck("runtime_feed_state", "pass", f"current config/db builds Feed OS streams ({counts})")
+
+
+def runtime_feed_payload_problem(
+    config_path: Path,
+    db_path: Path,
+    brands_path: Path | None,
+    market_path: Path | None,
+    expected_feed: dict[str, Any],
+) -> str:
+    try:
+        payload = get_feed_payload(
+            config_path=config_path,
+            db_path=db_path,
+            brands_path=brands_path,
+            market_path=market_path,
+        )
+    except Exception as exc:
+        return f"get_feed_payload failed: {exc}"
+    if payload.get("feed") != expected_feed:
+        return "api feed payload does not match runtime Feed OS state"
+    forbidden_payload_keys = ("items", "events", "market", "source_runs", "brand_weights")
+    leaked = [key for key in forbidden_payload_keys if key in payload]
+    if leaked:
+        return "api feed payload leaks full state keys: " + ", ".join(leaked)
+    if "counts" not in payload:
+        return "api feed payload missing counts"
+    return ""
 
 
 def feed_ordering_problem(rows: list[dict[str, Any]]) -> str:
