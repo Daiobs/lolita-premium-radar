@@ -9,6 +9,7 @@ from typing import Callable
 
 from .brands import default_brand_weights_path
 from .config import default_config_path
+from .core import FeedOsAudit, audit_feed_os
 from .market import default_market_observations_path
 from .runner import (
     CheckLoopResult,
@@ -93,6 +94,13 @@ def main(argv: list[str] | None = None) -> int:
     verify_loop_parser.add_argument("--exit-file", type=Path)
     verify_loop_parser.add_argument("--expected-cycles", type=int, default=DEFAULT_LOOP_CYCLES)
 
+    audit_parser = subparsers.add_parser("audit-feed-os", help="audit Feed OS product acceptance evidence")
+    audit_parser.add_argument("--config", type=Path, default=default_config_path())
+    audit_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+    audit_parser.add_argument("--loop-log", type=Path)
+    audit_parser.add_argument("--loop-exit-file", type=Path)
+    audit_parser.add_argument("--expected-cycles", type=int, default=DEFAULT_LOOP_CYCLES)
+
     web_parser = subparsers.add_parser("web", help="start the local feed app")
     web_parser.add_argument("--config", type=Path, default=default_config_path())
     web_parser.add_argument("--brands", type=Path, default=default_brand_weights_path())
@@ -167,6 +175,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(format_loop_verification(verification))
         return 0 if verification.complete else 1
+    if args.command == "audit-feed-os":
+        audit = audit_feed_os(
+            config_path=args.config,
+            db_path=args.db,
+            loop_log_path=args.loop_log,
+            loop_exit_path=args.loop_exit_file,
+            expected_cycles=args.expected_cycles,
+        )
+        print(format_feed_os_audit(audit))
+        return 0 if audit.complete else 1
     if args.command == "web":
         return run_web(
             config_path=args.config,
@@ -337,6 +355,20 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
                 ]
             )
         )
+    return "\n".join(lines)
+
+
+def format_feed_os_audit(audit: FeedOsAudit) -> str:
+    counts = audit.counts()
+    lines = [
+        f"status: {audit.status}",
+        f"passed: {counts.get('pass', 0)}",
+        f"failed: {counts.get('fail', 0)}",
+        f"missing: {counts.get('missing', 0)}",
+        "checks:",
+    ]
+    for check in audit.checks:
+        lines.append(f"  - {check.status} | {check.name} | {check.detail}")
     return "\n".join(lines)
 
 

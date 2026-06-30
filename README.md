@@ -195,6 +195,21 @@ coverage, the exit file is `0`, every enabled source has enough recent
 This keeps the 24-hour stability check auditable and prevents old failures or
 duplicate log lines from producing a false result.
 
+Audit the Feed OS acceptance evidence:
+
+```bash
+python -m lolita_radar.cli audit-feed-os \
+  --loop-log .data/soak/lolita-radar-os-24h.log \
+  --loop-exit-file .data/soak/lolita-radar-os-24h.exit \
+  --expected-cycles 288
+```
+
+`audit-feed-os` checks the current product contract: module structure, Feed OS
+UI tokens, Release/Drop/Trend/Alert fields, rule-based Trend output, Shop DROP
+signals, crawler health fields, GenericPage noise controls, and optional loop
+evidence. Without a loop log it reports the stability evidence as `missing`
+instead of treating the system as fully accepted.
+
 Start the local feed app:
 
 ```bash
