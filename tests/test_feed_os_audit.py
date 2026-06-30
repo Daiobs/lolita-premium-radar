@@ -27,6 +27,19 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertIn("status: incomplete", text)
             self.assertIn("missing | stable_loop_evidence", text)
             self.assertIn("provide --loop-log", text)
+            self.assertIn("pass | product_constraints", text)
+
+    def test_product_constraint_audit_rejects_forbidden_direction_tokens(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package_root = root / "src" / "lolita_radar"
+            package_root.mkdir(parents=True)
+            (package_root / "bad.py").write_text("openai = True\ncheckout_submit = True\n", encoding="utf-8")
+
+            check = audit_module.audit_product_constraints(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn("forbidden product direction", check.detail)
 
     def test_audit_passes_with_complete_loop_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -75,6 +75,7 @@ def audit_feed_os(
     root = project_root or Path.cwd()
     checks = [
         audit_required_modules(root),
+        audit_product_constraints(root),
         audit_frontend_feed_os(),
         audit_feed_contract(),
         audit_runtime_feed_state(config_path, db_path, brands_path, market_path),
@@ -101,6 +102,52 @@ def audit_required_modules(project_root: Path) -> FeedOsAuditCheck:
     if missing:
         return FeedOsAuditCheck("structure", "fail", "missing product modules: " + ", ".join(missing))
     return FeedOsAuditCheck("structure", "pass", "feed/trend/shop/crawler/core modules exist")
+
+
+def audit_product_constraints(project_root: Path) -> FeedOsAuditCheck:
+    findings = forbidden_product_findings(project_root)
+    if findings:
+        return FeedOsAuditCheck("product_constraints", "fail", "forbidden product direction found: " + findings[0])
+    return FeedOsAuditCheck("product_constraints", "pass", "no blocked product-direction or purchase-automation tokens found")
+
+
+def forbidden_product_findings(project_root: Path) -> list[str]:
+    roots = [
+        project_root / "src" / "lolita_radar",
+        project_root / "pyproject.toml",
+    ]
+    tokens = forbidden_product_tokens()
+    findings = []
+    for root in roots:
+        paths = [root] if root.is_file() else sorted(root.rglob("*.py")) if root.exists() else []
+        for path in paths:
+            text = path.read_text(encoding="utf-8", errors="ignore").casefold()
+            for token in tokens:
+                if token.casefold() in text:
+                    findings.append(f"{path.relative_to(project_root)} contains {token}")
+    return findings
+
+
+def forbidden_product_tokens() -> tuple[str, ...]:
+    return (
+        "dash" + "board",
+        "north" + "star",
+        "north" + " " + "star",
+        "brand" + "crown",
+        "mat" + "rix",
+        "sa" + "lon",
+        "cap" + "tcha",
+        "checkout" + "_submit",
+        "payment" + "_submit",
+        "open" + "ai",
+        "anth" + "ropic",
+        "tensor" + "flow",
+        "scikit" + "-learn",
+        "sk" + "learn",
+        "selen" + "ium",
+        "play" + "wright",
+        "pupp" + "eteer",
+    )
 
 
 def audit_frontend_feed_os() -> FeedOsAuditCheck:
