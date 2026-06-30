@@ -50,17 +50,22 @@ class LinkTextParser(HTMLParser):
         self.text_parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        lowered_tag = tag.lower()
         attr = {key.lower(): value or "" for key, value in attrs}
-        if tag.lower() in {"li", "article", "section", "div", "tr", "p"}:
-            self._containers.append({"tag": tag.lower(), "text_parts": [], "link_indices": []})
-        if tag.lower() == "a":
+        if lowered_tag in {"li", "article", "section", "div", "tr", "p"}:
+            self._containers.append({"tag": lowered_tag, "text_parts": [], "link_indices": []})
+        if lowered_tag in {"time", "meta"}:
+            dated_attr = attr.get("datetime") or attr.get("content") or attr.get("date")
+            if dated_attr and extract_date(dated_attr):
+                self._append_text(dated_attr)
+        if lowered_tag == "a":
             self._stack.append(
                 {
                     "href": attr.get("href", ""),
                     "text": attr.get("title", "") or attr.get("aria-label", ""),
                 }
             )
-        if tag.lower() == "img" and self._stack:
+        if lowered_tag == "img" and self._stack:
             image_text = clean_text(attr.get("alt", "") or attr.get("title", "") or attr.get("aria-label", ""))
             if image_text:
                 self._stack[-1]["text"] += " " + image_text
@@ -69,6 +74,9 @@ class LinkTextParser(HTMLParser):
         cleaned = clean_text(data)
         if not cleaned:
             return
+        self._append_text(cleaned)
+
+    def _append_text(self, cleaned: str) -> None:
         self.text_parts.append(cleaned)
         for container in self._containers:
             text_parts = container["text_parts"]
@@ -109,14 +117,17 @@ class LinkTextParser(HTMLParser):
                     if not isinstance(link_index, int) or link_index >= len(self.links):
                         continue
                     link = self.links[link_index]
-                    if link.context:
+                    link_count = len(container.get("link_indices", []))
+                    if not should_replace_context(link.context, context, link_count):
                         continue
+                    context_date = extract_date(context)
+                    published_at = context_date if context_date and link_count == 1 else link.published_at or context_date
                     full_text = clean_text(f"{context} {link.title}")
                     self.links[link_index] = LinkCandidate(
                         title=link.title,
                         url=link.url,
                         text=full_text,
-                        published_at=link.published_at or extract_date(context),
+                        published_at=published_at,
                         context=context,
                     )
                 return
@@ -470,6 +481,34 @@ def dedupe_items(items: list[RadarItem]) -> list[RadarItem]:
         seen.add(item.identity_hash)
         results.append(item)
     return results
+
+
+def should_replace_context(current: str, candidate: str, link_count: int) -> bool:
+    if not candidate:
+        return False
+    if not current:
+        return True
+    current_date = bool(extract_date(current))
+    candidate_date = bool(extract_date(candidate))
+    if not current_date and candidate_date:
+        return True
+    if link_count == 1 and context_score(candidate) > context_score(current):
+        return True
+    return False
+
+
+def context_score(text: str) -> int:
+    lowered = text.lower()
+    score = 0
+    if extract_date(text):
+        score += 20
+    if extract_price(text):
+        score += 5
+    if any(token in lowered for token in ("new arrival", "new item", "preorder", "pre-order", "restock")):
+        score += 4
+    if any(token in lowered for token in ("新作", "入荷", "予約", "ご予約", "再入荷", "再販")):
+        score += 4
+    return score
 
 
 def extract_date(text: str) -> str:
