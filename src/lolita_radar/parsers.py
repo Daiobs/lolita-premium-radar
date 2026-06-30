@@ -564,7 +564,10 @@ def normalized_date(year: int, month: int, day: int) -> str:
 
 
 def strip_date(text: str) -> str:
-    return clean_text(DATE_RE.sub(" ", text).strip(" -|:："))
+    cleaned = DATE_RE.sub(" ", text)
+    cleaned = JAPANESE_DATE_RE.sub(" ", cleaned)
+    cleaned = COMPACT_DATE_RE.sub(" ", cleaned)
+    return clean_text(cleaned.strip(" -|:："))
 
 
 def clean_text(text: str) -> str:

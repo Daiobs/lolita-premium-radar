@@ -51,13 +51,14 @@ class BrandParserTests(unittest.TestCase):
         <article>
           <time>2026年6月30日</time>
           <span class="category">NEW ARRIVAL</span>
-          <a href="/Page/Feature/NewsDetail.aspx?news=rose-jsk">Rose Garden ジャンパースカート</a>
+          <a href="/Page/Feature/NewsDetail.aspx?news=rose-jsk">2026年6月30日：Rose Garden ジャンパースカート</a>
         </article>
         """
 
         items = parse_angelic_pretty_news(html, "https://angelicpretty.com/Page/news/")
 
         self.assertEqual(len(items), 1)
+        self.assertEqual(items[0].title, "Rose Garden ジャンパースカート")
         self.assertEqual(items[0].published_at, "2026-06-30")
         self.assertEqual(items[0].status, ItemStatus.NEW_ARRIVAL)
         self.assertIn("2026年6月30日", items[0].metadata["context"])
