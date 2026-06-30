@@ -314,6 +314,29 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("reason: sample_gap", trends[0]["meta"])
         self.assertIn("sample_gap", trends[0]["reason_codes"])
 
+    def test_trend_engine_normalizes_brand_aliases_for_watch_urls_and_momentum(self) -> None:
+        trends = build_trend_feed(
+            {"brands": [{"brand_alias": " ap ", "sample_count": 3, "avg_premium_rate": 0.4}]},
+            [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
+            [{"source": "angelic_pretty", "status": "new_arrival"}],
+            brand_weights=[
+                {
+                    "alias": "AP",
+                    "weight": 100,
+                    "watch_urls": [{"label": "闲鱼", "url": "https://www.goofish.com/search?q=AP"}],
+                }
+            ],
+        )
+
+        self.assertEqual(len(trends), 1)
+        self.assertEqual(trends[0]["brand"], "AP")
+        self.assertEqual(trends[0]["id"], "trend:AP")
+        self.assertEqual(trends[0]["kind"], "rising")
+        self.assertEqual(trends[0]["url"], "https://www.goofish.com/search?q=AP")
+        self.assertEqual(trends[0]["time"], "2026-06-30")
+        self.assertIn("momentum_observed", trends[0]["reason_codes"])
+        self.assertIn("release_activity", trends[0]["reason_codes"])
+
     def test_crawler_health_marks_failed_and_degraded(self) -> None:
         rows = enrich_source_runs(
             [

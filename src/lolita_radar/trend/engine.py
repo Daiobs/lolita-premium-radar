@@ -14,20 +14,21 @@ def build_trend_feed(
     events: list[dict[str, Any]],
     brand_weights: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    momentum_by_alias = {str(row.get("brand_alias") or ""): row for row in momentum}
+    momentum_by_alias = {alias_key(row.get("brand_alias")): row for row in momentum}
     release_counts = count_release_events(events)
     trends = []
     brands = trend_brand_rows(market_summary, brand_weights or [])
     for brand in brands:
-        alias = str(brand.get("brand_alias") or "")
+        alias = str(brand.get("brand_alias") or "").strip()
         if not alias:
             continue
         sample_count = safe_count(brand.get("sample_count"))
         avg_premium = safe_float(brand.get("avg_premium_rate"))
-        movement = momentum_by_alias.get(alias, {})
+        movement = momentum_by_alias.get(alias_key(alias), {})
         direction = normalize_direction(movement.get("direction"), avg_premium, sample_count)
-        confidence = trend_confidence(sample_count, avg_premium, movement, release_counts.get(alias, 0))
-        reasons = trend_reasons(sample_count, avg_premium, movement, release_counts.get(alias, 0))
+        release_count = release_counts.get(alias_key(alias), 0)
+        confidence = trend_confidence(sample_count, avg_premium, movement, release_count)
+        reasons = trend_reasons(sample_count, avg_premium, movement, release_count)
         trends.append(
             {
                 "id": f"trend:{alias}",
@@ -48,15 +49,20 @@ def build_trend_feed(
 
 
 def trend_brand_rows(market_summary: dict[str, Any], brand_weights: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    weights_by_alias = {str(row.get("alias") or ""): row for row in brand_weights}
+    weights_by_alias = {alias_key(row.get("alias")): row for row in brand_weights}
     rows = []
     for row in market_summary.get("brands", []):
-        alias = str(row.get("brand_alias") or "")
-        rows.append({**row, "url": str(row.get("url") or primary_watch_url(weights_by_alias.get(alias, {})))})
-    seen = {str(row.get("brand_alias") or "") for row in rows}
+        raw_alias = str(row.get("brand_alias") or "").strip()
+        weight = weights_by_alias.get(alias_key(raw_alias), {})
+        alias = str(weight.get("alias") or raw_alias).strip()
+        if not alias:
+            continue
+        rows.append({**row, "brand_alias": alias, "url": str(row.get("url") or primary_watch_url(weight))})
+    seen = {alias_key(row.get("brand_alias")) for row in rows}
     for brand in brand_weights:
-        alias = str(brand.get("alias") or "")
-        if not alias or alias in seen:
+        alias = str(brand.get("alias") or "").strip()
+        key = alias_key(alias)
+        if not alias or key in seen:
             continue
         rows.append(
             {
@@ -68,6 +74,10 @@ def trend_brand_rows(market_summary: dict[str, Any], brand_weights: list[dict[st
             }
         )
     return rows
+
+
+def alias_key(value: object) -> str:
+    return str(value or "").strip().casefold()
 
 
 def primary_watch_url(brand: dict[str, Any]) -> str:
@@ -111,7 +121,8 @@ def count_release_events(events: list[dict[str, Any]]) -> dict[str, int]:
         source = str(event.get("source") or "")
         alias = aliases.get(source)
         if alias and event.get("status") in RELEASE_STATUSES:
-            counts[alias] = counts.get(alias, 0) + 1
+            key = alias_key(alias)
+            counts[key] = counts.get(key, 0) + 1
     return counts
 
 
