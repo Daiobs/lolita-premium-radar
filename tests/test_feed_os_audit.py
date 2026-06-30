@@ -68,6 +68,18 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("visual.image_url", check.detail)
 
+    def test_home_feed_ui_audit_requires_stream_filter_logic(self) -> None:
+        original_html = audit_module.FEED_INDEX_HTML
+        try:
+            audit_module.FEED_INDEX_HTML = original_html.replace("feed.streams?.[activeFilter]", "feed.all")
+
+            check = audit_module.audit_frontend_feed_os()
+        finally:
+            audit_module.FEED_INDEX_HTML = original_html
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("feed.streams?.[activeFilter]", check.detail)
+
     def test_feed_contract_requires_release_visual_image(self) -> None:
         original_sample_home_feed = audit_module.sample_home_feed
         try:

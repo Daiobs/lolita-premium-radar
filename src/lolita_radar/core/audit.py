@@ -199,6 +199,10 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "visual.image_url",
         'loading="lazy"',
         "has-image",
+        'activeFilter === "all"',
+        "feed.streams?.[activeFilter]",
+        'button.addEventListener("click"',
+        'item.classList.toggle("active"',
     )
     missing = [token for token in required if token not in FEED_INDEX_HTML]
     lowered = FEED_INDEX_HTML.lower()
