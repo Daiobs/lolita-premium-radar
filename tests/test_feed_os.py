@@ -117,8 +117,34 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(card["meta"], "Metamorphose")
         self.assertNotIn("new_item", card["meta"])
         self.assertEqual(feed["streams"]["release"][1]["time"], "2026-06-20")
-        self.assertEqual(feed["streams"]["release"][1]["title_zh"], "新作")
+        self.assertEqual(feed["streams"]["release"][1]["title_zh"], "新作 · JSK 吊带裙")
+        self.assertEqual(card["title_zh"], "新作 · OP 连衣裙")
+        self.assertEqual(card["title_ja"], "新作 · OP")
         self.assertEqual(card["status"], "new_arrival")
+
+    def test_release_feed_builds_readable_bilingual_title_hints_from_context(self) -> None:
+        events = [
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "preorder",
+                "title": "恋するお姫様ジャンパースカートSetご予約会のご案内",
+                "url": "https://example.com/ap/preorder",
+                "published_at": "2026-06-30",
+                "metadata": {
+                    "context": "2026.06.30 ご予約 Dress ジャンパースカートSet ¥42,900",
+                },
+            }
+        ]
+
+        feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
+        card = feed["streams"]["release"][0]
+
+        self.assertEqual(card["time"], "2026-06-30")
+        self.assertEqual(card["time_kind"], "published")
+        self.assertEqual(card["title_zh"], "预约 · JSK 吊带裙")
+        self.assertEqual(card["title_ja"], "予約 · JSK")
+        self.assertIn("2026.06.30", card["source_context"])
 
     def test_release_feed_requires_current_source_publish_time(self) -> None:
         events = [
@@ -472,6 +498,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["drop"][0]["shop"], "Proxy Shop")
         self.assertEqual(feed["streams"]["drop"][0]["urgency"], "high")
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
+        self.assertEqual(feed["streams"]["drop"][0]["title_zh"], "店铺上新 · 预约 · JSK 吊带裙 · OP 连衣裙")
+        self.assertEqual(feed["streams"]["drop"][0]["title_ja"], "ショップ入荷 · 予約 · JSK · OP")
 
     def test_drop_feed_requires_current_source_publish_time(self) -> None:
         events = [

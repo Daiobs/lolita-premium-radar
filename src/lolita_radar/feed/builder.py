@@ -214,7 +214,8 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
         "type": status or resolved_kind,
         "brand": brand,
         "title": str(row.get("title") or ""),
-        "title_zh": title_hint(str(row.get("title") or ""), status),
+        "title_zh": title_hint(str(row.get("title") or ""), status, source_context, language="zh"),
+        "title_ja": title_hint(str(row.get("title") or ""), status, source_context, language="ja"),
         "meta": source_label(source),
         "time": time_value,
         "time_kind": time_kind,
@@ -239,6 +240,9 @@ def drop_card(row: dict[str, Any]) -> dict[str, Any]:
     card["shop"] = signal.shop.name
     card["item"] = signal.item.title
     card["title"] = signal.item.title
+    context = " ".join(part for part in (str(card.get("source_context") or ""), " ".join(keywords)) if part)
+    card["title_zh"] = title_hint(signal.item.title, str(card.get("status") or ""), context, language="zh")
+    card["title_ja"] = title_hint(signal.item.title, str(card.get("status") or ""), context, language="ja")
     card["url"] = signal.item.url or signal.shop.url or card.get("url", "")
     card["keywords"] = keywords
     card["urgency"] = signal.urgency
@@ -355,27 +359,71 @@ def localized_kind_label(kind: str) -> str:
     return labels.get(kind, kind)
 
 
-def title_hint(title: str, status: str) -> str:
-    replacements = [
-        ("新作", "新作"),
-        ("予約", "预约"),
-        ("ご予約", "预约"),
-        ("受注", "受注预约"),
-        ("再入荷", "再入荷 / 再贩"),
-        ("再販", "再贩"),
-        ("入荷", "到货"),
-        ("販売開始", "开始贩售"),
-        ("発売", "发售"),
-        ("お知らせ", "通知"),
-        ("ワンピース", "OP 连衣裙"),
-        ("ジャンパースカート", "JSK 吊带裙"),
-        ("ブラウス", "衬衫"),
-        ("カチューシャ", "发箍"),
-    ]
-    hints = [zh for token, zh in replacements if token in title]
-    if not hints and status:
-        label = localized_status_label(status)
-        hints.append(label.split(" / ")[-1])
+def title_hint(title: str, status: str, context: str = "", language: str = "zh") -> str:
+    haystack = f"{title} {context}".lower()
+    labels = {
+        "zh": {
+            "new_arrival": "新作",
+            "preorder": "预约",
+            "restock": "再贩",
+            "shop_news": "店铺上新",
+            "notice": "通知",
+            "sale_start": "开始贩售",
+            "arrival": "到货",
+            "jsk": "JSK 吊带裙",
+            "op": "OP 连衣裙",
+            "blouse": "衬衫",
+            "headwear": "发饰",
+            "bag": "包袋",
+            "accessory": "配饰",
+            "skirt": "半裙",
+            "outer": "外套",
+        },
+        "ja": {
+            "new_arrival": "新作",
+            "preorder": "予約",
+            "restock": "再入荷",
+            "shop_news": "ショップ入荷",
+            "notice": "お知らせ",
+            "sale_start": "販売開始",
+            "arrival": "入荷",
+            "jsk": "JSK",
+            "op": "OP",
+            "blouse": "ブラウス",
+            "headwear": "ヘアアクセ",
+            "bag": "バッグ",
+            "accessory": "アクセサリー",
+            "skirt": "スカート",
+            "outer": "アウター",
+        },
+    }
+    lang_labels = labels.get(language, labels["zh"])
+    hints: list[str] = []
+    status_key = status if status in {"new_arrival", "preorder", "restock", "shop_news"} else ""
+    if status_key:
+        hints.append(lang_labels[status_key])
+    token_groups = (
+        ("preorder", ("preorder", "pre-order", "reservation", "予約", "ご予約", "受注", "预订", "预约")),
+        ("restock", ("restock", "再入荷", "再販", "再贩")),
+        ("new_arrival", ("new arrival", "new item", "新作")),
+        ("sale_start", ("販売開始", "発売", "发售")),
+        ("arrival", ("入荷", "到货")),
+        ("notice", ("お知らせ", "news", "information", "通知")),
+        ("jsk", ("jsk", "ジャンパースカート", "吊带裙")),
+        ("op", (" op", "op ", "onepiece", "one-piece", "ワンピース", "连衣裙")),
+        ("blouse", ("blouse", "ブラウス", "衬衫")),
+        ("headwear", ("カチューシャ", "ヘッドドレス", "head bow", "headbow", "发箍", "发饰")),
+        ("bag", ("pochette", "bag", "バッグ", "包")),
+        ("accessory", ("accessory", "アクセサリー", "配饰")),
+        ("skirt", ("skirt", "スカート", "半裙")),
+        ("outer", ("coat", "jacket", "ケープ", "コート", "外套")),
+    )
+    padded_haystack = f" {haystack} "
+    for key, tokens in token_groups:
+        if key == "skirt" and lang_labels["jsk"] in hints:
+            continue
+        if any(token.lower() in padded_haystack for token in tokens):
+            hints.append(lang_labels[key])
     return " · ".join(dict.fromkeys(hints[:4]))
 
 
