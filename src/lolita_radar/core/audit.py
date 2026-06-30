@@ -241,6 +241,7 @@ def audit_feed_contract() -> FeedOsAuditCheck:
         required_keys(streams["drop"][0], ("shop", "item", "keywords", "urgency", "url")),
         required_keys(streams["trend"][0], ("brand", "trend", "confidence", "price_delta", "reason_codes")),
         required_keys(streams["alert"][0], ("feed_type", "kind", "title", "reason_codes", "url")),
+        market_alert_localized_title_problem(feed_rows(streams, "alert"), require_present=True),
         visual_image_problem(streams["release"][0]),
     ]
     missing = [item for item in checks if item]
@@ -483,6 +484,9 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
         alert_kind_problem = alert_kind_boundary_problem(row)
         if alert_kind_problem:
             return alert_kind_problem
+        market_title_problem = market_alert_localized_title_problem([row])
+        if market_title_problem:
+            return market_title_problem
         source_health_problem = source_health_alert_problem(row)
         if source_health_problem:
             return source_health_problem
@@ -535,6 +539,19 @@ def is_number(value: object) -> bool:
 
 def non_empty_list(value: object) -> bool:
     return isinstance(value, list) and bool(value)
+
+
+def market_alert_localized_title_problem(rows: list[dict[str, Any]], require_present: bool = False) -> str:
+    market_rows = [row for row in rows if str(row.get("kind") or "") in {"high_premium", "sample_gap"}]
+    if not market_rows:
+        return "market alert localized title" if require_present else ""
+    for row in market_rows:
+        missing = required_keys(row, ("title_zh", "title_ja"))
+        if missing:
+            return "market alert localized title missing fields: " + missing
+        if row.get("use_localized_title") is not True:
+            return "market alert localized title must set use_localized_title"
+    return ""
 
 
 def source_health_alert_problem(row: dict[str, Any]) -> str:
@@ -673,7 +690,7 @@ def sample_home_feed() -> dict[str, Any]:
         events,
         [],
         market_summary,
-        {"alerts": []},
+        {"alerts": [{"kind": "sample_gap", "alias": "BABY", "title": "BABY", "reason": "core_needs_samples"}]},
         [],
         source_runs,
         brand_weights=[{"alias": "AP", "watch_urls": [{"label": "market", "url": "https://example.com/market/ap"}]}],

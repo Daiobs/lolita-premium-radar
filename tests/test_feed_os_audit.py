@@ -175,6 +175,23 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("shops", check.detail)
 
+    def test_feed_contract_requires_market_alert_localized_titles(self) -> None:
+        original_sample_home_feed = audit_module.sample_home_feed
+        try:
+            feed = audit_module.sample_home_feed()
+            market_alert = next(row for row in feed["streams"]["alert"] if row.get("kind") == "sample_gap")
+            market_alert.pop("title_zh", None)
+            market_alert.pop("title_ja", None)
+            market_alert["use_localized_title"] = False
+            audit_module.sample_home_feed = lambda: feed
+
+            check = audit_module.audit_feed_contract()
+        finally:
+            audit_module.sample_home_feed = original_sample_home_feed
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("market alert localized title", check.detail)
+
     def test_generic_shop_item_extraction_audit_checks_drop_card_context(self) -> None:
         check = audit_module.audit_generic_shop_item_extraction()
 
@@ -692,6 +709,40 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "fail")
         self.assertIn("unsupported system alert kind: promo", check.detail)
+
+    def test_runtime_feed_audit_rejects_market_alert_without_localized_titles(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"releases": 0, "drops": 0, "trends": 0, "alerts": 1, "shops": 0},
+                    "streams": {
+                        "release": [],
+                        "drop": [],
+                        "trend": [],
+                        "alert": [
+                            {
+                                "feed_type": "alert",
+                                "kind": "sample_gap",
+                                "title": "BABY",
+                                "reason_codes": ["sample_gap"],
+                                "url": "https://example.com/market/baby",
+                                "visual": self.visual("AL", "!", "sample_gap"),
+                            }
+                        ],
+                    },
+                    "all": [{"feed_type": "alert", "url": "https://example.com/market/baby"}],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("market alert localized title", check.detail)
 
     def test_runtime_feed_audit_allows_old_source_health_alert_time(self) -> None:
         streams = {
