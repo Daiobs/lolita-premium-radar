@@ -51,7 +51,7 @@ The current OS includes:
   status but its normalized content hash changes.
 - Per-source health records for successful checks, latency, item counts, event
   counts, and adapter errors.
-- Console, Telegram, and Discord webhook notifiers.
+- Console-only local notifications.
 - GitHub Actions manual and scheduled runs.
 
 ## Install
@@ -105,13 +105,7 @@ URL, keep the source disabled until you have checked the page manually, and add
 keywords that describe visible release text. Do not configure login-only pages,
 cart URLs, queue pages, payment pages, or private member URLs.
 
-Environment variables are optional. See [.env.example](./.env.example).
-
-```bash
-export TELEGRAM_BOT_TOKEN="123456:..."
-export TELEGRAM_CHAT_ID="123456789"
-export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."
-```
+No external notification tokens are required. See [.env.example](./.env.example).
 
 ## Run
 
@@ -177,7 +171,7 @@ cycle. It also writes a machine-checkable audit log and exit-code file when
 `--log-file` and `--exit-file` are set. The loop audit table includes
 `cycle | checked_at | ok | event_count | error_message`, so each cycle can be
 matched back to the 24-hour evidence window. Add `--notify` only when you
-intentionally want live alerts during the long run.
+intentionally want local console alerts during the long run.
 If the loop is stopped with Ctrl-C or SIGTERM, the exit-code file records the
 interruption as a non-zero code so the run cannot be mistaken for a clean soak.
 
@@ -277,12 +271,6 @@ supports:
   uploads `feed-os-audit.json`; `missing` stability evidence remains visible
   without pretending that a 24-hour soak has completed.
 
-Recommended GitHub Secrets:
-
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `DISCORD_WEBHOOK_URL`
-
 The workflow restores and saves `.data` through `actions/cache`, so scheduled
 runs can compare against the previous SQLite state. Local usage persists in
 `.data/lolita_radar.sqlite`.
@@ -356,10 +344,10 @@ keywords are ranked as higher urgency.
 
 ## Notifications
 
-Console, Telegram, and Discord notifications include `brand`, `source`,
-`event_type`, `status`, `title`, `published_at`, `url`, and matched keywords
-when present. `content_changed` messages include short previous/current content
-hashes instead of sending long page bodies.
+Console notifications include `brand`, `source`, `event_type`, `status`,
+`title`, `published_at`, `url`, and matched keywords when present.
+`content_changed` messages include short previous/current content hashes
+instead of sending long page bodies. No external notification API is used.
 
 ## Roadmap
 

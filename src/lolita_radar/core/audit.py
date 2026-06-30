@@ -153,6 +153,9 @@ def forbidden_product_tokens() -> tuple[str, ...]:
         "selen" + "ium",
         "play" + "wright",
         "pupp" + "eteer",
+        "tele" + "gram",
+        "dis" + "cord",
+        "web" + "hook",
     )
 
 

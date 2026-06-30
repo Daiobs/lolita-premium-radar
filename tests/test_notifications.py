@@ -1,7 +1,8 @@
 import unittest
+from unittest.mock import patch
 
 from lolita_radar.models import EventType, ItemStatus, RadarEvent, RadarItem
-from lolita_radar.notifiers import format_event
+from lolita_radar.notifiers import ConsoleNotifier, build_notifiers_from_env, format_event
 
 
 class NotificationTests(unittest.TestCase):
@@ -46,6 +47,20 @@ class NotificationTests(unittest.TestCase):
 
         self.assertIn("event_type: content_changed", text)
         self.assertIn("content_hash: abcdef1234 ->", text)
+
+    def test_build_notifiers_from_env_stays_local_only(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "TELEGRAM_BOT_TOKEN": "token",
+                "TELEGRAM_CHAT_ID": "chat",
+                "DISCORD_WEBHOOK_URL": "https://example.com/webhook",
+            },
+        ):
+            notifiers = build_notifiers_from_env()
+
+        self.assertEqual(len(notifiers), 1)
+        self.assertIsInstance(notifiers[0], ConsoleNotifier)
 
 
 if __name__ == "__main__":
