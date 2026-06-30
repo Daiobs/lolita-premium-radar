@@ -17,13 +17,14 @@ from .adapters import (
     SourceConfig,
 )
 from .config import load_sources
+from .crawler import enrich_source_runs
 from .models import RadarEvent, RadarItem
 from .notifiers import build_notifiers_from_env, notify_all
 from .storage import (
     connect,
     count_items_for_sources,
     diff_and_store,
-    list_latest_source_runs,
+    list_source_runs,
     record_source_run,
 )
 
@@ -179,7 +180,7 @@ def latest_source_health(config_path: Path, db_path: Path) -> list[dict[str, obj
     sources = load_sources(config_path)
     connection = connect(db_path)
     try:
-        latest = {row["source"]: row for row in list_latest_source_runs(connection)}
+        latest = latest_enriched_source_runs(list_source_runs(connection, limit=100))
     finally:
         connection.close()
     rows: list[dict[str, object]] = []
@@ -199,6 +200,15 @@ def latest_source_health(config_path: Path, db_path: Path) -> list[dict[str, obj
             }
         )
     return rows
+
+
+def latest_enriched_source_runs(runs: list[dict[str, object]]) -> dict[str, dict[str, object]]:
+    latest: dict[str, dict[str, object]] = {}
+    for run in enrich_source_runs(runs):
+        source = str(run.get("source") or "")
+        if source and source not in latest:
+            latest[source] = run
+    return latest
 
 
 def run_check_loop(

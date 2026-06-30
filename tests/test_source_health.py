@@ -85,6 +85,42 @@ class SourceHealthTests(unittest.TestCase):
             self.assertFalse(by_source["bad"]["ok"])
             self.assertIn("adapter boom", by_source["bad"]["error_message"])
 
+    def test_latest_source_health_uses_recent_error_rate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"flaky": "fake_good"})
+            db_path = root / "radar.sqlite"
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "flaky",
+                    ok=False,
+                    status="failed",
+                    error_rate=1.0,
+                    error_message="timeout",
+                    checked_at="2026-06-30T00:00:00+00:00",
+                )
+                record_source_run(
+                    connection,
+                    "flaky",
+                    ok=True,
+                    status="ok",
+                    error_rate=0.0,
+                    item_count=1,
+                    checked_at="2026-06-30T00:05:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            rows = runner.latest_source_health(config_path=config_path, db_path=db_path)
+
+            self.assertEqual(rows[0]["source"], "flaky")
+            self.assertTrue(rows[0]["ok"])
+            self.assertEqual(rows[0]["status"], "degraded")
+            self.assertEqual(rows[0]["error_rate"], 0.5)
+
     def test_run_loop_runs_multiple_cycles_without_notifications(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
