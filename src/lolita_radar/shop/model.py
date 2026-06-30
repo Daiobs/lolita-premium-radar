@@ -30,12 +30,12 @@ class DropSignal:
 
 
 def build_drop_signal(row: dict[str, Any]) -> DropSignal | None:
-    if str(row.get("source") or "") != "generic_page":
-        return None
     keywords = matched_drop_keywords(row)
     metadata = row.get("metadata")
     if not isinstance(metadata, dict):
         metadata = {}
+    if str(row.get("source") or "") != "generic_page" and str(metadata.get("source_type") or "") != "generic_page":
+        return None
     if not keywords and not is_new_shop_item(row, metadata):
         return None
     shop = shop_from_metadata(row, metadata)

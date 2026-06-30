@@ -64,6 +64,28 @@ class ShopModelTests(unittest.TestCase):
         self.assertEqual(signal.urgency, "high")
         self.assertEqual(signal.reason_codes, ("new_shop_item",))
 
+    def test_build_drop_signal_accepts_named_generic_page_source(self) -> None:
+        signal = build_drop_signal(
+            {
+                "source": "proxy_shop",
+                "event_type": "new_item",
+                "title": "Shell Garden JSK 预约",
+                "url": "https://example.com/shop/shell",
+                "metadata": {
+                    "source_type": "generic_page",
+                    "shop": {"name": "Tokyo Proxy"},
+                    "item": {"title": "Shell Garden JSK 预约", "url": "https://example.com/shop/shell"},
+                    "matched_keywords": ["JSK", "预约"],
+                },
+            }
+        )
+
+        self.assertIsNotNone(signal)
+        assert signal is not None
+        self.assertEqual(signal.shop.name, "Tokyo Proxy")
+        self.assertEqual(signal.item.title, "Shell Garden JSK 预约")
+        self.assertEqual(signal.reason_codes[:3], ("new_shop_item", "keyword_match", "kw:JSK"))
+
 
 if __name__ == "__main__":
     unittest.main()

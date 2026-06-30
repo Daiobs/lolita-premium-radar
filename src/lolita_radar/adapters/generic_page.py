@@ -4,7 +4,7 @@ import re
 
 from ..fetcher import fetch_text
 from ..models import RadarItem, classify_title
-from ..parsers import parse_generic_text
+from ..parsers import LinkCandidate, parse_generic_text, parse_links
 from ..rules import keyword_matches
 from .base import SourceAdapter
 
@@ -56,6 +56,14 @@ class GenericPageAdapter(SourceAdapter):
         min_keyword_hits = int(self.config.options.get("min_keyword_hits", 1 if self.config.keywords else 0))
         if len(matches) < min_keyword_hits:
             return []
+        link_items = linked_shop_items(
+            html_text=html_text,
+            config=self.config,
+            page_text=text,
+            page_matches=matches,
+        )
+        if link_items:
+            return link_items
         title = build_title(
             template=str(self.config.options.get("title_template") or ""),
             fallback=str(self.config.options.get("title") or f"{self.config.name} page match"),
@@ -81,6 +89,7 @@ class GenericPageAdapter(SourceAdapter):
                         "title": str(self.config.options.get("item_title") or title),
                         "url": self.config.url,
                     },
+                    "source_type": "generic_page",
                     "matched_keywords": matches,
                     "drop_keywords": matches,
                     "content_change_alert": bool(self.config.options.get("content_change_alert", True)),
@@ -120,6 +129,61 @@ def build_title(template: str, fallback: str, source: str, url: str, matches: li
         return template.format(source=source, url=url, matches=match_text, matched_keywords=match_text)
     except (KeyError, ValueError):
         return fallback
+
+
+def linked_shop_items(html_text: str, config, page_text: str, page_matches: list[str]) -> list[RadarItem]:
+    if config.options.get("extract_item_links", True) is False:
+        return []
+    shop_name = str(config.options.get("shop_name") or config.name)
+    shop_url = str(config.options.get("shop_url") or config.url)
+    items = []
+    for link in parse_links(html_text, config.url):
+        if is_navigation_link(link):
+            continue
+        haystack = f"{link.title} {link.context} {link.url}"
+        matches = keyword_matches(haystack, config.keywords)
+        if not matches:
+            continue
+        title = link.title.strip()
+        if not title:
+            continue
+        content = f"{link.text} {page_text[:500]}".strip()
+        items.append(
+            RadarItem(
+                source=config.name,
+                title=title,
+                url=link.url,
+                status=classify_title(f"{title} {haystack}"),
+                content=content,
+                metadata={
+                    "shop": {"name": shop_name, "url": shop_url},
+                    "item": {"title": title, "url": link.url},
+                    "source_type": "generic_page",
+                    "matched_keywords": matches,
+                    "drop_keywords": matches,
+                    "content_change_alert": bool(config.options.get("content_change_alert", True)),
+                },
+            )
+        )
+    return dedupe_items(items)
+
+
+def is_navigation_link(link: LinkCandidate) -> bool:
+    lowered = f"{link.title} {link.url}".casefold()
+    if any(token in lowered for token in NAVIGATION_TOKEN_KEYS):
+        return True
+    return not link.url.startswith(("http://", "https://"))
+
+
+def dedupe_items(items: list[RadarItem]) -> list[RadarItem]:
+    seen = set()
+    deduped = []
+    for item in items:
+        if item.identity_hash in seen:
+            continue
+        seen.add(item.identity_hash)
+        deduped.append(item)
+    return deduped
 
 
 def suppress_duplicate_segments(text: str) -> str:

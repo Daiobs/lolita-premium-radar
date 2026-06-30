@@ -335,7 +335,8 @@ python -m unittest discover -s tests
 
 - Fetches any public URL.
 - Extracts visible text.
-- Emits one synthetic page item when configured keywords match.
+- Extracts matching public item links as separate Shop -> Item candidates.
+- Falls back to one synthetic page item when no matching item links are found.
 - Adds structured `shop`, `item`, and `drop_keywords` metadata for Drop Feed.
 - A text-only edit on the same page can generate `content_changed` without
   creating duplicate `new_item` events.

@@ -387,6 +387,31 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["drop"][0]["urgency"], "high")
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
 
+    def test_drop_feed_accepts_named_generic_page_source_type(self) -> None:
+        events = [
+            {
+                "source": "proxy_shop",
+                "event_type": "new_item",
+                "status": "shop_news",
+                "title": "Shell Garden JSK 预约",
+                "url": "https://example.com/shop/shell",
+                "created_at": "2026-06-30T10:00:00+00:00",
+                "metadata": {
+                    "source_type": "generic_page",
+                    "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+                    "item": {"title": "Shell Garden JSK 预约", "url": "https://example.com/shop/shell"},
+                    "matched_keywords": ["JSK", "预约"],
+                },
+            }
+        ]
+
+        feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
+
+        self.assertEqual(feed["summary"]["shops"], 1)
+        self.assertEqual(feed["streams"]["drop"][0]["shop"], "Tokyo Proxy")
+        self.assertEqual(feed["streams"]["drop"][0]["item"], "Shell Garden JSK 预约")
+        self.assertEqual(feed["streams"]["drop"][0]["url"], "https://example.com/shop/shell")
+
     def test_alert_feed_uses_latest_source_health_per_source(self) -> None:
         source_runs = [
             {

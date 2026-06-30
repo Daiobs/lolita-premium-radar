@@ -547,12 +547,13 @@ def audit_trend_engine() -> FeedOsAuditCheck:
 def audit_shop_drop_model() -> FeedOsAuditCheck:
     signal = build_drop_signal(
         {
-            "source": "generic_page",
+            "source": "proxy_shop",
             "event_type": "new_item",
             "status": "shop_news",
             "title": "Proxy page",
             "url": "https://example.com/shop",
             "metadata": {
+                "source_type": "generic_page",
                 "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
                 "item": {"title": "Shell Garden JSK", "url": "https://example.com/shop/shell"},
                 "matched_keywords": ["JSK", "预约"],

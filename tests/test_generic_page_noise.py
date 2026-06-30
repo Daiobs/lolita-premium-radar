@@ -35,8 +35,40 @@ class GenericPageNoiseTests(unittest.TestCase):
         self.assertEqual(item.metadata["drop_keywords"], ["JSK", "预约"])
         self.assertEqual(item.metadata["shop"]["name"], "proxy")
         self.assertEqual(item.metadata["item"]["title"], "proxy watched page")
+        self.assertEqual(item.metadata["source_type"], "generic_page")
         self.assertNotIn("updated at", item.content.lower())
         self.assertLessEqual(len(item.content), 40)
+
+    def test_extracts_linked_shop_items_as_separate_drop_candidates(self) -> None:
+        config = SourceConfig(
+            name="proxy_shop",
+            type="generic_page",
+            url="https://example.com/shop/",
+            keywords=["JSK", "预约", "OP"],
+            options={"shop_name": "Tokyo Proxy"},
+        )
+        original_fetch = generic_page.fetch_text
+        try:
+            generic_page.fetch_text = lambda *_args, **_kwargs: """
+            <html><body>
+              <a href="/login">Login</a>
+              <article><a href="/shop/shell-jsk">Shell Garden JSK 预约</a></article>
+              <article><a href="/shop/ribbon-op">Ribbon OP</a></article>
+              <article><a href="/about">About us</a></article>
+            </body></html>
+            """
+            items = generic_page.GenericPageAdapter(config).fetch_items()
+        finally:
+            generic_page.fetch_text = original_fetch
+
+        self.assertEqual([item.title for item in items], ["Shell Garden JSK 预约", "Ribbon OP"])
+        self.assertEqual(items[0].source, "proxy_shop")
+        self.assertEqual(items[0].url, "https://example.com/shop/shell-jsk")
+        self.assertEqual(items[0].metadata["shop"]["name"], "Tokyo Proxy")
+        self.assertEqual(items[0].metadata["item"]["title"], "Shell Garden JSK 预约")
+        self.assertEqual(items[0].metadata["source_type"], "generic_page")
+        self.assertEqual(items[0].metadata["matched_keywords"], ["JSK", "预约"])
+        self.assertEqual(items[1].metadata["matched_keywords"], ["OP"])
 
     def test_min_keyword_hits_filters_low_signal_page(self) -> None:
         config = SourceConfig(
