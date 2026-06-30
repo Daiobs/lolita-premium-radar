@@ -112,7 +112,7 @@ def audit_required_modules(project_root: Path) -> FeedOsAuditCheck:
 
 
 def audit_product_constraints(project_root: Path) -> FeedOsAuditCheck:
-    findings = forbidden_product_findings(project_root)
+    findings = forbidden_product_findings(project_root) + legacy_analysis_symbol_findings(project_root)
     if findings:
         return FeedOsAuditCheck("product_constraints", "fail", "forbidden product direction found: " + findings[0])
     return FeedOsAuditCheck("product_constraints", "pass", "no blocked product-direction or purchase-automation tokens found")
@@ -132,6 +132,30 @@ def forbidden_product_findings(project_root: Path) -> list[str]:
         for token in tokens:
             if token.casefold() in text:
                 findings.append(f"{path.relative_to(project_root)} contains {token}")
+    return findings
+
+
+def legacy_analysis_symbol_findings(project_root: Path) -> list[str]:
+    blocked_by_file = {
+        project_root / "src" / "lolita_radar" / "brands.py": ("def build_focus_queue(",),
+        project_root / "src" / "lolita_radar" / "market.py": (
+            "def build_opportunity_radar(",
+            "def build_brand_weight_profile(",
+            "def build_sample_collection_plan(",
+            "def build_pattern_radar(",
+            "def opportunity_band(",
+            "def opportunity_reasons(",
+            "def sample_plan_",
+        ),
+    }
+    findings = []
+    for path, tokens in blocked_by_file.items():
+        if not path.exists():
+            continue
+        source = path.read_text(encoding="utf-8", errors="ignore")
+        for token in tokens:
+            if token in source:
+                findings.append(f"{path.relative_to(project_root)} defines legacy analysis API {token}")
     return findings
 
 

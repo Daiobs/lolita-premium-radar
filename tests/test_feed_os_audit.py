@@ -56,6 +56,19 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertEqual(check.status, "fail")
             self.assertIn(".github/workflows/check.yml", check.detail)
 
+    def test_product_constraint_audit_rejects_legacy_analysis_api_defs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package_root = root / "src" / "lolita_radar"
+            package_root.mkdir(parents=True)
+            (package_root / "brands.py").write_text("def build_focus_queue():\n    return []\n", encoding="utf-8")
+            (package_root / "market.py").write_text("def build_opportunity_radar():\n    return []\n", encoding="utf-8")
+
+            check = audit_module.audit_product_constraints(root)
+
+            self.assertEqual(check.status, "fail")
+            self.assertIn("legacy analysis API", check.detail)
+
     def test_home_feed_ui_audit_requires_image_card_tokens(self) -> None:
         original_html = audit_module.FEED_INDEX_HTML
         try:

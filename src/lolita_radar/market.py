@@ -179,13 +179,13 @@ def build_market_momentum(
     )[:limit]
 
 
-def build_opportunity_radar(
+def build_trend_candidates(
     brand_weights: list[dict[str, Any]],
     market_brands: list[dict[str, Any]],
     limit: int = 8,
 ) -> list[dict[str, Any]]:
     market_by_alias = {text(row.get("brand_alias")).upper(): row for row in market_brands}
-    opportunities = []
+    candidates = []
     for brand in brand_weights:
         alias = text(brand.get("alias"))
         if not alias:
@@ -196,8 +196,8 @@ def build_opportunity_radar(
         max_premium_rate = float(market.get("max_premium_rate") or 0)
         weight = clamp_int(brand.get("weight"), default=50)
         score = premium_priority_score(avg_premium_rate, weight, sample_count)
-        band = opportunity_band(score, avg_premium_rate, sample_count, weight)
-        opportunities.append(
+        band = trend_candidate_band(score, avg_premium_rate, sample_count, weight)
+        candidates.append(
             {
                 "name": text(brand.get("name")) or alias,
                 "alias": alias,
@@ -212,11 +212,11 @@ def build_opportunity_radar(
                 "priority_score": score,
                 "score_breakdown": premium_score_breakdown(avg_premium_rate, weight, sample_count),
                 "band": band,
-                "reason_codes": opportunity_reasons(avg_premium_rate, sample_count, weight),
+                "reason_codes": trend_candidate_reasons(avg_premium_rate, sample_count, weight),
             }
         )
     return sorted(
-        opportunities,
+        candidates,
         key=lambda row: (
             int(row["priority_score"]),
             int(row["brand_weight"]),
@@ -227,7 +227,7 @@ def build_opportunity_radar(
     )[:limit]
 
 
-def build_brand_weight_profile(
+def build_brand_signal_profile(
     brand_weights: list[dict[str, Any]],
     market_brands: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -262,8 +262,8 @@ def build_brand_weight_profile(
                 "evidence_score": evidence_score(sample_count),
                 "priority_score": score,
                 "score_breakdown": premium_score_breakdown(avg_premium_rate, weight, sample_count),
-                "band": opportunity_band(score, avg_premium_rate, sample_count, weight),
-                "reason_codes": opportunity_reasons(avg_premium_rate, sample_count, weight),
+                "band": trend_candidate_band(score, avg_premium_rate, sample_count, weight),
+                "reason_codes": trend_candidate_reasons(avg_premium_rate, sample_count, weight),
             }
         )
     return sorted(
@@ -278,13 +278,13 @@ def build_brand_weight_profile(
     )
 
 
-def build_sample_collection_plan(
+def build_sample_backlog(
     brand_weights: list[dict[str, Any]],
     market_brands: list[dict[str, Any]],
     limit: int = 9,
 ) -> list[dict[str, Any]]:
     market_by_alias = {text(row.get("brand_alias")).upper(): row for row in market_brands}
-    plan = []
+    backlog = []
     for brand in brand_weights:
         alias = text(brand.get("alias"))
         if not alias:
@@ -298,7 +298,7 @@ def build_sample_collection_plan(
         avg_premium_rate = float(market.get("avg_premium_rate") or 0)
         if missing <= 0 and avg_premium_rate < 0.25:
             continue
-        plan.append(
+        backlog.append(
             {
                 "name": text(brand.get("name")) or alias,
                 "alias": alias,
@@ -309,18 +309,18 @@ def build_sample_collection_plan(
                 "target_samples": target,
                 "missing_samples": missing,
                 "avg_premium_rate": round(avg_premium_rate, 4),
-                "urgency": sample_plan_urgency(missing, weight, sample_count),
-                "next_action": sample_plan_action(missing, sample_count),
-                "priority_score": sample_plan_score(weight, missing, avg_premium_rate, sample_count),
+                "urgency": sample_backlog_urgency(missing, weight, sample_count),
+                "next_action": sample_backlog_action(missing, sample_count),
+                "priority_score": sample_backlog_score(weight, missing, avg_premium_rate, sample_count),
                 "market_keywords": [text(keyword) for keyword in brand.get("market_keywords") or [] if text(keyword)][:4],
                 "watch_urls": brand.get("watch_urls") if isinstance(brand.get("watch_urls"), list) else [],
                 "visual": brand.get("visual") if isinstance(brand.get("visual"), dict) else {},
             }
         )
     return sorted(
-        plan,
+        backlog,
         key=lambda row: (
-            sample_plan_rank(text(row.get("urgency"))),
+            sample_backlog_rank(text(row.get("urgency"))),
             int(row["priority_score"]),
             int(row["brand_weight"]),
             int(row["missing_samples"]),
@@ -422,7 +422,7 @@ def primary_watch_url(brand: dict[str, Any]) -> str:
     return ""
 
 
-def build_pattern_radar(
+def build_pattern_trends(
     brand_weights: list[dict[str, Any]],
     observations: list[dict[str, Any]],
     limit: int = 12,
@@ -455,8 +455,8 @@ def build_pattern_radar(
                     "avg_premium_rate": round(avg_premium_rate, 4),
                     "max_premium_rate": round(max(premium_rates), 4) if premium_rates else 0,
                     "priority_score": score,
-                    "band": opportunity_band(score, avg_premium_rate, len(rows), weight),
-                    "reason_codes": opportunity_reasons(avg_premium_rate, len(rows), weight),
+                    "band": trend_candidate_band(score, avg_premium_rate, len(rows), weight),
+                    "reason_codes": trend_candidate_reasons(avg_premium_rate, len(rows), weight),
                     "evidence": pattern_evidence(rows),
                 }
             )
@@ -563,7 +563,7 @@ def sample_quality_flags(observation: dict[str, Any]) -> list[str]:
     return flags
 
 
-def opportunity_band(score: int, avg_premium_rate: float, sample_count: int, brand_weight: int) -> str:
+def trend_candidate_band(score: int, avg_premium_rate: float, sample_count: int, brand_weight: int) -> str:
     if sample_count < 2 and brand_weight >= 85:
         return "collect_samples"
     if score >= 78 and avg_premium_rate >= 0.25 and sample_count >= 2:
@@ -573,7 +573,7 @@ def opportunity_band(score: int, avg_premium_rate: float, sample_count: int, bra
     return "cooldown"
 
 
-def opportunity_reasons(avg_premium_rate: float, sample_count: int, brand_weight: int) -> list[str]:
+def trend_candidate_reasons(avg_premium_rate: float, sample_count: int, brand_weight: int) -> list[str]:
     reasons = []
     if brand_weight >= 90:
         reasons.append("core_brand")
@@ -664,7 +664,7 @@ def sample_target(weight: int, tier: str) -> int:
     return 2
 
 
-def sample_plan_urgency(missing: int, weight: int, sample_count: int) -> str:
+def sample_backlog_urgency(missing: int, weight: int, sample_count: int) -> str:
     if missing <= 0:
         return "complete"
     if weight >= 90 and sample_count < 2:
@@ -674,7 +674,7 @@ def sample_plan_urgency(missing: int, weight: int, sample_count: int) -> str:
     return "backfill"
 
 
-def sample_plan_action(missing: int, sample_count: int) -> str:
+def sample_backlog_action(missing: int, sample_count: int) -> str:
     if missing <= 0:
         return "complete"
     if sample_count <= 0:
@@ -684,11 +684,11 @@ def sample_plan_action(missing: int, sample_count: int) -> str:
     return "roundout"
 
 
-def sample_plan_rank(urgency: str) -> int:
+def sample_backlog_rank(urgency: str) -> int:
     return {"critical": 4, "watch": 3, "backfill": 2, "complete": 1}.get(urgency, 0)
 
 
-def sample_plan_score(weight: int, missing: int, avg_premium_rate: float, sample_count: int) -> int:
+def sample_backlog_score(weight: int, missing: int, avg_premium_rate: float, sample_count: int) -> int:
     weight_points = clamp_int(weight, default=50) * 0.5
     gap_points = max(0, missing) * 8
     premium_points = max(0.0, avg_premium_rate) * 35

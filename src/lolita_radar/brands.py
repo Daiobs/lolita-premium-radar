@@ -234,7 +234,7 @@ def normalize_brand_weights(rows: list[Any]) -> list[dict[str, Any]]:
     return sorted(brands, key=lambda brand: int(brand["weight"]), reverse=True)
 
 
-def build_focus_queue(
+def build_watch_signals(
     brand_weights: list[dict[str, Any]],
     items: list[dict[str, Any]],
     events: list[dict[str, Any]],
