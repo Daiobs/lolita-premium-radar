@@ -147,6 +147,27 @@ class GenericPageNoiseTests(unittest.TestCase):
             self.assertEqual([event.event_type for event in first_events], [EventType.NEW_ITEM])
             self.assertEqual(second_events, [])
 
+    def test_navigation_filter_does_not_strip_jumper_skirt_token(self) -> None:
+        config = SourceConfig(
+            name="proxy",
+            type="generic_page",
+            url="https://example.com/proxy",
+            keywords=["ジャンパースカート"],
+            options={"title_template": "{source} page"},
+        )
+        original_fetch = generic_page.fetch_text
+        try:
+            generic_page.fetch_text = lambda *_args, **_kwargs: (
+                "<html><body>カート ログイン 新作ジャンパースカート 予約開始</body></html>"
+            )
+            item = generic_page.GenericPageAdapter(config).fetch_items()[0]
+        finally:
+            generic_page.fetch_text = original_fetch
+
+        self.assertIn("新作ジャンパースカート", item.content)
+        self.assertNotIn("ログイン", item.content)
+        self.assertEqual(item.metadata["matched_keywords"], ["ジャンパースカート"])
+
 
 if __name__ == "__main__":
     unittest.main()

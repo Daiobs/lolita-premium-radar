@@ -33,15 +33,24 @@ def build_drop_signal(row: dict[str, Any]) -> DropSignal | None:
     if str(row.get("source") or "") != "generic_page":
         return None
     keywords = matched_drop_keywords(row)
-    if not keywords:
-        return None
     metadata = row.get("metadata")
     if not isinstance(metadata, dict):
         metadata = {}
+    if not keywords and not is_new_shop_item(row, metadata):
+        return None
     shop = shop_from_metadata(row, metadata)
     item = item_from_metadata(row, metadata, keywords)
     reasons = drop_reasons(row, keywords)
     return DropSignal(shop=shop, item=item, urgency=drop_urgency(row, keywords), reason_codes=tuple(reasons))
+
+
+def is_new_shop_item(row: dict[str, Any], metadata: dict[str, Any]) -> bool:
+    if str(row.get("event_type") or "") != "new_item":
+        return False
+    raw_item = metadata.get("item")
+    if isinstance(raw_item, dict) and str(raw_item.get("title") or "").strip():
+        return True
+    return bool(str(metadata.get("item_title") or "").strip())
 
 
 def matched_drop_keywords(row: dict[str, Any]) -> tuple[str, ...]:
@@ -99,7 +108,9 @@ def drop_urgency(row: dict[str, Any], keywords: tuple[str, ...]) -> str:
 
 
 def drop_reasons(row: dict[str, Any], keywords: tuple[str, ...]) -> list[str]:
-    reasons = ["keyword_match", *[f"kw:{keyword}" for keyword in keywords[:6]]]
+    reasons = []
+    if keywords:
+        reasons.extend(["keyword_match", *[f"kw:{keyword}" for keyword in keywords[:6]]])
     event_type = str(row.get("event_type") or "")
     if event_type == "new_item":
         reasons.insert(0, "new_shop_item")

@@ -18,8 +18,27 @@ DEFAULT_IGNORE_PATTERNS = [
 ]
 NAVIGATION_PATTERNS = [
     r"\b(login|account|cart|privacy|contact|company|shop list)\b",
-    r"(登录|登入|购物车|隐私|联系|会社概要|カート|ログイン|お問い合わせ)",
+    r"(登录|登入|购物车|隐私|联系|会社概要|ログイン|お問い合わせ)",
 ]
+NAVIGATION_TOKENS = {
+    "login",
+    "account",
+    "cart",
+    "privacy",
+    "contact",
+    "company",
+    "shop list",
+    "登录",
+    "登入",
+    "购物车",
+    "隐私",
+    "联系",
+    "会社概要",
+    "カート",
+    "ログイン",
+    "お問い合わせ",
+}
+NAVIGATION_TOKEN_KEYS = {token.casefold() for token in NAVIGATION_TOKENS}
 
 
 class GenericPageAdapter(SourceAdapter):
@@ -29,7 +48,7 @@ class GenericPageAdapter(SourceAdapter):
             timeout_seconds=int(self.config.options.get("timeout_seconds", 20)),
         )
         patterns = DEFAULT_IGNORE_PATTERNS + NAVIGATION_PATTERNS + list(self.config.options.get("ignore_patterns") or [])
-        text = suppress_duplicate_segments(apply_ignore_patterns(parse_generic_text(html_text), patterns))
+        text = suppress_duplicate_segments(strip_navigation_tokens(apply_ignore_patterns(parse_generic_text(html_text), patterns)))
         max_content_chars = int(self.config.options.get("max_content_chars", 12000))
         if max_content_chars > 0:
             text = text[:max_content_chars]
@@ -81,6 +100,16 @@ def apply_ignore_patterns(text: str, patterns: list[object]) -> str:
         except re.error:
             cleaned = cleaned.replace(raw, " ")
     return " ".join(cleaned.split())
+
+
+def strip_navigation_tokens(text: str) -> str:
+    kept = []
+    for token in text.split():
+        normalized = token.strip(" |/\\-_:：[]()（）・,，.。!！?？").casefold()
+        if normalized in NAVIGATION_TOKEN_KEYS:
+            continue
+        kept.append(token)
+    return " ".join(kept)
 
 
 def build_title(template: str, fallback: str, source: str, url: str, matches: list[str]) -> str:

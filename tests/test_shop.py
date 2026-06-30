@@ -32,6 +32,7 @@ class ShopModelTests(unittest.TestCase):
         signal = build_drop_signal(
             {
                 "source": "generic_page",
+                "event_type": "content_changed",
                 "title": "Plain page",
                 "url": "https://example.com/shop",
                 "metadata": {"matched_keywords": ["brand"]},
@@ -39,6 +40,29 @@ class ShopModelTests(unittest.TestCase):
         )
 
         self.assertIsNone(signal)
+
+    def test_build_drop_signal_accepts_new_structured_shop_item_without_keywords(self) -> None:
+        signal = build_drop_signal(
+            {
+                "source": "generic_page",
+                "event_type": "new_item",
+                "title": "Public shop page",
+                "url": "https://example.com/shop",
+                "metadata": {
+                    "shop": {"name": "Tokyo Proxy"},
+                    "item": {"title": "Ribbon OP", "url": "https://example.com/shop/ribbon-op"},
+                    "matched_keywords": [],
+                },
+            }
+        )
+
+        self.assertIsNotNone(signal)
+        assert signal is not None
+        self.assertEqual(signal.shop.name, "Tokyo Proxy")
+        self.assertEqual(signal.item.title, "Ribbon OP")
+        self.assertEqual(signal.item.keywords, ())
+        self.assertEqual(signal.urgency, "high")
+        self.assertEqual(signal.reason_codes, ("new_shop_item",))
 
 
 if __name__ == "__main__":

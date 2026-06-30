@@ -31,7 +31,7 @@ class FeedOsAcceptanceTests(unittest.TestCase):
                 "metadata": {
                     "shop": {"name": "Proxy Shop"},
                     "item": {"title": "Shell Garden JSK", "url": "https://example.com/drop/item"},
-                    "matched_keywords": ["JSK", "预约"],
+                    "matched_keywords": [],
                 },
             },
         ]
