@@ -229,6 +229,9 @@ sources:
 
             self.assertEqual(len(source_alerts), 1)
             self.assertEqual(source_alerts[0]["url"], "https://angelicpretty.com/Page/news/")
+            self.assertEqual(source_alerts[0]["brand"], "Angelic Pretty")
+            self.assertEqual(source_alerts[0]["title"], "Angelic Pretty source unavailable")
+            self.assertNotIn("angelic_pretty", source_alerts[0]["title"])
 
     def test_feed_state_outputs_feed_os_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -326,6 +329,8 @@ sources:
             self.assertEqual(feed["summary"]["shops"], 1)
             self.assertEqual(feed["streams"]["trend"][0]["trend"], "rising")
             self.assertEqual(feed["streams"]["trend"][0]["price_delta"], 0.5)
+            self.assertEqual(feed["streams"]["alert"][0]["brand"], "Angelic Pretty")
+            self.assertEqual(feed["streams"]["alert"][0]["title"], "Angelic Pretty source unavailable")
             self.assertEqual(feed["streams"]["alert"][0]["meta"], "timeout")
             self.assertEqual(feed["streams"]["alert"][0]["error_rate"], 1.0)
             self.assertEqual(feed["streams"]["alert"][0]["latency_ms"], 1200)

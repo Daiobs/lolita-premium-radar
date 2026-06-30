@@ -520,7 +520,9 @@ class FeedOsTests(unittest.TestCase):
         alerts = feed["streams"]["alert"]
 
         self.assertEqual(len(alerts), 1)
-        self.assertEqual(alerts[0]["brand"], "angelic_pretty")
+        self.assertEqual(alerts[0]["brand"], "Angelic Pretty")
+        self.assertEqual(alerts[0]["title"], "Angelic Pretty source degraded")
+        self.assertNotIn("angelic_pretty", alerts[0]["title"])
         self.assertEqual(alerts[0]["kind"], "degraded")
         self.assertEqual(alerts[0]["url"], "https://example.com/ap/news")
         self.assertEqual(alerts[0]["reason_codes"], ["source_health"])

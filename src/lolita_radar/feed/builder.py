@@ -127,21 +127,24 @@ def alert_feed(
         market_count += 1
     for run in latest_source_runs_by_source(source_runs):
         if str(run.get("status") or "") in {"failed", "degraded"}:
+            source = str(run.get("source") or "")
+            label = source_label(source)
+            status = str(run.get("status") or "source")
             alerts.append(
                 {
-                    "id": f"alert:source:{run.get('source')}",
+                    "id": f"alert:source:{source}",
                     "feed_type": "alert",
-                    "kind": str(run.get("status") or "source"),
-                    "brand": str(run.get("source") or ""),
-                    "title": f"{run.get('source')} {run.get('status')}",
+                    "kind": status,
+                    "brand": label,
+                    "title": source_health_title(source, status),
                     "meta": str(run.get("error_message") or ""),
                     "time": str(run.get("checked_at") or ""),
-                    "url": urls.get(str(run.get("source") or ""), ""),
+                    "url": urls.get(source, ""),
                     "error_rate": run.get("error_rate", 0),
                     "latency_ms": run.get("latency_ms", 0),
                     "item_count": run.get("item_count", 0),
                     "reason_codes": ["source_health"],
-                    "visual": visual_token("alert", str(run.get("source") or "Source"), str(run.get("status") or "source")),
+                    "visual": visual_token("alert", label or "Source", status),
                 }
             )
     return unique_cards(sort_cards(alerts))[:40]
@@ -293,6 +296,15 @@ def source_label(source: str) -> str:
         "generic_page": "Shop / Proxy",
     }
     return labels.get(source, source)
+
+
+def source_health_title(source: str, status: str) -> str:
+    label = source_label(source)
+    status_text = {
+        "failed": "source unavailable",
+        "degraded": "source degraded",
+    }.get(status, f"source {status}".strip())
+    return " ".join(part for part in (label, status_text) if part)
 
 
 def feed_time(row: dict[str, Any]) -> tuple[str, str]:
