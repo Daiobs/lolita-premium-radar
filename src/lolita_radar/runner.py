@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+import time
 from typing import Callable
 
 from .adapters import (
@@ -312,11 +312,12 @@ def verify_check_loop(
     min_duration = max(0, int(min_duration_seconds))
     results = parse_check_loop_log(log_path)
     duration_seconds = loop_log_duration_seconds(log_path)
+    window_start, window_end = loop_log_window(log_path)
     failed_cycles = tuple(result.cycle for result in results if not result.ok)
     observed_cycle_numbers = {result.cycle for result in results}
     missing_cycles = tuple(cycle for cycle in range(1, expected + 1) if cycle not in observed_cycle_numbers)
     sources = tuple(source.name for source in select_sources(load_sources(config_path), None))
-    source_runs = recent_source_runs_by_source(db_path, sources, expected)
+    source_runs = recent_source_runs_by_source(db_path, sources, expected, window_start=window_start, window_end=window_end)
     source_cycle_counts = {source: len(source_runs.get(source, [])) for source in sources}
     unhealthy_source_runs = count_unhealthy_source_runs(source_runs)
     source_health_summary = summarize_source_runs(source_runs)
@@ -377,13 +378,18 @@ def parse_check_loop_log(path: Path) -> list[CheckLoopResult]:
 
 
 def loop_log_duration_seconds(path: Path) -> int:
-    metadata = parse_check_loop_metadata(path)
-    started_at = parse_iso_datetime(metadata.get("started_at", ""))
-    finished_at = parse_iso_datetime(metadata.get("finished_at", ""))
+    started_at, finished_at = loop_log_window(path)
     if started_at is None or finished_at is None:
         return 0
     seconds = int((finished_at - started_at).total_seconds())
     return max(0, seconds)
+
+
+def loop_log_window(path: Path) -> tuple[datetime | None, datetime | None]:
+    metadata = parse_check_loop_metadata(path)
+    started_at = parse_iso_datetime(metadata.get("started_at", ""))
+    finished_at = parse_iso_datetime(metadata.get("finished_at", ""))
+    return started_at, finished_at
 
 
 def parse_check_loop_metadata(path: Path) -> dict[str, str]:
@@ -405,15 +411,20 @@ def parse_iso_datetime(value: str) -> datetime | None:
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def recent_source_runs_by_source(
     db_path: Path,
     sources: tuple[str, ...],
     limit_per_source: int,
+    window_start: datetime | None = None,
+    window_end: datetime | None = None,
 ) -> dict[str, list[dict[str, object]]]:
     connection = connect(db_path)
     try:
@@ -426,14 +437,27 @@ def recent_source_runs_by_source(
                 FROM source_runs
                 WHERE source = ?
                 ORDER BY checked_at DESC, id DESC
-                LIMIT ?
                 """,
-                (source, limit),
+                (source,),
             ).fetchall()
-            runs[source] = [{**dict(row), "ok": bool(row["ok"])} for row in rows]
+            filtered_rows = [
+                {**dict(row), "ok": bool(row["ok"])}
+                for row in rows
+                if source_run_in_window(str(row["checked_at"] or ""), window_start, window_end)
+            ]
+            runs[source] = filtered_rows[:limit]
         return runs
     finally:
         connection.close()
+
+
+def source_run_in_window(checked_at: str, window_start: datetime | None, window_end: datetime | None) -> bool:
+    if window_start is None or window_end is None:
+        return True
+    checked = parse_iso_datetime(checked_at)
+    if checked is None:
+        return False
+    return window_start <= checked <= window_end
 
 
 def count_unhealthy_source_runs(source_runs: dict[str, list[dict[str, object]]]) -> dict[str, int]:
