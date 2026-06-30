@@ -80,6 +80,23 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("feed.streams?.[activeFilter]", check.detail)
 
+    def test_home_feed_ui_audit_requires_source_time_and_bilingual_title(self) -> None:
+        original_html = audit_module.FEED_INDEX_HTML
+        try:
+            audit_module.FEED_INDEX_HTML = (
+                original_html
+                .replace("源头发布时间", "发布时间")
+                .replace("`${localized} · ${row.title}`", "row.title")
+            )
+
+            check = audit_module.audit_frontend_feed_os()
+        finally:
+            audit_module.FEED_INDEX_HTML = original_html
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("源头发布时间", check.detail)
+        self.assertIn("`${localized} · ${row.title}`", check.detail)
+
     def test_feed_contract_requires_release_visual_image(self) -> None:
         original_sample_home_feed = audit_module.sample_home_feed
         try:
@@ -501,6 +518,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "title": "Login",
                     "type": "new_arrival",
                     "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time_kind": "published",
                     "price": "未取得",
                     "url": "https://example.com/login",
                 }
@@ -525,6 +543,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "title": "Old Release JSK",
                     "type": "new_arrival",
                     "time": "2025-12-31",
+                    "time_kind": "published",
                     "price": "未取得",
                     "url": "https://example.com/ap/old",
                 }
@@ -538,6 +557,32 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "fail")
         self.assertIn("stale source time", check.detail)
+
+    def test_runtime_feed_audit_rejects_release_seen_time(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.runtime_state(
+                {
+                    "feed_type": "release",
+                    "brand": "AP",
+                    "title": "Shell Garden JSK",
+                    "type": "new_arrival",
+                    "time": "2026-06-30T10:00:00+00:00",
+                    "time_kind": "seen",
+                    "price": "¥38,280",
+                    "url": "https://example.com/ap",
+                }
+            )
+
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("sources.yaml"),
+                db_path=Path("radar.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("invalid time_kind", check.detail)
 
     def test_runtime_feed_audit_rejects_release_alert_boundary(self) -> None:
         original_get_feed_state = audit_module.get_feed_state

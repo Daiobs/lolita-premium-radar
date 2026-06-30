@@ -199,6 +199,9 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "visual.image_url",
         'loading="lazy"',
         "has-image",
+        "源头发布时间",
+        "掲載元日",
+        "`${localized} · ${row.title}`",
         'activeFilter === "all"',
         "feed.streams?.[activeFilter]",
         'button.addEventListener("click"',
@@ -427,6 +430,10 @@ def card_visual_problem(row: dict[str, Any]) -> str:
 
 
 def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
+    for row in feed_rows(streams, "release"):
+        release_context_problem = release_card_context_problem(row)
+        if release_context_problem:
+            return release_context_problem
     for row in feed_rows(streams, "drop"):
         urgency = str(row.get("urgency") or "")
         if urgency not in {"high", "medium", "low"}:
@@ -460,6 +467,20 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
         source_health_problem = source_health_alert_problem(row)
         if source_health_problem:
             return source_health_problem
+    return ""
+
+
+def release_card_context_problem(row: dict[str, Any]) -> str:
+    price = row.get("price")
+    if price not in (None, "") and not isinstance(price, str):
+        return f"stream release row has invalid price: {price}"
+    time_value = str(row.get("time") or "")
+    if not time_value:
+        return "stream release row is missing source time"
+    if row.get("time_kind") != "published":
+        return f"stream release row has invalid time_kind: {row.get('time_kind')}"
+    if stale_release_time(row):
+        return f"stream release row has stale source time: {time_value}"
     return ""
 
 
