@@ -17,11 +17,12 @@ def build_home_feed(
     momentum: list[dict[str, Any]],
     source_runs: list[dict[str, Any]],
     brand_weights: list[dict[str, Any]] | None = None,
+    source_urls: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     release = release_feed(events, items)
     drop = drop_feed(events, items)
     trend = build_trend_feed(market_summary, momentum, events, brand_weights=brand_weights or [])
-    alert = alert_feed(events, market_alerts, source_runs)
+    alert = alert_feed(events, market_alerts, source_runs, source_urls=source_urls or {})
     streams = {
         "release": release,
         "drop": drop,
@@ -66,8 +67,10 @@ def alert_feed(
     events: list[dict[str, Any]],
     market_alerts: dict[str, Any],
     source_runs: list[dict[str, Any]],
+    source_urls: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     alerts = []
+    urls = source_urls or {}
     for event in events[:20]:
         if is_release_event(event):
             alerts.append(feed_card("alert", event, kind="new_release"))
@@ -97,7 +100,7 @@ def alert_feed(
                     "title": f"{run.get('source')} {run.get('status')}",
                     "meta": str(run.get("error_message") or f"error_rate={run.get('error_rate', 0)}"),
                     "time": str(run.get("checked_at") or ""),
-                    "url": "",
+                    "url": urls.get(str(run.get("source") or ""), ""),
                     "reason_codes": ["source_health"],
                 }
             )

@@ -7,7 +7,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 from lolita_radar.models import ItemStatus, RadarItem
-from lolita_radar.storage import connect, diff_and_store
+from lolita_radar.storage import connect, diff_and_store, record_source_run
 from lolita_radar.web import FEED_INDEX_HTML, INDEX_HTML, get_feed_state, make_handler
 
 
@@ -95,6 +95,43 @@ sources:
         self.assertIn("class=\"reasons\"", FEED_INDEX_HTML)
         self.assertNotIn("northStarRadar", FEED_INDEX_HTML)
         self.assertNotIn("brandCrownQueue", FEED_INDEX_HTML)
+
+    def test_feed_state_source_health_alert_uses_configured_source_url(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "sources.yaml"
+            db_path = root / "radar.sqlite"
+            config_path.write_text(
+                """
+sources:
+  angelic_pretty:
+    type: angelic_pretty
+    enabled: true
+    url: "https://angelicpretty.com/Page/news/"
+""".strip(),
+                encoding="utf-8",
+            )
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "angelic_pretty",
+                    ok=False,
+                    status="failed",
+                    error_rate=1.0,
+                    error_message="timeout",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            state = get_feed_state(config_path=config_path, db_path=db_path)
+            source_alerts = [
+                alert for alert in state["feed"]["streams"]["alert"] if alert.get("reason_codes") == ["source_health"]
+            ]
+
+            self.assertEqual(len(source_alerts), 1)
+            self.assertEqual(source_alerts[0]["url"], "https://angelicpretty.com/Page/news/")
 
     def test_index_html_is_feed_app_alias(self) -> None:
         self.assertEqual(INDEX_HTML, FEED_INDEX_HTML)

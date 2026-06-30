@@ -125,12 +125,21 @@ class FeedOsTests(unittest.TestCase):
             },
         ]
 
-        feed = build_home_feed([], [], {"brands": []}, {"alerts": []}, [], source_runs)
+        feed = build_home_feed(
+            [],
+            [],
+            {"brands": []},
+            {"alerts": []},
+            [],
+            source_runs,
+            source_urls={"angelic_pretty": "https://example.com/ap/news"},
+        )
         alerts = feed["streams"]["alert"]
 
         self.assertEqual(len(alerts), 1)
         self.assertEqual(alerts[0]["brand"], "angelic_pretty")
         self.assertEqual(alerts[0]["kind"], "degraded")
+        self.assertEqual(alerts[0]["url"], "https://example.com/ap/news")
         self.assertEqual(alerts[0]["reason_codes"], ["source_health"])
         self.assertEqual(alerts[0]["time"], "2026-06-30T10:05:00+00:00")
 
