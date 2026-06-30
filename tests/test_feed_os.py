@@ -820,11 +820,11 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("sample_gap", trends[0]["reason_codes"])
 
     def test_trend_engine_normalizes_brand_aliases_for_watch_urls_and_momentum(self) -> None:
-        current_year = datetime.now(timezone.utc).year
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         trends = build_trend_feed(
             {"brands": [{"brand_alias": " ap ", "sample_count": 3, "avg_premium_rate": 0.4}]},
-            [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
-            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+            [{"brand_alias": "AP", "direction": "rising", "observed_at": today}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
             brand_weights=[
                 {
                     "alias": "AP",
@@ -839,35 +839,44 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["id"], "trend:AP")
         self.assertEqual(trends[0]["kind"], "rising")
         self.assertEqual(trends[0]["url"], "https://www.goofish.com/search?q=AP")
-        self.assertEqual(trends[0]["time"], "2026-06-30")
+        self.assertEqual(trends[0]["time"], today)
         self.assertIn("momentum_observed", trends[0]["reason_codes"])
         self.assertIn("release_activity", trends[0]["reason_codes"])
 
     def test_trend_engine_ignores_stale_release_events(self) -> None:
         current_year = datetime.now(timezone.utc).year
         stale_year = current_year - 1
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+        stale_window_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
         base_market = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.4}]}
-        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": f"{current_year}-06-30"}]
+        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": today}]
 
         stale_trends = build_trend_feed(
             base_market,
             momentum,
             [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{stale_year}-12-31"}],
         )
+        stale_window_trends = build_trend_feed(
+            base_market,
+            momentum,
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": stale_window_date}],
+        )
         current_trends = build_trend_feed(
             base_market,
             momentum,
-            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
         )
 
         self.assertNotIn("release_activity", stale_trends[0]["reason_codes"])
+        self.assertNotIn("release_activity", stale_window_trends[0]["reason_codes"])
         self.assertIn("release_activity", current_trends[0]["reason_codes"])
         self.assertGreater(current_trends[0]["confidence"], stale_trends[0]["confidence"])
+        self.assertGreater(current_trends[0]["confidence"], stale_window_trends[0]["confidence"])
 
     def test_trend_engine_ignores_release_events_without_source_publish_time(self) -> None:
-        current_year = datetime.now(timezone.utc).year
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         base_market = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.4}]}
-        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": f"{current_year}-06-30"}]
+        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": today}]
 
         missing_date_trends = build_trend_feed(
             base_market,
@@ -877,7 +886,7 @@ class FeedOsTests(unittest.TestCase):
         current_trends = build_trend_feed(
             base_market,
             momentum,
-            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
         )
 
         self.assertNotIn("release_activity", missing_date_trends[0]["reason_codes"])

@@ -261,6 +261,7 @@ It keeps the product focused on daily scanning instead of heavy analysis panels.
 The combined home feed keeps at most 30 linked cards. Release and Drop cards
 must use the original source publish date, stay in the current year, and fall
 inside the recent 90-day source window so old news does not crowd the home page.
+Trend `release_activity` uses the same source-date window.
 The feed app renders four lightweight streams:
 
 - Release Feed: brand release, preorder, and restock events from AP, BABY, AATP, Meta, and MMM.

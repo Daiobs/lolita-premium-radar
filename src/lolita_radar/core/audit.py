@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
 from typing import Any
@@ -963,17 +963,19 @@ def required_keys(row: dict[str, Any], keys: tuple[str, ...]) -> str:
 
 def audit_trend_engine() -> FeedOsAuditCheck:
     year = datetime.now(timezone.utc).year
+    today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+    stale_window_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
     market_summary = {
         "brands": [
             {"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5},
             {"brand_alias": "Meta", "sample_count": 3, "avg_premium_rate": -0.2},
         ]
     }
-    momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}]
+    momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": today}]
     trends = build_trend_feed(
         market_summary,
         momentum,
-        [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{year}-06-30"}],
+        [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
         brand_weights=[{"alias": "BABY"}],
     )
     if not trends:
@@ -1012,6 +1014,20 @@ def audit_trend_engine() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("trend_engine", "fail", "stale release events affected trend reasons")
     if int(ap_trend.get("confidence") or 0) <= int(stale_ap.get("confidence") or 0):
         return FeedOsAuditCheck("trend_engine", "fail", "current release events did not outrank stale release confidence")
+    stale_window_trends = build_trend_feed(
+        market_summary,
+        momentum,
+        [{"source": "angelic_pretty", "status": "new_arrival", "published_at": stale_window_date}],
+        brand_weights=[{"alias": "BABY"}],
+    )
+    stale_window_by_brand = {str(trend.get("brand") or ""): trend for trend in stale_window_trends}
+    stale_window_ap = stale_window_by_brand.get("AP")
+    if not stale_window_ap:
+        return FeedOsAuditCheck("trend_engine", "fail", "stale window release check missing AP trend")
+    if "release_activity" in stale_window_ap.get("reason_codes", []):
+        return FeedOsAuditCheck("trend_engine", "fail", "release events outside the recent source window affected trend reasons")
+    if int(ap_trend.get("confidence") or 0) <= int(stale_window_ap.get("confidence") or 0):
+        return FeedOsAuditCheck("trend_engine", "fail", "current release events did not outrank stale-window release confidence")
     missing_date_trends = build_trend_feed(
         market_summary,
         momentum,
@@ -1029,7 +1045,7 @@ def audit_trend_engine() -> FeedOsAuditCheck:
     return FeedOsAuditCheck(
         "trend_engine",
         "pass",
-        "rule-based rising/cooling/stable output with confidence, current release activity, stale release filtering, missing-date release filtering, and reasons",
+        "rule-based rising/cooling/stable output with confidence, current release activity, stale release filtering, recent-window release filtering, missing-date release filtering, and reasons",
     )
 
 

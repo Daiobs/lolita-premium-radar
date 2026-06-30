@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
 from typing import Any
+
+from ..source_dates import is_current_source_date
 
 
 TREND_DIRECTIONS = {"rising", "stable", "cooling"}
@@ -131,14 +132,7 @@ def count_release_events(events: list[dict[str, Any]]) -> dict[str, int]:
 
 
 def is_current_release_event(event: dict[str, Any]) -> bool:
-    published_at = str(event.get("published_at") or "")
-    if len(published_at) >= 4 and published_at[:4].isdigit():
-        return int(published_at[:4]) >= current_year()
-    return False
-
-
-def current_year() -> int:
-    return datetime.now(timezone.utc).year
+    return is_current_source_date(str(event.get("published_at") or ""))
 
 
 def normalize_direction(raw_direction: object, avg_premium: float, sample_count: int) -> str:

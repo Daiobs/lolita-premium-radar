@@ -455,7 +455,7 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("stale release events", check.detail)
 
-    def test_trend_engine_audit_rejects_missing_date_release_activity(self) -> None:
+    def test_trend_engine_audit_rejects_recent_window_release_activity(self) -> None:
         original_build_trend_feed = audit_module.build_trend_feed
 
         def fake_build_trend_feed(_market, _momentum, events, **_kwargs):
@@ -463,6 +463,51 @@ class FeedOsAuditTests(unittest.TestCase):
             if events:
                 event = events[0]
                 if event.get("published_at") != f"{datetime.now(timezone.utc).year - 1}-12-31":
+                    ap_reasons.append("release_activity")
+            return [
+                {
+                    "brand": "AP",
+                    "trend": "rising",
+                    "confidence": 75 if "release_activity" in ap_reasons else 70,
+                    "sample_count": 4,
+                    "reason_codes": ap_reasons,
+                },
+                {
+                    "brand": "Meta",
+                    "trend": "cooling",
+                    "confidence": 50,
+                    "sample_count": 3,
+                    "reason_codes": ["sample_supported", "premium_cooling"],
+                },
+                {
+                    "brand": "BABY",
+                    "trend": "stable",
+                    "confidence": 0,
+                    "sample_count": 0,
+                    "reason_codes": ["sample_gap", "premium_stable"],
+                },
+            ]
+
+        try:
+            audit_module.build_trend_feed = fake_build_trend_feed
+
+            check = audit_module.audit_trend_engine()
+        finally:
+            audit_module.build_trend_feed = original_build_trend_feed
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("recent source window", check.detail)
+
+    def test_trend_engine_audit_rejects_missing_date_release_activity(self) -> None:
+        original_build_trend_feed = audit_module.build_trend_feed
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+
+        def fake_build_trend_feed(_market, _momentum, events, **_kwargs):
+            ap_reasons = ["sample_supported", "premium_rising", "momentum_observed"]
+            if events:
+                event = events[0]
+                published_at = str(event.get("published_at") or "")
+                if not published_at or published_at == today:
                     ap_reasons.append("release_activity")
             return [
                 {
