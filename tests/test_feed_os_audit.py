@@ -325,6 +325,24 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertIn("mutation APIs", problem)
 
+    def test_generic_noise_audit_rejects_hash_changing_noise(self) -> None:
+        original_generic_noise_item = audit_module.generic_noise_item
+        try:
+            audit_module.generic_noise_item = lambda text: RadarItem(
+                source="generic_page",
+                title="Generic noise sample",
+                url="https://example.com/noise",
+                status=ItemStatus.SHOP_NEWS,
+                content=text,
+            )
+
+            check = audit_module.audit_generic_noise_controls()
+        finally:
+            audit_module.generic_noise_item = original_generic_noise_item
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("noise-only changes altered content hash", check.detail)
+
     def test_generic_shop_item_extraction_audit_checks_drop_card_context(self) -> None:
         check = audit_module.audit_generic_shop_item_extraction()
 

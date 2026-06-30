@@ -1152,11 +1152,7 @@ def audit_generic_noise_controls() -> FeedOsAuditCheck:
         "Login Cart updated at: 2026-06-30 10:00 view count: 5 "
         "JSK Shell Garden JSK. JSK Shell Garden JSK. カート ログイン 新作ジャンパースカート"
     )
-    cleaned = suppress_duplicate_segments(strip_navigation_tokens(apply_ignore_patterns(text, [
-        r"updated at[:：]?\s*[0-9: /.-]+",
-        r"\b(?:view count|views|page views)[:：]?\s*[\d,]+",
-        r"\b(login|account|cart|privacy|contact|company|shop list)\b",
-    ])))
+    cleaned = generic_noise_cleaned_content(text)
     lowered = cleaned.lower()
     cleaned_tokens = {token.strip(" |/\\-_:：[]()（）・,，.。!！?？").casefold() for token in cleaned.split()}
     blocked = []
@@ -1170,7 +1166,29 @@ def audit_generic_noise_controls() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("generic_noise_control", "fail", "noise tokens survived: " + ", ".join(blocked))
     if "新作ジャンパースカート" not in cleaned:
         return FeedOsAuditCheck("generic_noise_control", "fail", "navigation filter stripped jumper skirt content")
+    first = generic_noise_item("updated at: 2026-06-30 10:00 JSK Shell Garden JSK. view count: 5")
+    second = generic_noise_item("updated at: 2026-06-30 11:30 JSK Shell Garden JSK. view count: 999")
+    if first.content_hash != second.content_hash:
+        return FeedOsAuditCheck("generic_noise_control", "fail", "noise-only changes altered content hash")
     return FeedOsAuditCheck("generic_noise_control", "pass", "timestamp/view-count/navigation noise is ignored without stripping item text")
+
+
+def generic_noise_cleaned_content(text: str) -> str:
+    return suppress_duplicate_segments(strip_navigation_tokens(apply_ignore_patterns(text, [
+        r"updated at[:：]?\s*[0-9: /.-]+",
+        r"\b(?:view count|views|page views)[:：]?\s*[\d,]+",
+        r"\b(login|account|cart|privacy|contact|company|shop list)\b",
+    ])))
+
+
+def generic_noise_item(text: str) -> RadarItem:
+    return RadarItem(
+        source="generic_page",
+        title="Generic noise sample",
+        url="https://example.com/noise",
+        status=ItemStatus.SHOP_NEWS,
+        content=generic_noise_cleaned_content(text),
+    )
 
 
 def audit_stable_loop_evidence(
