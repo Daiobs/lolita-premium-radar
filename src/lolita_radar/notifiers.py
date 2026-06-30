@@ -33,7 +33,7 @@ def notify_all(notifiers: list[Notifier], events: list[RadarEvent]) -> None:
 
 def format_event(event: RadarEvent) -> str:
     metadata = event.item.metadata or {}
-    brand = str(metadata.get("brand") or event.source or "-")
+    subject = notification_subject(event)
     matched_keywords = metadata.get("matched_keywords") or []
     if isinstance(matched_keywords, list):
         matched_keyword_text = ", ".join(str(keyword) for keyword in matched_keywords[:8])
@@ -42,7 +42,7 @@ def format_event(event: RadarEvent) -> str:
     price = str(metadata.get("price") or "")
     status = event.item.status.value
     lines = [
-        f"{notification_kind(event)} · {brand}",
+        f"{notification_kind(event)} · {subject}",
         event.item.title[:240],
         f"源头发布时间 / 掲載元日: {event.item.published_at or '-'}",
         f"状态 / 状態: {status_label(status)}",
@@ -59,6 +59,22 @@ def format_event(event: RadarEvent) -> str:
             f"{short_hash(event.previous_content_hash)} -> {short_hash(event.item.content_hash)}"
         )
     return "\n".join(lines)
+
+
+def notification_subject(event: RadarEvent) -> str:
+    metadata = event.item.metadata or {}
+    brand = str(metadata.get("brand") or "").strip()
+    if brand:
+        return brand
+    raw_shop = metadata.get("shop")
+    if isinstance(raw_shop, dict):
+        shop_name = str(raw_shop.get("name") or "").strip()
+        if shop_name:
+            return shop_name
+    shop_name = str(metadata.get("shop_name") or "").strip()
+    if shop_name:
+        return shop_name
+    return str(event.source or "-")
 
 
 def notification_kind(event: RadarEvent) -> str:

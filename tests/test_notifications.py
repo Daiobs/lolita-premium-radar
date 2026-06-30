@@ -80,8 +80,10 @@ class NotificationTests(unittest.TestCase):
         drop_text = format_event(RadarEvent(source=drop_item.source, event_type=EventType.NEW_ITEM, item=drop_item))
         page_text = format_event(RadarEvent(source=page_item.source, event_type=EventType.NEW_ITEM, item=page_item))
 
-        self.assertIn("DROP · generic_page", drop_text)
-        self.assertIn("ALERT · generic_page", page_text)
+        self.assertIn("DROP · Tokyo Proxy", drop_text)
+        self.assertIn("ALERT · Tokyo Proxy", page_text)
+        self.assertIn("来源 / ソース: generic_page", drop_text)
+        self.assertIn("来源 / ソース: generic_page", page_text)
 
     def test_build_notifiers_from_env_stays_local_only(self) -> None:
         with patch.dict(

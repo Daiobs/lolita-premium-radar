@@ -366,7 +366,21 @@ def audit_notification_contract() -> FeedOsAuditCheck:
     )
     page_text = format_event(RadarEvent(source=page_item.source, event_type=EventType.NEW_ITEM, item=page_item))
     mislabeled_drop = page_text.startswith("DROP")
-    if missing or leaked or mislabeled_drop:
+    drop_item = RadarItem(
+        source="generic_page",
+        title="Shell Garden JSK 预约",
+        url="https://example.com/shop/shell",
+        status=ItemStatus.SHOP_NEWS,
+        published_at="2026-06-30",
+        metadata={
+            "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+            "item": {"title": "Shell Garden JSK 预约", "url": "https://example.com/shop/shell"},
+            "matched_keywords": ["JSK", "预约"],
+        },
+    )
+    drop_text = format_event(RadarEvent(source=drop_item.source, event_type=EventType.NEW_ITEM, item=drop_item))
+    missing_shop_subject = "DROP · Tokyo Proxy" not in drop_text or "来源 / ソース: generic_page" not in drop_text
+    if missing or leaked or mislabeled_drop or missing_shop_subject:
         detail = []
         if missing:
             detail.append("missing notification tokens: " + ", ".join(missing))
@@ -374,8 +388,10 @@ def audit_notification_contract() -> FeedOsAuditCheck:
             detail.append("legacy notification fields present: " + ", ".join(leaked))
         if mislabeled_drop:
             detail.append("page-level shop notification mislabeled as DROP")
+        if missing_shop_subject:
+            detail.append("Drop notification missing shop subject/source boundary")
         return FeedOsAuditCheck("notification_contract", "fail", "; ".join(detail))
-    return FeedOsAuditCheck("notification_contract", "pass", "local notifications render Feed OS card summaries with source publish time and Drop-model boundaries")
+    return FeedOsAuditCheck("notification_contract", "pass", "local notifications render Feed OS card summaries with shop subjects, source publish time, and Drop-model boundaries")
 
 
 def audit_feed_contract() -> FeedOsAuditCheck:
