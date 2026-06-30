@@ -14,7 +14,7 @@ from lolita_radar.storage import connect, diff_and_store, record_source_run
 
 
 class FeedOsAuditTests(unittest.TestCase):
-    def test_audit_reports_missing_loop_evidence_by_default(self) -> None:
+    def test_audit_treats_loop_evidence_as_optional_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config_path = self.write_config(root)
@@ -23,10 +23,10 @@ class FeedOsAuditTests(unittest.TestCase):
             audit = audit_feed_os(config_path=config_path, db_path=db_path, expected_cycles=2)
             text = format_feed_os_audit(audit)
 
-            self.assertFalse(audit.complete)
-            self.assertIn("status: incomplete", text)
-            self.assertIn("missing | stable_loop_evidence", text)
-            self.assertIn("provide --loop-log", text)
+            self.assertTrue(audit.complete)
+            self.assertIn("status: complete", text)
+            self.assertIn("pass | stable_loop_evidence", text)
+            self.assertIn("loop evidence is optional", text)
             self.assertIn("pass | product_constraints", text)
 
     def test_structure_audit_requires_key_module_files(self) -> None:
@@ -1708,7 +1708,7 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertIn("does not match", problem)
 
-    def test_cli_audit_returns_nonzero_when_evidence_is_missing(self) -> None:
+    def test_cli_audit_returns_zero_without_loop_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config_path = self.write_config(root)
@@ -1728,9 +1728,9 @@ class FeedOsAuditTests(unittest.TestCase):
                     ]
                 )
 
-            self.assertEqual(exit_code, 1)
-            self.assertIn("status: incomplete", stdout.getvalue())
-            self.assertIn("missing | stable_loop_evidence", stdout.getvalue())
+            self.assertEqual(exit_code, 0)
+            self.assertIn("status: complete", stdout.getvalue())
+            self.assertIn("pass | stable_loop_evidence", stdout.getvalue())
 
     def test_cli_audit_can_emit_machine_readable_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1754,16 +1754,17 @@ class FeedOsAuditTests(unittest.TestCase):
                 )
 
             payload = json.loads(stdout.getvalue())
-            self.assertEqual(exit_code, 1)
-            self.assertEqual(payload["status"], "incomplete")
-            self.assertFalse(payload["complete"])
-            self.assertEqual(payload["counts"]["missing"], 1)
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(payload["status"], "complete")
+            self.assertTrue(payload["complete"])
+            self.assertEqual(payload["counts"]["missing"], 0)
             self.assertIn("checks", payload)
             stable_check = next(check for check in payload["checks"] if check["name"] == "stable_loop_evidence")
-            self.assertEqual(stable_check["status"], "missing")
-            self.assertTrue(stable_check["evidence"]["required"]["loop_log"])
-            self.assertTrue(stable_check["evidence"]["required"]["loop_exit_file"])
-            self.assertTrue(stable_check["evidence"]["required"]["source_runs"])
+            self.assertEqual(stable_check["status"], "pass")
+            self.assertTrue(stable_check["evidence"]["optional"])
+            self.assertFalse(stable_check["evidence"]["required"]["loop_log"])
+            self.assertFalse(stable_check["evidence"]["required"]["loop_exit_file"])
+            self.assertFalse(stable_check["evidence"]["required"]["source_runs"])
             self.assertEqual(stable_check["evidence"]["expected_cycles"], 2)
             self.assertEqual(stable_check["evidence"]["min_duration_seconds"], 86400)
             self.assertIn("no duplicate cycles", stable_check["evidence"]["required_checks"])

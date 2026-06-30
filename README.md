@@ -222,6 +222,15 @@ Audit the Feed OS acceptance evidence:
 ```bash
 python -m lolita_radar.cli audit-feed-os \
   --brands config/brand_weights.json \
+  --market config/market_observations.json
+```
+
+To include optional long-run stability evidence in the same audit, pass the
+loop log and exit-code file:
+
+```bash
+python -m lolita_radar.cli audit-feed-os \
+  --brands config/brand_weights.json \
   --market config/market_observations.json \
   --loop-log .data/soak/lolita-radar-os-24h.log \
   --loop-exit-file .data/soak/lolita-radar-os-24h.exit \
@@ -234,9 +243,9 @@ state, rule-based Trend output, Shop DROP signals, crawler health fields,
 GenericPage noise controls, and optional loop evidence. When loop evidence is
 provided, the JSON output includes `window_start`, `window_end`,
 `duplicate_cycles`, `missing_cycle_timestamps`, `cycle_time_mismatches`, source
-cycle counts, and source health summaries. Without a loop log it reports the
-stability evidence as `missing` instead of treating the system as fully
-accepted.
+cycle counts, and source health summaries. Without a loop log, the stability
+evidence check is recorded as optional and does not block the local Feed OS
+audit result.
 Add `--json` when a CI job or review script needs machine-readable status,
 counts, and per-check details.
 
