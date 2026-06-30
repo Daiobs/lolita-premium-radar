@@ -57,10 +57,14 @@ def release_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> l
 
 
 def drop_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows = [drop_card(row) for row in events if row.get("source") == "generic_page"]
+    rows = [drop_card(row) for row in events if is_drop_row(row)]
     if rows:
         return rows[:30]
-    return [drop_card(row) for row in items if row.get("source") == "generic_page"][:30]
+    return [drop_card(row) for row in items if is_drop_row(row)][:30]
+
+
+def is_drop_row(row: dict[str, Any]) -> bool:
+    return row.get("source") == "generic_page" and bool(matched_keywords(row))
 
 
 def alert_feed(

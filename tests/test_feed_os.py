@@ -115,6 +115,35 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(release_titles, ["Meta Rose JSK"])
         self.assertEqual(feed["summary"]["drops"], 1)
 
+    def test_drop_feed_requires_generic_page_keyword_matches(self) -> None:
+        events = [
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "status": "shop_news",
+                "title": "Proxy page changed",
+                "url": "https://example.com/shop/no-keywords",
+                "created_at": "2026-06-30T10:00:00+00:00",
+                "metadata": {"matched_keywords": []},
+            },
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "status": "shop_news",
+                "title": "Proxy JSK 预约",
+                "url": "https://example.com/shop/jsk",
+                "created_at": "2026-06-30T10:01:00+00:00",
+                "metadata": {"matched_keywords": ["JSK", "预约"]},
+            },
+        ]
+
+        feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
+        drop_titles = [row["title"] for row in feed["streams"]["drop"]]
+
+        self.assertEqual(drop_titles, ["Proxy JSK 预约"])
+        self.assertEqual(feed["summary"]["shops"], 1)
+        self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
+
     def test_alert_feed_uses_latest_source_health_per_source(self) -> None:
         source_runs = [
             {
