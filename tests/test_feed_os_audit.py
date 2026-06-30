@@ -116,6 +116,13 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("release.visual.image_url", check.detail)
 
+    def test_generic_shop_item_extraction_audit_checks_drop_card_context(self) -> None:
+        check = audit_module.audit_generic_shop_item_extraction()
+
+        self.assertEqual(check.status, "pass")
+        self.assertEqual(check.name, "generic_shop_item_extraction")
+        self.assertIn("source time, image, price", check.detail)
+
     def test_audit_passes_with_complete_loop_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

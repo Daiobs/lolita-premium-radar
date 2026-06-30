@@ -6,7 +6,8 @@ from pathlib import Path
 import re
 from typing import Any
 
-from ..adapters.generic_page import apply_ignore_patterns, strip_navigation_tokens, suppress_duplicate_segments
+from ..adapters import SourceConfig
+from ..adapters.generic_page import apply_ignore_patterns, linked_shop_items, strip_navigation_tokens, suppress_duplicate_segments
 from ..crawler import enrich_source_runs
 from ..feed import build_home_feed
 from ..runner import verify_check_loop
@@ -85,6 +86,7 @@ def audit_feed_os(
         audit_runtime_feed_state(config_path, db_path, brands_path, market_path),
         audit_trend_engine(),
         audit_shop_drop_model(),
+        audit_generic_shop_item_extraction(),
         audit_crawler_health_contract(db_path),
         audit_generic_noise_controls(),
         audit_stable_loop_evidence(
@@ -567,6 +569,69 @@ def audit_shop_drop_model() -> FeedOsAuditCheck:
     if signal.urgency != "high" or "keyword_match" not in signal.reason_codes:
         return FeedOsAuditCheck("shop_drop_model", "fail", f"unexpected urgency/reasons: {signal}")
     return FeedOsAuditCheck("shop_drop_model", "pass", "Shop -> Item DROP triggers on new item and watched keywords")
+
+
+def audit_generic_shop_item_extraction() -> FeedOsAuditCheck:
+    config = SourceConfig(
+        name="proxy_shop",
+        type="generic_page",
+        url="https://example.com/shop/",
+        keywords=["JSK", "预约"],
+        options={"shop_name": "Tokyo Proxy"},
+    )
+    items = linked_shop_items(
+        """
+        <article>
+          <time datetime="2026-06-30"></time>
+          <a href="/shop/shell-jsk">
+            <img alt="" src="/images/shell.webp">
+            Shell Garden JSK 预约
+          </a>
+          <span>¥12,800</span>
+        </article>
+        """,
+        config,
+        "Shell Garden JSK 预约 ¥12,800",
+        ["JSK", "预约"],
+    )
+    if len(items) != 1:
+        return FeedOsAuditCheck("generic_shop_item_extraction", "fail", f"expected 1 linked item, got {len(items)}")
+    item = items[0]
+    metadata = item.metadata
+    if item.published_at != "2026-06-30" or metadata.get("image_url") != "https://example.com/images/shell.webp" or metadata.get("price") != "¥12,800":
+        return FeedOsAuditCheck("generic_shop_item_extraction", "fail", f"linked item metadata incomplete: {metadata}")
+    feed = build_home_feed(
+        [
+            {
+                "source": item.source,
+                "event_type": "new_item",
+                "status": item.status.value,
+                "title": item.title,
+                "url": item.url,
+                "published_at": item.published_at,
+                "metadata": metadata,
+            }
+        ],
+        [],
+        {"brands": []},
+        {"alerts": []},
+        [],
+        [],
+    )
+    drops = feed.get("streams", {}).get("drop", [])
+    if len(drops) != 1:
+        return FeedOsAuditCheck("generic_shop_item_extraction", "fail", f"expected 1 Drop card, got {len(drops)}")
+    drop = drops[0]
+    expected = {
+        "shop": "Tokyo Proxy",
+        "item": "Shell Garden JSK 预约",
+        "time": "2026-06-30",
+        "price": "¥12,800",
+    }
+    mismatches = [key for key, value in expected.items() if drop.get(key) != value]
+    if mismatches or drop.get("visual", {}).get("image_url") != "https://example.com/images/shell.webp":
+        return FeedOsAuditCheck("generic_shop_item_extraction", "fail", f"Drop card incomplete: {drop}")
+    return FeedOsAuditCheck("generic_shop_item_extraction", "pass", "GenericPage public item links produce Drop cards with source time, image, price, and keywords")
 
 
 def audit_crawler_health_contract(db_path: Path) -> FeedOsAuditCheck:
