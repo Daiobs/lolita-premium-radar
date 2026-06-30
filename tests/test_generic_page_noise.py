@@ -83,6 +83,51 @@ class GenericPageNoiseTests(unittest.TestCase):
         self.assertIn("¥12,800", items[0].metadata["context"])
         self.assertEqual(items[1].metadata["matched_keywords"], ["OP"])
 
+    def test_linked_shop_item_hash_ignores_unrelated_page_text_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "radar.sqlite")
+            config = SourceConfig(
+                name="proxy_shop",
+                type="generic_page",
+                url="https://example.com/shop/",
+                keywords=["JSK", "预约"],
+                options={"shop_name": "Tokyo Proxy"},
+            )
+            original_fetch = generic_page.fetch_text
+            try:
+                generic_page.fetch_text = lambda *_args, **_kwargs: """
+                <html><body>
+                  <p>site banner version A</p>
+                  <article>
+                    <time datetime="2026-06-30"></time>
+                    <a href="/shop/shell-jsk">Shell Garden JSK 预约</a>
+                    <span class="price">¥12,800</span>
+                  </article>
+                </body></html>
+                """
+                first = generic_page.GenericPageAdapter(config).fetch_items()[0]
+                generic_page.fetch_text = lambda *_args, **_kwargs: """
+                <html><body>
+                  <p>site banner version B</p>
+                  <article>
+                    <time datetime="2026-06-30"></time>
+                    <a href="/shop/shell-jsk">Shell Garden JSK 预约</a>
+                    <span class="price">¥12,800</span>
+                  </article>
+                </body></html>
+                """
+                second = generic_page.GenericPageAdapter(config).fetch_items()[0]
+
+                first_events = diff_and_store(connection, [first])
+                second_events = diff_and_store(connection, [second])
+            finally:
+                generic_page.fetch_text = original_fetch
+                connection.close()
+
+            self.assertEqual(first.content_hash, second.content_hash)
+            self.assertEqual([event.event_type for event in first_events], [EventType.NEW_ITEM])
+            self.assertEqual(second_events, [])
+
     def test_min_keyword_hits_filters_low_signal_page(self) -> None:
         config = SourceConfig(
             name="proxy",

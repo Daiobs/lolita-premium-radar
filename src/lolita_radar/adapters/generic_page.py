@@ -149,7 +149,7 @@ def linked_shop_items(html_text: str, config, page_text: str, page_matches: list
         title = link.title.strip()
         if not title:
             continue
-        content = f"{link.text} {page_text[:500]}".strip()
+        content = linked_item_content(link)
         items.append(
             RadarItem(
                 source=config.name,
@@ -162,6 +162,10 @@ def linked_shop_items(html_text: str, config, page_text: str, page_matches: list
             )
         )
     return dedupe_items(items)
+
+
+def linked_item_content(link: LinkCandidate) -> str:
+    return " ".join(part for part in (link.text, link.context, link.title) if str(part).strip())
 
 
 def linked_item_metadata(config, shop_name: str, shop_url: str, title: str, link: LinkCandidate, matches: list[str]) -> dict[str, object]:

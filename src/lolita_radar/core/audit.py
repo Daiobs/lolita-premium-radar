@@ -1211,7 +1211,12 @@ def audit_generic_noise_controls() -> FeedOsAuditCheck:
     second = generic_noise_item("updated at: 2026-06-30 11:30 JSK Shell Garden JSK. view count: 999")
     if first.content_hash != second.content_hash:
         return FeedOsAuditCheck("generic_noise_control", "fail", "noise-only changes altered content hash")
-    return FeedOsAuditCheck("generic_noise_control", "pass", "timestamp/view-count/navigation noise is ignored without stripping item text")
+    first_linked, second_linked = generic_linked_noise_items()
+    if not first_linked or not second_linked:
+        return FeedOsAuditCheck("generic_noise_control", "fail", "linked item noise fixture produced no item")
+    if first_linked.content_hash != second_linked.content_hash:
+        return FeedOsAuditCheck("generic_noise_control", "fail", "outer page changes altered linked item content hash")
+    return FeedOsAuditCheck("generic_noise_control", "pass", "timestamp/view-count/navigation/outer-page noise is ignored without stripping item text")
 
 
 def generic_noise_cleaned_content(text: str) -> str:
@@ -1230,6 +1235,36 @@ def generic_noise_item(text: str) -> RadarItem:
         status=ItemStatus.SHOP_NEWS,
         content=generic_noise_cleaned_content(text),
     )
+
+
+def generic_linked_noise_items() -> tuple[RadarItem | None, RadarItem | None]:
+    config = SourceConfig(
+        name="proxy_shop",
+        type="generic_page",
+        url="https://example.com/shop/",
+        keywords=["JSK", "预约"],
+        options={"shop_name": "Tokyo Proxy"},
+    )
+    article = """
+    <article>
+      <time datetime="2026-06-30"></time>
+      <a href="/shop/shell-jsk">Shell Garden JSK 预约</a>
+      <span>¥12,800</span>
+    </article>
+    """
+    first = linked_shop_items(
+        f"<html><body><p>site banner A</p>{article}</body></html>",
+        config,
+        "site banner A Shell Garden JSK 预约 ¥12,800",
+        ["JSK", "预约"],
+    )
+    second = linked_shop_items(
+        f"<html><body><p>site banner B</p>{article}</body></html>",
+        config,
+        "site banner B Shell Garden JSK 预约 ¥12,800",
+        ["JSK", "预约"],
+    )
+    return (first[0] if first else None, second[0] if second else None)
 
 
 def audit_stable_loop_evidence(
