@@ -168,6 +168,8 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         'data-filter="alert"',
         "releasesCount",
         "dropsCount",
+        "REASON_TEXT",
+        "reasonLabel",
         "visual.image_url",
         'loading="lazy"',
         "has-image",

@@ -513,6 +513,48 @@ FEED_INDEX_HTML = r"""<!doctype html>
         zh: { high: "高", medium: "中", low: "低" },
         ja: { high: "高", medium: "中", low: "低" },
       };
+      const REASON_TEXT = {
+        zh: {
+          new_release: "新发售",
+          new_item: "新商品",
+          content_changed: "内容更新",
+          new_arrival: "新作",
+          preorder: "预约",
+          restock: "再贩",
+          new_shop_item: "店铺新商品",
+          shop_item_changed: "店铺更新",
+          keyword_match: "关键词命中",
+          source_health: "来源健康",
+          high_premium: "高溢价",
+          sample_gap: "样本不足",
+          sample_supported: "样本支持",
+          premium_rising: "溢价上升",
+          premium_cooling: "溢价降温",
+          premium_stable: "溢价稳定",
+          momentum_observed: "趋势动量",
+          release_activity: "近期发售",
+        },
+        ja: {
+          new_release: "発売情報",
+          new_item: "新商品",
+          content_changed: "更新",
+          new_arrival: "新作",
+          preorder: "予約",
+          restock: "再入荷",
+          new_shop_item: "ショップ新着",
+          shop_item_changed: "ショップ更新",
+          keyword_match: "キーワード一致",
+          source_health: "取得状態",
+          high_premium: "高プレミア",
+          sample_gap: "サンプル不足",
+          sample_supported: "サンプルあり",
+          premium_rising: "プレミア上昇",
+          premium_cooling: "プレミア低下",
+          premium_stable: "プレミア安定",
+          momentum_observed: "勢いあり",
+          release_activity: "直近発売",
+        },
+      };
       let state = {};
       let activeFilter = "all";
       let language = localStorage.getItem("lolitaRadarLanguage") || "zh";
@@ -625,7 +667,12 @@ FEED_INDEX_HTML = r"""<!doctype html>
       }
       function reasonHtml(reasonCodes) {
         const reasons = Array.isArray(reasonCodes) ? reasonCodes.filter(Boolean).slice(0, 4) : [];
-        return reasons.length ? `<p class="reasons">${escapeHtml(reasons.join(" · "))}</p>` : "";
+        return reasons.length ? `<p class="reasons">${escapeHtml(reasons.map(reasonLabel).join(" · "))}</p>` : "";
+      }
+      function reasonLabel(value) {
+        const raw = String(value || "");
+        if (raw.startsWith("kw:")) return raw.slice(3);
+        return REASON_TEXT[language]?.[raw] || raw;
       }
       function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
