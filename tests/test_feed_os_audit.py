@@ -110,6 +110,21 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertIn("源头发布时间", check.detail)
         self.assertIn("`${localized} · ${row.title}`", check.detail)
 
+    def test_home_feed_ui_audit_rejects_title_link_lists(self) -> None:
+        original_html = audit_module.FEED_INDEX_HTML
+        try:
+            audit_module.FEED_INDEX_HTML = (
+                original_html
+                + '<ul class="title-list"><li><a href="/shell">Shell Garden JSK</a></li></ul>'
+            )
+
+            check = audit_module.audit_frontend_feed_os()
+        finally:
+            audit_module.FEED_INDEX_HTML = original_html
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("title-list UI markup", check.detail)
+
     def test_notification_contract_audit_rejects_engineering_field_format(self) -> None:
         original_format_event = audit_module.format_event
         try:

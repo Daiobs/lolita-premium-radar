@@ -249,12 +249,16 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "brand" + "crown",
     )
     forbidden = [token for token in legacy_tokens if token in lowered]
-    if missing or forbidden:
+    title_list_tokens = ("<ul", "<ol", "<li", "title-list", "link-list")
+    title_list = [token for token in title_list_tokens if token in lowered]
+    if missing or forbidden or title_list:
         detail = []
         if missing:
             detail.append("missing UI tokens: " + ", ".join(missing))
         if forbidden:
             detail.append("legacy product tokens present: " + ", ".join(forbidden))
+        if title_list:
+            detail.append("title-list UI markup present: " + ", ".join(title_list))
         return FeedOsAuditCheck("home_feed_ui", "fail", "; ".join(detail))
     return FeedOsAuditCheck("home_feed_ui", "pass", "card UI, badges, summary bar, and 4 filters are present")
 
