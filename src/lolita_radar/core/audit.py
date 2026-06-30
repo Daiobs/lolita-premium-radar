@@ -387,7 +387,17 @@ def runtime_feed_payload_problem(
         return f"get_feed_payload failed: {exc}"
     if payload.get("feed") != expected_feed:
         return "api feed payload does not match runtime Feed OS state"
-    forbidden_payload_keys = ("items", "events", "market", "source_runs", "brand_weights")
+    forbidden_payload_keys = (
+        "items",
+        "events",
+        "market",
+        "source_runs",
+        "brand_weights",
+        "market_alerts",
+        "focus_queue",
+        "opportunity_radar",
+        "brand_weight_profile",
+    )
     leaked = [key for key in forbidden_payload_keys if key in payload]
     if leaked:
         return "api feed payload leaks full state keys: " + ", ".join(leaked)

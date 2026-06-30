@@ -1457,6 +1457,8 @@ class FeedOsAuditTests(unittest.TestCase):
                 "feed": expected_feed,
                 "items": [],
                 "events": [],
+                "market_alerts": {"alerts": []},
+                "opportunity_radar": [],
             }
             problem = audit_module.runtime_feed_payload_problem(
                 config_path=Path("config/sources.yaml"),
@@ -1471,6 +1473,8 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertIn("leaks full state keys", problem)
         self.assertIn("items", problem)
         self.assertIn("events", problem)
+        self.assertIn("market_alerts", problem)
+        self.assertIn("opportunity_radar", problem)
 
     def test_runtime_feed_payload_audit_rejects_feed_mismatch(self) -> None:
         original_get_feed_payload = audit_module.get_feed_payload
