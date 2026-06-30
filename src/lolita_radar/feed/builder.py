@@ -51,21 +51,18 @@ def release_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> l
         feed_card("release", row)
         for row in events
         if is_current_release_row(row)
-    ]
-    if rows:
-        return unique_cards(sort_cards(rows))[:HOME_LINK_LIMIT]
-    return unique_cards(sort_cards([
+    ] + [
         feed_card("release", row)
         for row in items
         if is_current_release_row(row)
-    ]))[:HOME_LINK_LIMIT]
+    ]
+    return unique_cards(sort_cards(rows))[:HOME_LINK_LIMIT]
 
 
 def drop_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows = [drop_card(row) for row in events if is_current_drop_row(row)]
-    if rows:
-        return unique_cards(sort_cards(rows))[:HOME_LINK_LIMIT]
-    return unique_cards(sort_cards([drop_card(row) for row in items if is_current_drop_row(row)]))[:HOME_LINK_LIMIT]
+    rows.extend(drop_card(row) for row in items if is_current_drop_row(row))
+    return unique_cards(sort_cards(rows))[:HOME_LINK_LIMIT]
 
 
 def is_drop_row(row: dict[str, Any]) -> bool:

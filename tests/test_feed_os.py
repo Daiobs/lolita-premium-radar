@@ -147,6 +147,44 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["release"][0]["time"], "2026-06-29")
         self.assertEqual(feed["streams"]["release"][0]["time_kind"], "published")
 
+    def test_release_feed_combines_events_and_items_to_fill_current_links(self) -> None:
+        events = [
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Event Shell JSK",
+                "url": "https://example.com/ap/shell",
+                "published_at": "2026-06-30",
+            }
+        ]
+        items = [
+            {
+                "source": "angelic_pretty",
+                "status": "new_arrival",
+                "title": "Stored Shell JSK duplicate",
+                "url": "https://example.com/ap/shell",
+                "published_at": "2026-06-30",
+            },
+            {
+                "source": "baby_ssb",
+                "status": "preorder",
+                "title": "Stored Usakumya OP",
+                "url": "https://example.com/baby/usakumya",
+                "published_at": "2026-06-29",
+            },
+        ]
+
+        feed = build_home_feed(events, items, {"brands": []}, {"alerts": []}, [], [])
+        releases = feed["streams"]["release"]
+
+        self.assertEqual([row["url"] for row in releases], [
+            "https://example.com/ap/shell",
+            "https://example.com/baby/usakumya",
+        ])
+        self.assertEqual(releases[0]["title"], "Event Shell JSK")
+        self.assertEqual(feed["summary"]["releases"], 2)
+
     def test_home_all_feed_is_limited_to_thirty_links(self) -> None:
         events = [
             {
@@ -434,6 +472,48 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(drop_titles, ["Current JSK"])
         self.assertEqual(feed["streams"]["drop"][0]["time"], "2026-06-30")
         self.assertEqual(feed["streams"]["drop"][0]["time_kind"], "published")
+
+    def test_drop_feed_combines_events_and_items_to_fill_current_links(self) -> None:
+        events = [
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "status": "shop_news",
+                "title": "Event Proxy JSK",
+                "url": "https://example.com/shop/shell",
+                "published_at": "2026-06-30",
+                "metadata": {"shop_name": "Proxy Shop", "item_title": "Event Shell JSK", "matched_keywords": ["JSK"]},
+            }
+        ]
+        items = [
+            {
+                "source": "generic_page",
+                "status": "shop_news",
+                "title": "Stored duplicate",
+                "url": "https://example.com/shop/shell",
+                "published_at": "2026-06-30",
+                "metadata": {"shop_name": "Proxy Shop", "item_title": "Stored duplicate", "matched_keywords": ["JSK"]},
+            },
+            {
+                "source": "generic_page",
+                "status": "shop_news",
+                "title": "Stored OP",
+                "url": "https://example.com/shop/op",
+                "published_at": "2026-06-29",
+                "metadata": {"shop_name": "Proxy Shop", "item_title": "Stored OP", "matched_keywords": ["OP"]},
+            },
+        ]
+
+        feed = build_home_feed(events, items, {"brands": []}, {"alerts": []}, [], [])
+        drops = feed["streams"]["drop"]
+
+        self.assertEqual([row["url"] for row in drops], [
+            "https://example.com/shop/shell",
+            "https://example.com/shop/op",
+        ])
+        self.assertEqual(drops[0]["title"], "Event Shell JSK")
+        self.assertEqual(feed["summary"]["drops"], 2)
+        self.assertEqual(feed["summary"]["shops"], 1)
 
     def test_drop_feed_accepts_named_generic_page_source_type(self) -> None:
         events = [
