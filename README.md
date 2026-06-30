@@ -257,6 +257,16 @@ The feed app renders four lightweight streams:
 - Alert Feed: system-level market and source-health warnings such as
   high-premium signals, sample gaps, degraded sources, and failed sources.
 
+Public Web API responses are also Feed OS shaped:
+
+- `GET /api/feed` returns the public Feed OS payload.
+- `GET /api/state` returns the same public Feed OS payload for compatibility.
+- `POST /api/check`, `POST /api/market/observations`, and
+  `PUT /api/brand-weights` return the Feed OS payload plus the operation result.
+- Internal state blocks such as raw `items`, raw `events`, full `market`,
+  `market_alerts`, `focus_queue`, and `opportunity_radar` are not exposed by
+  the public Web API.
+
 No AI/ML model, checkout automation, login automation, CAPTCHA bypass, queue bypass, or risk-control bypass is included.
 
 ## GitHub Actions
