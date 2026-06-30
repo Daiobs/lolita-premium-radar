@@ -366,6 +366,12 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
         + (", ".join(str(cycle) for cycle in verification.missing_cycles) if verification.missing_cycles else "[]"),
         "duplicate_cycles: "
         + (", ".join(str(cycle) for cycle in verification.duplicate_cycles) if verification.duplicate_cycles else "[]"),
+        "cycle_time_mismatches: "
+        + (
+            ", ".join(str(cycle) for cycle in verification.cycle_time_mismatches)
+            if verification.cycle_time_mismatches
+            else "[]"
+        ),
         "unhealthy_source_runs: "
         + (
             ", ".join(

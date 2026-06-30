@@ -73,6 +73,7 @@ class CheckLoopVerification:
     failed_cycles: tuple[int, ...]
     missing_cycles: tuple[int, ...]
     duplicate_cycles: tuple[int, ...]
+    cycle_time_mismatches: tuple[int, ...]
     exit_code: int | None
     expected_sources: tuple[str, ...]
     source_cycle_counts: dict[str, int]
@@ -93,6 +94,7 @@ class CheckLoopVerification:
             "failed_cycles": list(self.failed_cycles),
             "missing_cycles": list(self.missing_cycles),
             "duplicate_cycles": list(self.duplicate_cycles),
+            "cycle_time_mismatches": list(self.cycle_time_mismatches),
             "expected_sources": list(self.expected_sources),
             "source_cycle_counts": self.source_cycle_counts,
             "unhealthy_source_runs": self.unhealthy_source_runs,
@@ -326,6 +328,7 @@ def verify_check_loop(
     observed_cycle_numbers = {result.cycle for result in results}
     missing_cycles = tuple(cycle for cycle in range(1, expected + 1) if cycle not in observed_cycle_numbers)
     duplicate_cycles = duplicate_cycle_numbers(results)
+    cycle_time_mismatches = cycle_time_mismatch_numbers(results, window_start, window_end)
     sources = tuple(source.name for source in select_sources(load_sources(config_path), None))
     source_runs = recent_source_runs_by_source(db_path, sources, expected, window_start=window_start, window_end=window_end)
     source_cycle_counts = {source: len(source_runs.get(source, [])) for source in sources}
@@ -342,6 +345,7 @@ def verify_check_loop(
         and enough_duration
         and not missing_cycles
         and not duplicate_cycles
+        and not cycle_time_mismatches
         and not failed_cycles
         and enough_source_runs
         and healthy_source_runs
@@ -364,6 +368,7 @@ def verify_check_loop(
         failed_cycles=failed_cycles,
         missing_cycles=missing_cycles,
         duplicate_cycles=duplicate_cycles,
+        cycle_time_mismatches=cycle_time_mismatches,
         exit_code=exit_code,
         expected_sources=sources,
         source_cycle_counts=source_cycle_counts,
@@ -380,6 +385,23 @@ def duplicate_cycle_numbers(results: list[CheckLoopResult]) -> tuple[int, ...]:
             duplicates.append(result.cycle)
         seen.add(result.cycle)
     return tuple(duplicates)
+
+
+def cycle_time_mismatch_numbers(
+    results: list[CheckLoopResult],
+    window_start: datetime | None,
+    window_end: datetime | None,
+) -> tuple[int, ...]:
+    if window_start is None or window_end is None:
+        return ()
+    mismatches = []
+    for result in results:
+        if not result.checked_at:
+            continue
+        checked = parse_iso_datetime(result.checked_at)
+        if checked is None or not window_start <= checked <= window_end:
+            mismatches.append(result.cycle)
+    return tuple(mismatches)
 
 
 def parse_check_loop_log(path: Path) -> list[CheckLoopResult]:

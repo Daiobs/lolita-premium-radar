@@ -167,7 +167,9 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertFalse(audit.complete)
             self.assertEqual(stable_check["status"], "missing")
             self.assertIn("duplicate=[2]", stable_check["detail"])
+            self.assertIn("cycle_time_mismatches=[]", stable_check["detail"])
             self.assertEqual(stable_check["evidence"]["duplicate_cycles"], [2])
+            self.assertEqual(stable_check["evidence"]["cycle_time_mismatches"], [])
 
     def test_audit_checks_runtime_feed_state_from_current_config_and_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
