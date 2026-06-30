@@ -10,6 +10,8 @@ from ..adapters import SourceConfig
 from ..adapters.generic_page import apply_ignore_patterns, linked_shop_items, strip_navigation_tokens, suppress_duplicate_segments
 from ..crawler import enrich_source_runs
 from ..feed import build_home_feed
+from ..models import EventType, ItemStatus, RadarEvent, RadarItem
+from ..notifiers import format_event
 from ..runner import verify_check_loop
 from ..shop import build_drop_signal
 from ..storage import connect
@@ -83,6 +85,7 @@ def audit_feed_os(
         audit_product_constraints(root),
         audit_frontend_feed_os(),
         audit_feed_contract(),
+        audit_notification_contract(),
         audit_runtime_feed_state(config_path, db_path, brands_path, market_path),
         audit_public_web_payload_contract(root),
         audit_trend_engine(),
@@ -254,6 +257,42 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
             detail.append("legacy product tokens present: " + ", ".join(forbidden))
         return FeedOsAuditCheck("home_feed_ui", "fail", "; ".join(detail))
     return FeedOsAuditCheck("home_feed_ui", "pass", "card UI, badges, summary bar, and 4 filters are present")
+
+
+def audit_notification_contract() -> FeedOsAuditCheck:
+    item = RadarItem(
+        source="angelic_pretty",
+        title="Shell Garden JSK",
+        url="https://example.com/ap/shell",
+        status=ItemStatus.NEW_ARRIVAL,
+        published_at="2026-06-30",
+        metadata={
+            "brand": "Angelic Pretty",
+            "price": "¥38,280",
+            "matched_keywords": ["JSK", "预约"],
+        },
+    )
+    text = format_event(RadarEvent(source=item.source, event_type=EventType.NEW_ITEM, item=item))
+    required = (
+        "RELEASE",
+        "Angelic Pretty",
+        "Shell Garden JSK",
+        "源头发布时间 / 掲載元日: 2026-06-30",
+        "价格 / 価格: ¥38,280",
+        "关键词 / キーワード: JSK, 预约",
+        "链接 / URL: https://example.com/ap/shell",
+    )
+    missing = [token for token in required if token not in text]
+    legacy_fields = ("brand:", "source:", "event_type:", "status:", "title:", "published_at:", "url:", "matched_keywords:")
+    leaked = [token for token in legacy_fields if token in text]
+    if missing or leaked:
+        detail = []
+        if missing:
+            detail.append("missing notification tokens: " + ", ".join(missing))
+        if leaked:
+            detail.append("legacy notification fields present: " + ", ".join(leaked))
+        return FeedOsAuditCheck("notification_contract", "fail", "; ".join(detail))
+    return FeedOsAuditCheck("notification_contract", "pass", "local notifications render Feed OS card summaries with source publish time")
 
 
 def audit_feed_contract() -> FeedOsAuditCheck:

@@ -110,6 +110,25 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertIn("源头发布时间", check.detail)
         self.assertIn("`${localized} · ${row.title}`", check.detail)
 
+    def test_notification_contract_audit_rejects_engineering_field_format(self) -> None:
+        original_format_event = audit_module.format_event
+        try:
+            audit_module.format_event = lambda _event: "\n".join(
+                [
+                    "brand: Angelic Pretty",
+                    "event_type: new_item",
+                    "published_at: 2026-06-30",
+                    "url: https://example.com/ap/shell",
+                ]
+            )
+
+            check = audit_module.audit_notification_contract()
+        finally:
+            audit_module.format_event = original_format_event
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("legacy notification fields", check.detail)
+
     def test_feed_contract_requires_release_visual_image(self) -> None:
         original_sample_home_feed = audit_module.sample_home_feed
         try:
