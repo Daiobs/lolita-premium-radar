@@ -411,6 +411,7 @@ class FeedOsAuditTests(unittest.TestCase):
                                 "reason_codes": ["new_release"],
                                 "time": "2025-12-31",
                                 "url": "https://example.com/ap/old",
+                                "visual": self.visual("AL", "!", "new_release"),
                             }
                         ],
                     },
@@ -440,11 +441,38 @@ class FeedOsAuditTests(unittest.TestCase):
                     "reason_codes": ["source_health"],
                     "time": "2025-12-31T00:00:00+00:00",
                     "url": "https://example.com/ap",
+                    "visual": self.visual("AL", "!", "failed"),
                 }
             ],
         }
 
         self.assertEqual(audit_module.runtime_feed_noise_problem(streams), "")
+
+    def test_runtime_feed_audit_rejects_missing_card_visual(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.runtime_state(
+                {
+                    "feed_type": "release",
+                    "brand": "AP",
+                    "title": "Shell Garden JSK",
+                    "type": "new_arrival",
+                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "price": "未取得",
+                    "url": "https://example.com/ap/shell",
+                    "visual": {},
+                },
+                add_visual=False,
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("invalid visual", check.detail)
 
     def test_runtime_feed_audit_checks_all_rows_not_only_first_items(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
@@ -463,6 +491,7 @@ class FeedOsAuditTests(unittest.TestCase):
                                 "time": f"{current_year}-06-{index + 1:02d}",
                                 "price": "未取得",
                                 "url": f"https://example.com/ap/{index}",
+                                "visual": self.visual("AP", "R", "new_arrival"),
                             }
                             for index in range(4)
                         ],
@@ -535,6 +564,7 @@ class FeedOsAuditTests(unittest.TestCase):
                                 "price_delta": 0.5,
                                 "reason_codes": ["sample_supported"],
                                 "url": "https://example.com/market",
+                                "visual": self.visual("AP", "T", "rising"),
                             }
                         ],
                         "alert": [],
@@ -568,6 +598,7 @@ class FeedOsAuditTests(unittest.TestCase):
                                 "keywords": ["JSK"],
                                 "urgency": "soon",
                                 "url": "https://example.com/drop",
+                                "visual": self.visual("SH", "D", "shop_news"),
                             }
                         ],
                         "trend": [],
@@ -730,7 +761,9 @@ sources:
         )
         return config_path
 
-    def runtime_state(self, release_row: dict) -> dict:
+    def runtime_state(self, release_row: dict, add_visual: bool = True) -> dict:
+        if add_visual and "visual" not in release_row:
+            release_row = {**release_row, "visual": self.visual("AP", "R", str(release_row.get("type") or "release"))}
         return {
             "feed": {
                 "summary": {"drops": 1, "shops": 0, "trends": 0, "alerts": 0},
@@ -743,6 +776,9 @@ sources:
                 "all": [release_row],
             }
         }
+
+    def visual(self, initials: str, mark: str, tone: str) -> dict[str, str]:
+        return {"initials": initials, "mark": mark, "tone": tone, "image_url": ""}
 
 
 if __name__ == "__main__":

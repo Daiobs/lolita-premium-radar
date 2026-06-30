@@ -352,6 +352,21 @@ def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
             missing = required_keys(row, required)
             if missing:
                 return f"stream {name} row missing fields: {missing}"
+            visual_problem = card_visual_problem(row)
+            if visual_problem:
+                return f"stream {name} row has invalid visual: {visual_problem}"
+    return ""
+
+
+def card_visual_problem(row: dict[str, Any]) -> str:
+    visual = row.get("visual")
+    if not isinstance(visual, dict):
+        return "missing visual"
+    missing = required_keys(visual, ("initials", "mark", "tone"))
+    if missing:
+        return missing
+    if "image_url" in visual and not isinstance(visual.get("image_url"), str):
+        return "image_url"
     return ""
 
 

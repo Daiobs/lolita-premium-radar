@@ -115,6 +115,7 @@ def alert_feed(
                 "time": "",
                 "url": str(alert.get("url") or ""),
                 "reason_codes": market_alert_reasons(alert, kind),
+                "visual": visual_token("alert", str(alert.get("alias") or "Market"), kind),
             }
         )
         market_count += 1
@@ -131,6 +132,7 @@ def alert_feed(
                     "time": str(run.get("checked_at") or ""),
                     "url": urls.get(str(run.get("source") or ""), ""),
                     "reason_codes": ["source_health"],
+                    "visual": visual_token("alert", str(run.get("source") or "Source"), str(run.get("status") or "source")),
                 }
             )
     return unique_cards(sort_cards(alerts))[:40]

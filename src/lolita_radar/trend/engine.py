@@ -45,6 +45,7 @@ def build_trend_feed(
                 "price_delta": round(avg_premium, 4),
                 "sample_count": sample_count,
                 "reason_codes": reasons,
+                "visual": trend_visual(alias, direction),
             }
         )
     return sorted(trends, key=lambda row: (int(row["confidence"]), float(row.get("avg_premium_rate") or 0)), reverse=True)
@@ -187,3 +188,12 @@ def trend_meta(avg_premium: float, sample_count: int, reasons: list[str]) -> str
     if reason_text:
         parts.append(f"reason: {reason_text}")
     return " · ".join(parts)
+
+
+def trend_visual(alias: str, direction: str) -> dict[str, str]:
+    return {
+        "initials": (alias[:2] or "TR").upper(),
+        "mark": "T",
+        "tone": direction or "trend",
+        "image_url": "",
+    }

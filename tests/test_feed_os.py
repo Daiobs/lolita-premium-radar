@@ -50,21 +50,25 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["release"][0]["price"], "¥38,280")
         self.assertEqual(feed["streams"]["release"][0]["url"], "https://example.com/ap")
         self.assertEqual(feed["streams"]["release"][0]["visual"]["image_url"], "https://example.com/shell.webp")
+        self.assertEqual(feed["streams"]["release"][0]["visual"]["mark"], "R")
         self.assertEqual(feed["streams"]["drop"][0]["feed_type"], "drop")
         self.assertEqual(feed["streams"]["drop"][0]["shop"], "Tokyo Proxy")
         self.assertEqual(feed["streams"]["drop"][0]["item"], "Shell Garden JSK")
         self.assertEqual(feed["streams"]["drop"][0]["urgency"], "high")
         self.assertEqual(feed["streams"]["drop"][0]["keywords"], ["JSK", "预约"])
+        self.assertEqual(feed["streams"]["drop"][0]["visual"]["mark"], "D")
         self.assertIn("keywords: JSK, 预约", feed["streams"]["drop"][0]["meta"])
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
         self.assertEqual(feed["streams"]["trend"][0]["kind"], "rising")
         self.assertEqual(feed["streams"]["trend"][0]["trend"], "rising")
         self.assertEqual(feed["streams"]["trend"][0]["price_delta"], 0.45)
+        self.assertEqual(feed["streams"]["trend"][0]["visual"]["mark"], "T")
         alert_titles = {row["title"] for row in feed["streams"]["alert"]}
         self.assertIn("Shell Garden JSK", alert_titles)
         self.assertNotIn("Proxy JSK 预约", alert_titles)
         release_alert = next(row for row in feed["streams"]["alert"] if row["title"] == "Shell Garden JSK")
         self.assertEqual(release_alert["reason_codes"], ["new_release", "new_item", "new_arrival"])
+        self.assertTrue(all(row["visual"]["mark"] for rows in feed["streams"].values() for row in rows))
 
     def test_release_feed_prefers_published_at_over_seen_time(self) -> None:
         events = [
