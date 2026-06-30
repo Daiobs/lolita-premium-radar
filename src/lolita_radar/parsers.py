@@ -58,6 +58,10 @@ class LinkTextParser(HTMLParser):
                     "text": attr.get("title", "") or attr.get("aria-label", ""),
                 }
             )
+        if tag.lower() == "img" and self._stack:
+            image_text = clean_text(attr.get("alt", "") or attr.get("title", "") or attr.get("aria-label", ""))
+            if image_text:
+                self._stack[-1]["text"] += " " + image_text
 
     def handle_data(self, data: str) -> None:
         cleaned = clean_text(data)
