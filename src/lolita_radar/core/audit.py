@@ -24,13 +24,17 @@ class FeedOsAuditCheck:
     name: str
     status: str
     detail: str
+    evidence: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.status not in AUDIT_STATUSES:
             raise ValueError(f"unknown audit status: {self.status}")
 
-    def to_dict(self) -> dict[str, str]:
-        return {"name": self.name, "status": self.status, "detail": self.detail}
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {"name": self.name, "status": self.status, "detail": self.detail}
+        if self.evidence is not None:
+            payload["evidence"] = self.evidence
+        return payload
 
 
 @dataclass(frozen=True)
@@ -573,6 +577,7 @@ def audit_stable_loop_evidence(
             "stable_loop_evidence",
             "pass",
             f"verify-loop complete for {verification.observed_cycles}/{verification.expected_cycles} cycles",
+            verification.to_dict(),
         )
     status = "fail" if verification.status == "failed" else "missing"
     return FeedOsAuditCheck(
@@ -584,4 +589,5 @@ def audit_stable_loop_evidence(
             f"failed={list(verification.failed_cycles)}, unhealthy={verification.unhealthy_source_runs}, "
             f"duration={verification.duration_seconds}/{verification.min_duration_seconds}"
         ),
+        verification.to_dict(),
     )

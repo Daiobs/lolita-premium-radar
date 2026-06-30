@@ -51,9 +51,11 @@ class FeedOsAuditTests(unittest.TestCase):
             log_path.write_text(
                 "\n".join(
                     [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
                         "cycle | ok | event_count | error_message",
                         "1 | ok | 1 | ",
                         "2 | ok | 0 | ",
+                        "# finished_at: 2026-06-30T00:05:00+00:00",
                     ]
                 )
                 + "\n",
@@ -98,6 +100,13 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertTrue(audit.complete)
             self.assertIn("status: complete", format_feed_os_audit(audit))
             self.assertIn("pass | stable_loop_evidence", format_feed_os_audit(audit))
+            payload = json.loads(format_feed_os_audit_json(audit))
+            stable_check = next(check for check in payload["checks"] if check["name"] == "stable_loop_evidence")
+            self.assertEqual(stable_check["status"], "pass")
+            self.assertEqual(stable_check["evidence"]["status"], "complete")
+            self.assertEqual(stable_check["evidence"]["duration_seconds"], 300)
+            self.assertEqual(stable_check["evidence"]["source_cycle_counts"], {"angelic_pretty": 2})
+            self.assertEqual(stable_check["evidence"]["unhealthy_source_runs"], {})
 
     def test_audit_checks_runtime_feed_state_from_current_config_and_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

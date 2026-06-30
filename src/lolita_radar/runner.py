@@ -75,6 +75,23 @@ class CheckLoopVerification:
     unhealthy_source_runs: dict[str, int]
     source_health_summary: dict[str, dict[str, object]]
 
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "status": self.status,
+            "complete": self.complete,
+            "expected_cycles": self.expected_cycles,
+            "observed_cycles": self.observed_cycles,
+            "min_duration_seconds": self.min_duration_seconds,
+            "duration_seconds": self.duration_seconds,
+            "exit_code": self.exit_code,
+            "failed_cycles": list(self.failed_cycles),
+            "missing_cycles": list(self.missing_cycles),
+            "expected_sources": list(self.expected_sources),
+            "source_cycle_counts": self.source_cycle_counts,
+            "unhealthy_source_runs": self.unhealthy_source_runs,
+            "source_health_summary": self.source_health_summary,
+        }
+
 
 def build_adapter(config: SourceConfig) -> SourceAdapter:
     adapter_cls = ADAPTERS.get(config.type)

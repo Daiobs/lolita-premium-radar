@@ -395,26 +395,7 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
 
 
 def format_loop_verification_json(verification: CheckLoopVerification) -> str:
-    return json.dumps(
-        {
-            "status": verification.status,
-            "complete": verification.complete,
-            "expected_cycles": verification.expected_cycles,
-            "observed_cycles": verification.observed_cycles,
-            "min_duration_seconds": verification.min_duration_seconds,
-            "duration_seconds": verification.duration_seconds,
-            "exit_code": verification.exit_code,
-            "failed_cycles": list(verification.failed_cycles),
-            "missing_cycles": list(verification.missing_cycles),
-            "expected_sources": list(verification.expected_sources),
-            "source_cycle_counts": verification.source_cycle_counts,
-            "unhealthy_source_runs": verification.unhealthy_source_runs,
-            "source_health_summary": verification.source_health_summary,
-        },
-        ensure_ascii=False,
-        indent=2,
-        sort_keys=True,
-    )
+    return json.dumps(verification.to_dict(), ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def format_feed_os_audit(audit: FeedOsAudit) -> str:
