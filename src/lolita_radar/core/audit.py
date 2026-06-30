@@ -668,6 +668,7 @@ def audit_trend_engine() -> FeedOsAuditCheck:
 
 
 def audit_shop_drop_model() -> FeedOsAuditCheck:
+    required_keywords = ("JSK", "OP", "再贩", "预约", "尾款")
     signal = build_drop_signal(
         {
             "source": "proxy_shop",
@@ -679,7 +680,7 @@ def audit_shop_drop_model() -> FeedOsAuditCheck:
                 "source_type": "generic_page",
                 "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
                 "item": {"title": "Shell Garden JSK", "url": "https://example.com/shop/shell"},
-                "matched_keywords": ["JSK", "预约"],
+                "matched_keywords": list(required_keywords),
             },
         }
     )
@@ -689,7 +690,14 @@ def audit_shop_drop_model() -> FeedOsAuditCheck:
         return FeedOsAuditCheck("shop_drop_model", "fail", "shop/item mapping is incorrect")
     if signal.urgency != "high" or "keyword_match" not in signal.reason_codes:
         return FeedOsAuditCheck("shop_drop_model", "fail", f"unexpected urgency/reasons: {signal}")
-    return FeedOsAuditCheck("shop_drop_model", "pass", "Shop -> Item DROP triggers on new item and watched keywords")
+    missing_keywords = [keyword for keyword in required_keywords if f"kw:{keyword}" not in signal.reason_codes]
+    if missing_keywords:
+        return FeedOsAuditCheck("shop_drop_model", "fail", "missing DROP keywords: " + ", ".join(missing_keywords))
+    return FeedOsAuditCheck(
+        "shop_drop_model",
+        "pass",
+        "Shop -> Item DROP triggers on new item and JSK/OP/再贩/预约/尾款 keywords",
+    )
 
 
 def audit_generic_shop_item_extraction() -> FeedOsAuditCheck:

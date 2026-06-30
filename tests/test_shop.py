@@ -41,6 +41,29 @@ class ShopModelTests(unittest.TestCase):
 
         self.assertIsNone(signal)
 
+    def test_build_drop_signal_accepts_required_drop_keywords(self) -> None:
+        required_keywords = ("JSK", "OP", "再贩", "预约", "尾款")
+        for keyword in required_keywords:
+            with self.subTest(keyword=keyword):
+                signal = build_drop_signal(
+                    {
+                        "source": "generic_page",
+                        "event_type": "content_changed",
+                        "title": f"Proxy page {keyword}",
+                        "url": f"https://example.com/shop/{keyword}",
+                        "metadata": {
+                            "shop": {"name": "Tokyo Proxy"},
+                            "item": {"title": f"Shell Garden {keyword}", "url": f"https://example.com/shop/{keyword}"},
+                            "matched_keywords": [keyword],
+                        },
+                    }
+                )
+
+                self.assertIsNotNone(signal)
+                assert signal is not None
+                self.assertEqual(signal.item.keywords, (keyword,))
+                self.assertIn(f"kw:{keyword}", signal.reason_codes)
+
     def test_build_drop_signal_accepts_new_structured_shop_item_without_keywords(self) -> None:
         signal = build_drop_signal(
             {
