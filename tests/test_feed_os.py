@@ -89,6 +89,32 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[2]["kind"], "sample_gap")
         self.assertIn("sample_gap", alerts[2]["reason_codes"])
 
+    def test_alert_feed_keeps_unknown_market_alert_kinds_out(self) -> None:
+        market_alerts = {
+            "alerts": [
+                {
+                    "kind": "debug_note",
+                    "severity": "info",
+                    "alias": "AP",
+                    "title": "Internal debug",
+                    "reason": "not_user_facing",
+                },
+                {
+                    "kind": "sample_gap",
+                    "severity": "sample_gap",
+                    "alias": "BABY",
+                    "title": "BABY",
+                    "reason": "core_needs_samples",
+                },
+            ]
+        }
+
+        feed = build_home_feed([], [], {"brands": []}, market_alerts, [], [])
+        alerts = feed["streams"]["alert"]
+
+        self.assertEqual([alert["kind"] for alert in alerts], ["sample_gap"])
+        self.assertEqual(alerts[0]["brand"], "BABY")
+
     def test_release_feed_keeps_non_target_brand_sources_out(self) -> None:
         events = [
             {

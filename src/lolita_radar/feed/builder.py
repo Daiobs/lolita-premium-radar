@@ -7,6 +7,7 @@ from ..trend import build_trend_feed
 
 RELEASE_SOURCES = {"angelic_pretty", "baby_ssb", "alice_and_the_pirates", "metamorphose", "moitie"}
 RELEASE_STATUSES = {"new_arrival", "preorder", "restock"}
+MARKET_ALERT_KINDS = {"high_premium", "sample_gap"}
 
 
 def build_home_feed(
@@ -80,6 +81,8 @@ def alert_feed(
             alerts.append(feed_card("alert", event, kind="new_release"))
     for alert in market_alerts.get("alerts", [])[:20]:
         kind = market_alert_kind(alert)
+        if kind not in MARKET_ALERT_KINDS:
+            continue
         alerts.append(
             {
                 "id": f"alert:{alert.get('kind')}:{alert.get('alias')}:{alert.get('item_name', '')}",
