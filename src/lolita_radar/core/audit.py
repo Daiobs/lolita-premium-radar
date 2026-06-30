@@ -164,6 +164,9 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         'data-filter="drop"',
         'data-filter="trend"',
         'data-filter="alert"',
+        "visual.image_url",
+        'loading="lazy"',
+        "has-image",
     )
     missing = [token for token in required if token not in FEED_INDEX_HTML]
     lowered = FEED_INDEX_HTML.lower()
@@ -197,6 +200,7 @@ def audit_feed_contract() -> FeedOsAuditCheck:
         required_keys(streams["drop"][0], ("shop", "item", "keywords", "urgency", "url")),
         required_keys(streams["trend"][0], ("brand", "trend", "confidence", "price_delta", "reason_codes")),
         required_keys(streams["alert"][0], ("feed_type", "kind", "title", "reason_codes", "url")),
+        visual_image_problem(streams["release"][0]),
     ]
     missing = [item for item in checks if item]
     ordering = [row.get("feed_type") for row in feed.get("all", [])[:4]]
@@ -207,7 +211,7 @@ def audit_feed_contract() -> FeedOsAuditCheck:
         if ordering != ["release", "drop", "alert", "trend"]:
             detail.append(f"ordering={ordering}")
         return FeedOsAuditCheck("feed_contract", "fail", "; ".join(detail))
-    return FeedOsAuditCheck("feed_contract", "pass", "4 streams expose required fields and priority ordering")
+    return FeedOsAuditCheck("feed_contract", "pass", "4 streams expose required fields, visuals, and priority ordering")
 
 
 def audit_runtime_feed_state(
@@ -287,6 +291,16 @@ def runtime_feed_payload_problem(
         return "api feed payload leaks full state keys: " + ", ".join(leaked)
     if "counts" not in payload:
         return "api feed payload missing counts"
+    return ""
+
+
+def visual_image_problem(row: dict[str, Any]) -> str:
+    visual = row.get("visual")
+    if not isinstance(visual, dict):
+        return "release.visual"
+    image_url = str(visual.get("image_url") or "")
+    if not image_url.startswith(("http://", "https://")):
+        return "release.visual.image_url"
     return ""
 
 
@@ -452,7 +466,7 @@ def sample_home_feed() -> dict[str, Any]:
             "url": "https://example.com/ap/shell",
             "published_at": "2026-06-30",
             "created_at": "2026-06-30T10:00:00+00:00",
-            "metadata": {"price": "¥38,280"},
+            "metadata": {"price": "¥38,280", "image_url": "https://example.com/images/shell.webp"},
         },
         {
             "source": "generic_page",

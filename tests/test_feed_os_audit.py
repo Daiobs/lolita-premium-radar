@@ -41,6 +41,81 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertEqual(check.status, "fail")
             self.assertIn("forbidden product direction", check.detail)
 
+    def test_home_feed_ui_audit_requires_image_card_tokens(self) -> None:
+        original_html = audit_module.FEED_INDEX_HTML
+        try:
+            audit_module.FEED_INDEX_HTML = original_html.replace("visual.image_url", "")
+
+            check = audit_module.audit_frontend_feed_os()
+        finally:
+            audit_module.FEED_INDEX_HTML = original_html
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("visual.image_url", check.detail)
+
+    def test_feed_contract_requires_release_visual_image(self) -> None:
+        original_sample_home_feed = audit_module.sample_home_feed
+        try:
+            audit_module.sample_home_feed = lambda: {
+                "streams": {
+                    "release": [
+                        {
+                            "feed_type": "release",
+                            "brand": "AP",
+                            "title": "Shell Garden JSK",
+                            "type": "new_arrival",
+                            "time": "2026-06-30",
+                            "price": "¥38,280",
+                            "url": "https://example.com/ap/shell",
+                            "visual": {"initials": "AP"},
+                        }
+                    ],
+                    "drop": [
+                        {
+                            "feed_type": "drop",
+                            "shop": "Tokyo Proxy",
+                            "item": "Shell Garden JSK",
+                            "keywords": ["JSK"],
+                            "urgency": "high",
+                            "url": "https://example.com/drop",
+                        }
+                    ],
+                    "trend": [
+                        {
+                            "feed_type": "trend",
+                            "brand": "AP",
+                            "trend": "rising",
+                            "confidence": 80,
+                            "price_delta": 0.5,
+                            "reason_codes": ["sample_supported"],
+                            "url": "https://example.com/market",
+                        }
+                    ],
+                    "alert": [
+                        {
+                            "feed_type": "alert",
+                            "kind": "new_release",
+                            "title": "Shell Garden JSK",
+                            "reason_codes": ["new_release"],
+                            "url": "https://example.com/ap/shell",
+                        }
+                    ],
+                },
+                "all": [
+                    {"feed_type": "release", "url": "https://example.com/ap/shell"},
+                    {"feed_type": "drop", "url": "https://example.com/drop"},
+                    {"feed_type": "alert", "url": "https://example.com/ap/shell"},
+                    {"feed_type": "trend", "url": "https://example.com/market"},
+                ],
+            }
+
+            check = audit_module.audit_feed_contract()
+        finally:
+            audit_module.sample_home_feed = original_sample_home_feed
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("release.visual.image_url", check.detail)
+
     def test_audit_passes_with_complete_loop_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
