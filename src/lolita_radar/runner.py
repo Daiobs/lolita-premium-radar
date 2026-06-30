@@ -73,6 +73,7 @@ class CheckLoopVerification:
     failed_cycles: tuple[int, ...]
     missing_cycles: tuple[int, ...]
     duplicate_cycles: tuple[int, ...]
+    missing_cycle_timestamps: tuple[int, ...]
     cycle_time_mismatches: tuple[int, ...]
     exit_code: int | None
     expected_sources: tuple[str, ...]
@@ -94,6 +95,7 @@ class CheckLoopVerification:
             "failed_cycles": list(self.failed_cycles),
             "missing_cycles": list(self.missing_cycles),
             "duplicate_cycles": list(self.duplicate_cycles),
+            "missing_cycle_timestamps": list(self.missing_cycle_timestamps),
             "cycle_time_mismatches": list(self.cycle_time_mismatches),
             "expected_sources": list(self.expected_sources),
             "source_cycle_counts": self.source_cycle_counts,
@@ -328,6 +330,7 @@ def verify_check_loop(
     observed_cycle_numbers = {result.cycle for result in results}
     missing_cycles = tuple(cycle for cycle in range(1, expected + 1) if cycle not in observed_cycle_numbers)
     duplicate_cycles = duplicate_cycle_numbers(results)
+    missing_cycle_timestamps = missing_cycle_timestamp_numbers(results)
     cycle_time_mismatches = cycle_time_mismatch_numbers(results, window_start, window_end)
     sources = tuple(source.name for source in select_sources(load_sources(config_path), None))
     source_runs = recent_source_runs_by_source(db_path, sources, expected, window_start=window_start, window_end=window_end)
@@ -345,6 +348,7 @@ def verify_check_loop(
         and enough_duration
         and not missing_cycles
         and not duplicate_cycles
+        and not missing_cycle_timestamps
         and not cycle_time_mismatches
         and not failed_cycles
         and enough_source_runs
@@ -368,6 +372,7 @@ def verify_check_loop(
         failed_cycles=failed_cycles,
         missing_cycles=missing_cycles,
         duplicate_cycles=duplicate_cycles,
+        missing_cycle_timestamps=missing_cycle_timestamps,
         cycle_time_mismatches=cycle_time_mismatches,
         exit_code=exit_code,
         expected_sources=sources,
@@ -385,6 +390,12 @@ def duplicate_cycle_numbers(results: list[CheckLoopResult]) -> tuple[int, ...]:
             duplicates.append(result.cycle)
         seen.add(result.cycle)
     return tuple(duplicates)
+
+
+def missing_cycle_timestamp_numbers(results: list[CheckLoopResult]) -> tuple[int, ...]:
+    if not any(result.checked_at for result in results):
+        return ()
+    return tuple(result.cycle for result in results if not result.checked_at)
 
 
 def cycle_time_mismatch_numbers(
