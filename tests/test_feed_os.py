@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from lolita_radar.crawler import enrich_source_runs
 from lolita_radar.feed import build_home_feed
@@ -147,6 +147,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("2026.06.30", card["source_context"])
 
     def test_release_feed_requires_current_source_publish_time(self) -> None:
+        stale_current_year_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
         events = [
             {
                 "source": "angelic_pretty",
@@ -156,6 +157,15 @@ class FeedOsTests(unittest.TestCase):
                 "url": "https://example.com/ap/old",
                 "published_at": "2025-12-31",
                 "created_at": "2026-06-30T10:00:00+00:00",
+            },
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Stale Current Year JSK",
+                "url": "https://example.com/ap/stale-current-year",
+                "published_at": stale_current_year_date,
+                "created_at": "2026-06-30T10:03:00+00:00",
             },
             {
                 "source": "metamorphose",
@@ -182,6 +192,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(release_titles, ["Current Usakumya"])
         self.assertEqual(feed["streams"]["release"][0]["time"], "2026-06-29")
         self.assertEqual(feed["streams"]["release"][0]["time_kind"], "published")
+        self.assertNotIn("Stale Current Year JSK", release_titles)
 
     def test_release_feed_combines_events_and_items_to_fill_current_links(self) -> None:
         events = [
@@ -242,6 +253,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(len({row["url"] for row in feed["all"]}), 30)
 
     def test_home_all_feed_uses_feed_type_priority(self) -> None:
+        today = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
         events = [
             {
                 "source": "angelic_pretty",
@@ -249,7 +261,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "new_arrival",
                 "title": "Release",
                 "url": "https://example.com/release",
-                "published_at": "2026-01-01",
+                "published_at": today,
             },
             {
                 "source": "generic_page",
@@ -257,7 +269,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "shop_news",
                 "title": "Shop drop",
                 "url": "https://example.com/drop",
-                "published_at": "2026-01-01",
+                "published_at": today,
                 "metadata": {"item_title": "Shop drop JSK", "matched_keywords": ["JSK"]},
             },
         ]
@@ -524,6 +536,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["summary"]["drops"], 0)
 
     def test_drop_feed_requires_current_source_publish_time(self) -> None:
+        stale_current_year_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
         events = [
             {
                 "source": "generic_page",
@@ -533,6 +546,15 @@ class FeedOsTests(unittest.TestCase):
                 "url": "https://example.com/shop/old",
                 "published_at": "2025-12-31",
                 "metadata": {"shop_name": "Proxy Shop", "item_title": "Old JSK", "matched_keywords": ["JSK", "预约"]},
+            },
+            {
+                "source": "generic_page",
+                "event_type": "new_item",
+                "status": "shop_news",
+                "title": "Stale Current Year JSK 预约",
+                "url": "https://example.com/shop/stale-current-year",
+                "published_at": stale_current_year_date,
+                "metadata": {"shop_name": "Proxy Shop", "item_title": "Stale Current Year JSK", "matched_keywords": ["JSK", "预约"]},
             },
             {
                 "source": "generic_page",
@@ -560,6 +582,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(drop_titles, ["Current JSK"])
         self.assertEqual(feed["streams"]["drop"][0]["time"], "2026-06-30")
         self.assertEqual(feed["streams"]["drop"][0]["time_kind"], "published")
+        self.assertNotIn("Stale Current Year JSK", drop_titles)
 
     def test_drop_feed_combines_events_and_items_to_fill_current_links(self) -> None:
         events = [

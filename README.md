@@ -258,6 +258,9 @@ python -m lolita_radar.cli web
 Then open [http://127.0.0.1:8766](http://127.0.0.1:8766). The home page is a
 feed stream with Release Feed, Drop Feed, Trend Feed, and Alert Feed filters.
 It keeps the product focused on daily scanning instead of heavy analysis panels.
+The combined home feed keeps at most 30 linked cards. Release and Drop cards
+must use the original source publish date, stay in the current year, and fall
+inside the recent 90-day source window so old news does not crowd the home page.
 The feed app renders four lightweight streams:
 
 - Release Feed: brand release, preorder, and restock events from AP, BABY, AATP, Meta, and MMM.

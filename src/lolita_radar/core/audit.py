@@ -15,7 +15,7 @@ from ..adapters.generic_page import (
     suppress_duplicate_segments,
 )
 from ..crawler import enrich_source_runs
-from ..feed import build_home_feed
+from ..feed import build_home_feed, is_current_source_date
 from ..models import EventType, ItemStatus, RadarEvent, RadarItem
 from ..notifiers import format_event
 from ..runner import verify_check_loop
@@ -897,9 +897,7 @@ def navigation_noise_token(row: dict[str, Any]) -> str:
 
 def stale_release_time(row: dict[str, Any]) -> bool:
     value = str(row.get("time") or "")
-    if len(value) < 4 or not value[:4].isdigit():
-        return True
-    return int(value[:4]) < datetime.now(timezone.utc).year
+    return not is_current_source_date(value)
 
 
 def sample_home_feed() -> dict[str, Any]:

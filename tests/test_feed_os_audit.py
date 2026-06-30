@@ -3,7 +3,7 @@ import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import lolita_radar.core.audit as audit_module
@@ -800,6 +800,32 @@ class FeedOsAuditTests(unittest.TestCase):
                     "time_kind": "published",
                     "price": "未取得",
                     "url": "https://example.com/ap/old",
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("stale source time", check.detail)
+
+    def test_runtime_feed_audit_rejects_current_year_release_outside_feed_window(self) -> None:
+        stale_current_year_date = (datetime.now(timezone.utc).date() - timedelta(days=120)).strftime("%Y-%m-%d")
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.runtime_state(
+                {
+                    "feed_type": "release",
+                    "brand": "AP",
+                    "title": "Stale Current Year JSK",
+                    "type": "new_arrival",
+                    "time": stale_current_year_date,
+                    "time_kind": "published",
+                    "price": "未取得",
+                    "url": "https://example.com/ap/stale-current-year",
                 }
             )
             check = audit_module.audit_runtime_feed_state(
