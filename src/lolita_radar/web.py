@@ -661,6 +661,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         const titleAlt = titleAltHtml(row);
         const detail = detailHtml(row);
         const visual = row.visual || {};
+        const title = titleText(row);
         const imageUrl = visual.image_url || "";
         const visualInner = imageUrl
           ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy">`
@@ -675,7 +676,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
               <span class="badge ${escapeHtml(type)}">${escapeHtml(type.toUpperCase())} · ${escapeHtml(row.brand || "-")}</span>
               <span class="kind">${escapeHtml(kind)}</span>
             </div>
-            <h2>${escapeHtml(row.title || "-")}</h2>
+            <h2>${escapeHtml(title || "-")}</h2>
             ${titleAlt}
             ${meta}
             ${detail}
@@ -684,9 +685,29 @@ FEED_INDEX_HTML = r"""<!doctype html>
           </div>
         </${tag}>`;
       }
+      function titleText(row) {
+        const localized = localizedTitle(row);
+        if (row.use_localized_title && localized) return localized;
+        return row.title || localized || "";
+      }
       function titleAltHtml(row) {
-        if (language !== "zh" || !row.title_zh) return "";
-        return `<p class="title-alt">${escapeHtml(row.title_zh)}</p>`;
+        const localized = localizedTitle(row);
+        const primary = titleText(row);
+        if (row.use_localized_title && row.title && row.title !== primary) {
+          return `<p class="title-alt">${escapeHtml(row.title)}</p>`;
+        }
+        if (!row.use_localized_title && language === "zh" && row.title_zh) {
+          return `<p class="title-alt">${escapeHtml(row.title_zh)}</p>`;
+        }
+        if (!row.use_localized_title && language === "ja" && row.title_ja) {
+          return `<p class="title-alt">${escapeHtml(row.title_ja)}</p>`;
+        }
+        return "";
+      }
+      function localizedTitle(row) {
+        if (language === "zh" && row.title_zh) return row.title_zh;
+        if (language === "ja" && row.title_ja) return row.title_ja;
+        return "";
       }
       function detailHtml(row) {
         const chips = [];

@@ -137,6 +137,9 @@ def alert_feed(
                     "kind": status,
                     "brand": label,
                     "title": source_health_title(source, status),
+                    "title_zh": source_health_title(source, status, language="zh"),
+                    "title_ja": source_health_title(source, status, language="ja"),
+                    "use_localized_title": True,
                     "meta": str(run.get("error_message") or ""),
                     "time": str(run.get("checked_at") or ""),
                     "url": urls.get(source, ""),
@@ -298,12 +301,25 @@ def source_label(source: str) -> str:
     return labels.get(source, source)
 
 
-def source_health_title(source: str, status: str) -> str:
+def source_health_title(source: str, status: str, language: str = "en") -> str:
     label = source_label(source)
-    status_text = {
-        "failed": "source unavailable",
-        "degraded": "source degraded",
-    }.get(status, f"source {status}".strip())
+    localized = {
+        "en": {
+            "failed": "source unavailable",
+            "degraded": "source degraded",
+        },
+        "zh": {
+            "failed": "来源不可用",
+            "degraded": "来源状态下降",
+        },
+        "ja": {
+            "failed": "取得不可",
+            "degraded": "取得状態低下",
+        },
+    }
+    status_text = localized.get(language, localized["en"]).get(status)
+    if status_text is None:
+        status_text = f"source {status}".strip() if language == "en" else status
     return " ".join(part for part in (label, status_text) if part)
 
 
