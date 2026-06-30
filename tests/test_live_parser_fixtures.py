@@ -29,6 +29,7 @@ class LiveParserFixtureTests(unittest.TestCase):
         self.assertEqual(items[0].metadata["category"], "new_arrival")
         self.assertEqual(items[0].metadata["section"], "dress")
         self.assertEqual(items[0].metadata["price"], "¥38,280")
+        self.assertEqual(items[0].metadata["image_url"], "https://angelicpretty.com/Contents/Feature/shell-garden.webp")
         self.assert_no_navigation(items)
 
     def test_baby_fixture_maps_parent_context(self) -> None:
@@ -46,6 +47,7 @@ class LiveParserFixtureTests(unittest.TestCase):
         self.assertEqual(items[0].metadata["category"], "preorder")
         self.assertEqual(items[0].metadata["section"], "accessory")
         self.assertEqual(items[0].metadata["price"], "12,980円")
+        self.assertEqual(items[0].metadata["image_url"], "https://www.babyssb.co.jp/uploads/usakumya.webp")
         self.assertEqual(items[1].metadata["brand"], "ALICE and the PIRATES")
         self.assert_no_navigation(items)
 
@@ -63,6 +65,7 @@ class LiveParserFixtureTests(unittest.TestCase):
         self.assertIn("PIRATES", items[0].metadata["brand"])
         self.assertEqual(items[0].metadata["category"], "restock")
         self.assertEqual(items[0].metadata["section"], "dress")
+        self.assertEqual(items[0].metadata["image_url"], "https://www.babyssb.co.jp/uploads/vampire-requiem.webp")
         self.assert_no_navigation(items)
 
     def test_moitie_fixture_maps_parent_context(self) -> None:
@@ -80,6 +83,7 @@ class LiveParserFixtureTests(unittest.TestCase):
         self.assertIn("Moitie", items[0].metadata["brand"])
         self.assertEqual(items[0].metadata["section"], "dress")
         self.assertEqual(items[0].metadata["price"], "￥49,500")
+        self.assertEqual(items[0].metadata["image_url"], "https://moi-meme-moitie.com/cdn/shop/files/iron-gate.webp")
         self.assert_no_navigation(items)
 
     def assert_no_navigation(self, items) -> None:

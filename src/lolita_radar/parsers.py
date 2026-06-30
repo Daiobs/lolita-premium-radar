@@ -38,6 +38,7 @@ class LinkCandidate:
     text: str
     published_at: str = ""
     context: str = ""
+    image_url: str = ""
 
 
 class LinkTextParser(HTMLParser):
@@ -63,12 +64,16 @@ class LinkTextParser(HTMLParser):
                 {
                     "href": attr.get("href", ""),
                     "text": attr.get("title", "") or attr.get("aria-label", ""),
+                    "image_url": "",
                 }
             )
         if lowered_tag == "img" and self._stack:
             image_text = clean_text(attr.get("alt", "") or attr.get("title", "") or attr.get("aria-label", ""))
             if image_text:
                 self._stack[-1]["text"] += " " + image_text
+            image_url = image_url_from_attrs(attr, self.base_url)
+            if image_url and not self._stack[-1].get("image_url"):
+                self._stack[-1]["image_url"] = image_url
 
     def handle_data(self, data: str) -> None:
         cleaned = clean_text(data)
@@ -99,6 +104,7 @@ class LinkTextParser(HTMLParser):
                         url=urljoin(self.base_url, href),
                         text=title,
                         published_at=extract_date(f"{title} {href}"),
+                        image_url=raw.get("image_url", ""),
                     )
                 )
                 for container in self._containers:
@@ -129,6 +135,7 @@ class LinkTextParser(HTMLParser):
                         text=full_text,
                         published_at=published_at,
                         context=context,
+                        image_url=link.image_url,
                     )
                 return
 
@@ -414,6 +421,8 @@ def brand_metadata(brand: str, source: str, category: str, link: LinkCandidate) 
     }
     if price:
         metadata["price"] = price
+    if link.image_url:
+        metadata["image_url"] = link.image_url
     return metadata
 
 
@@ -435,6 +444,16 @@ def infer_section(link: LinkCandidate) -> str:
 def extract_price(text: str) -> str:
     match = PRICE_RE.search(text)
     return match.group(0).strip() if match else ""
+
+
+def image_url_from_attrs(attrs: dict[str, str], base_url: str) -> str:
+    raw = attrs.get("src") or attrs.get("data-src") or attrs.get("data-original") or attrs.get("data-lazy-src") or ""
+    if not raw and attrs.get("srcset"):
+        raw = attrs["srcset"].split(",", 1)[0].strip().split(" ", 1)[0]
+    raw = raw.strip()
+    if not raw or raw.startswith("data:"):
+        return ""
+    return urljoin(base_url, raw)
 
 
 def is_probable_news_link(link: LinkCandidate) -> bool:

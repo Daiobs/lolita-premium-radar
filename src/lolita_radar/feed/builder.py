@@ -204,6 +204,7 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
     brand = brand_label(source, str(row.get("title") or ""))
     resolved_kind = kind or str(row.get("event_type") or status or feed_type)
     price = metadata_text(row, "price")
+    image_url = metadata_text(row, "image_url")
     if feed_type == "release" and not price:
         price = "未取得"
     return {
@@ -223,7 +224,7 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
         "status_label": localized_status_label(status),
         "price": price,
         "source_label": source_label(source),
-        "visual": visual_token(feed_type, brand, status),
+        "visual": visual_token(feed_type, brand, status, image_url=image_url),
     }
 
 
@@ -374,7 +375,7 @@ def title_hint(title: str, status: str) -> str:
     return " · ".join(dict.fromkeys(hints[:4]))
 
 
-def visual_token(feed_type: str, brand: str, status: str) -> dict[str, str]:
+def visual_token(feed_type: str, brand: str, status: str, image_url: str = "") -> dict[str, str]:
     initials = {
         "AP": "AP",
         "BABY": "BB",
@@ -393,6 +394,7 @@ def visual_token(feed_type: str, brand: str, status: str) -> dict[str, str]:
         "initials": initials,
         "mark": icons.get(feed_type, "*"),
         "tone": status or feed_type,
+        "image_url": image_url,
     }
 
 

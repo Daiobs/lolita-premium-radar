@@ -383,10 +383,13 @@ FEED_INDEX_HTML = r"""<!doctype html>
         gap: 4px;
         color: #fff;
         background: linear-gradient(145deg, var(--rose), #7f485d);
+        overflow: hidden;
       }
       .visual.drop { background: linear-gradient(145deg, var(--teal), #335d59); }
       .visual.trend { background: linear-gradient(145deg, var(--blue), #334f67); }
       .visual.alert { background: linear-gradient(145deg, var(--warn), #7b3431); }
+      .visual.has-image { background: #f2e8ec; }
+      .visual img { width: 100%; height: 100%; min-height: 74px; object-fit: cover; display: block; }
       .visual strong { font: 700 18px/1 Georgia, "Times New Roman", serif; }
       .visual span { font-size: 11px; opacity: .9; }
       .feed-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 8px; }
@@ -422,6 +425,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         .actions button { flex: 1; }
         .feed-card { grid-template-columns: 58px minmax(0, 1fr); gap: 10px; }
         .visual { min-height: 58px; }
+        .visual img { min-height: 58px; }
       }
     </style>
   </head>
@@ -555,11 +559,14 @@ FEED_INDEX_HTML = r"""<!doctype html>
         const titleAlt = titleAltHtml(row);
         const detail = detailHtml(row);
         const visual = row.visual || {};
+        const imageUrl = visual.image_url || "";
+        const visualInner = imageUrl
+          ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy">`
+          : `<strong>${escapeHtml(visual.initials || row.brand || "-")}</strong><span>${escapeHtml(visual.mark || type.slice(0, 1).toUpperCase())}</span>`;
         const kind = language === "ja" ? (row.kind || "") : (row.kind_label || row.kind || "");
         return `<${tag} class="feed-card ${hasUrl ? "" : "no-link"}" ${attrs}>
-          <div class="visual ${escapeHtml(type)}" aria-hidden="true">
-            <strong>${escapeHtml(visual.initials || row.brand || "-")}</strong>
-            <span>${escapeHtml(visual.mark || type.slice(0, 1).toUpperCase())}</span>
+          <div class="visual ${escapeHtml(type)} ${imageUrl ? "has-image" : ""}" aria-hidden="true">
+            ${visualInner}
           </div>
           <div class="feed-body">
             <div class="feed-head">
