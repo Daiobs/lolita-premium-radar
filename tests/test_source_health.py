@@ -433,9 +433,10 @@ class SourceHealthTests(unittest.TestCase):
             exit_path.write_text("0\n", encoding="utf-8")
             connection = connect(db_path)
             try:
-                for _ in range(2):
-                    record_source_run(connection, "good", ok=True, item_count=1)
-                    record_source_run(connection, "other", ok=True, item_count=1)
+                record_source_run(connection, "good", ok=True, item_count=2, latency_ms=100)
+                record_source_run(connection, "other", ok=True, item_count=1, latency_ms=120)
+                record_source_run(connection, "good", ok=True, item_count=1, latency_ms=250)
+                record_source_run(connection, "other", ok=True, item_count=3, latency_ms=90)
                 connection.commit()
             finally:
                 connection.close()
@@ -464,6 +465,10 @@ class SourceHealthTests(unittest.TestCase):
             self.assertIn("unhealthy_source_runs: []", stdout.getvalue())
             self.assertIn("good: 2", stdout.getvalue())
             self.assertIn("other: 2", stdout.getvalue())
+            self.assertIn("source_health:", stdout.getvalue())
+            self.assertIn("good: runs=2, max_latency_ms=250, min_item_count=1", stdout.getvalue())
+            self.assertIn("other: runs=2, max_latency_ms=120, min_item_count=1", stdout.getvalue())
+            self.assertIn("max_error_rate=0.0", stdout.getvalue())
 
     def test_verify_loop_reports_missing_cycle_even_when_log_line_count_matches(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

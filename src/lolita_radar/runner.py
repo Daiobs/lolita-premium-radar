@@ -70,6 +70,7 @@ class CheckLoopVerification:
     expected_sources: tuple[str, ...]
     source_cycle_counts: dict[str, int]
     unhealthy_source_runs: dict[str, int]
+    source_health_summary: dict[str, dict[str, object]]
 
 
 def build_adapter(config: SourceConfig) -> SourceAdapter:
@@ -295,6 +296,7 @@ def verify_check_loop(
     source_runs = recent_source_runs_by_source(db_path, sources, expected)
     source_cycle_counts = {source: len(source_runs.get(source, [])) for source in sources}
     unhealthy_source_runs = count_unhealthy_source_runs(source_runs)
+    source_health_summary = summarize_source_runs(source_runs)
     exit_code = read_exit_code(exit_path) if exit_path else None
     enough_log_cycles = len(results) >= expected
     enough_source_runs = all(source_cycle_counts.get(source, 0) >= expected for source in sources)
@@ -324,6 +326,7 @@ def verify_check_loop(
         expected_sources=sources,
         source_cycle_counts=source_cycle_counts,
         unhealthy_source_runs=unhealthy_source_runs,
+        source_health_summary=source_health_summary,
     )
 
 
@@ -379,6 +382,48 @@ def count_unhealthy_source_runs(source_runs: dict[str, list[dict[str, object]]])
         if count:
             counts[source] = count
     return counts
+
+
+def summarize_source_runs(source_runs: dict[str, list[dict[str, object]]]) -> dict[str, dict[str, object]]:
+    summary: dict[str, dict[str, object]] = {}
+    for source, runs in source_runs.items():
+        summary[source] = {
+            "runs": len(runs),
+            "max_latency_ms": max_int(run.get("latency_ms") for run in runs),
+            "min_item_count": min_int(run.get("item_count") for run in runs),
+            "max_error_rate": max_float(run.get("error_rate") for run in runs),
+            "last_status": str(runs[0].get("status") or "") if runs else "",
+        }
+    return summary
+
+
+def max_int(values) -> int:
+    numbers = [safe_int(value) for value in values]
+    return max(numbers) if numbers else 0
+
+
+def min_int(values) -> int:
+    numbers = [safe_int(value) for value in values]
+    return min(numbers) if numbers else 0
+
+
+def max_float(values) -> float:
+    numbers = [safe_float(value) for value in values]
+    return round(max(numbers), 4) if numbers else 0.0
+
+
+def safe_int(value: object) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def safe_float(value: object) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def is_unhealthy_source_run(run: dict[str, object]) -> bool:

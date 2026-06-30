@@ -320,6 +320,23 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
     ]
     for source in verification.expected_sources:
         lines.append(f"  - {source}: {verification.source_cycle_counts.get(source, 0)}")
+    lines.append("source_health:")
+    for source in verification.expected_sources:
+        summary = verification.source_health_summary.get(source, {})
+        lines.append(
+            "  - "
+            + source
+            + ": "
+            + ", ".join(
+                [
+                    f"runs={summary.get('runs', 0)}",
+                    f"max_latency_ms={summary.get('max_latency_ms', 0)}",
+                    f"min_item_count={summary.get('min_item_count', 0)}",
+                    f"max_error_rate={summary.get('max_error_rate', 0)}",
+                    f"last_status={summary.get('last_status', '') or '-'}",
+                ]
+            )
+        )
     return "\n".join(lines)
 
 
