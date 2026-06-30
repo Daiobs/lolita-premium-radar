@@ -777,6 +777,31 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("invalid visual", check.detail)
 
+    def test_runtime_feed_audit_rejects_stream_feed_type_mismatch(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.runtime_state(
+                {
+                    "feed_type": "alert",
+                    "brand": "AP",
+                    "title": "Shell Garden JSK",
+                    "type": "new_arrival",
+                    "time": "2026-06-30",
+                    "time_kind": "published",
+                    "price": "¥38,280",
+                    "url": "https://example.com/ap",
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("mismatched feed_type", check.detail)
+
     def test_runtime_feed_audit_checks_all_rows_not_only_first_items(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         current_year = datetime.now(timezone.utc).year
@@ -1310,6 +1335,7 @@ sources:
         return config_path
 
     def runtime_state(self, release_row: dict, add_visual: bool = True) -> dict:
+        release_row = {"feed_type": "release", **release_row}
         if add_visual and "visual" not in release_row:
             release_row = {**release_row, "visual": self.visual("AP", "R", str(release_row.get("type") or "release"))}
         return {

@@ -406,9 +406,9 @@ def unique_drop_shop_count(rows: list[Any]) -> int:
 
 def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
     required_by_stream = {
-        "release": ("brand", "title", "type", "time", "price", "url"),
-        "drop": ("shop", "item", "keywords", "urgency", "reason_codes", "url"),
-        "trend": ("brand", "trend", "confidence", "price_delta", "reason_codes"),
+        "release": ("feed_type", "brand", "title", "type", "time", "price", "url"),
+        "drop": ("feed_type", "shop", "item", "keywords", "urgency", "reason_codes", "url"),
+        "trend": ("feed_type", "brand", "trend", "confidence", "price_delta", "reason_codes"),
         "alert": ("feed_type", "kind", "title", "reason_codes", "url"),
     }
     for name, required in required_by_stream.items():
@@ -421,6 +421,8 @@ def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
             missing = required_keys(row, required)
             if missing:
                 return f"stream {name} row missing fields: {missing}"
+            if row.get("feed_type") != name:
+                return f"stream {name} row has mismatched feed_type: {row.get('feed_type')}"
             visual_problem = card_visual_problem(row)
             if visual_problem:
                 return f"stream {name} row has invalid visual: {visual_problem}"
