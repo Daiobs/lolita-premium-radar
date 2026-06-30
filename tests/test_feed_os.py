@@ -104,9 +104,11 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(card["time"], "2026-06-22")
         self.assertEqual(card["time_kind"], "published")
         self.assertEqual(card["price"], "未取得")
+        self.assertEqual(card["meta"], "Metamorphose")
+        self.assertNotIn("new_item", card["meta"])
         self.assertEqual(feed["streams"]["release"][1]["time"], "2026-06-20")
         self.assertEqual(feed["streams"]["release"][1]["title_zh"], "新作")
-        self.assertIn("新作 / 新品", card["status_label"])
+        self.assertEqual(card["status"], "new_arrival")
 
     def test_release_feed_requires_current_source_publish_time(self) -> None:
         events = [

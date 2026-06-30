@@ -223,7 +223,7 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
         "brand": brand,
         "title": str(row.get("title") or ""),
         "title_zh": title_hint(str(row.get("title") or ""), status),
-        "meta": " · ".join(part for part in [source_label(source), localized_status_label(status), str(row.get("event_type") or "")] if part),
+        "meta": source_label(source),
         "time": time_value,
         "time_kind": time_kind,
         "url": str(row.get("url") or ""),

@@ -168,6 +168,8 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         'data-filter="alert"',
         "releasesCount",
         "dropsCount",
+        "STATUS_TEXT",
+        "statusLabel",
         "KIND_TEXT",
         "kindLabel",
         "REASON_TEXT",

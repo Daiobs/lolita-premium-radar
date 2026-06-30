@@ -515,6 +515,10 @@ FEED_INDEX_HTML = r"""<!doctype html>
         zh: { high: "高", medium: "中", low: "低" },
         ja: { high: "高", medium: "中", low: "低" },
       };
+      const STATUS_TEXT = {
+        zh: { new_arrival: "新作", preorder: "预约", restock: "再贩", shop_news: "店铺资讯" },
+        ja: { new_arrival: "新作", preorder: "予約", restock: "再入荷", shop_news: "ショップ情報" },
+      };
       const KIND_TEXT = {
         zh: {
           new_item: "新发现",
@@ -672,7 +676,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         if (row.urgency) chips.push(`${TEXT[language].urgency} · ${urgencyLabel(row.urgency)}`);
         if (row.price_delta !== undefined) chips.push(`${TEXT[language].priceDelta} · ${formatPercent(row.price_delta)}`);
         if (row.sample_count !== undefined) chips.push(`${TEXT[language].sampleCount} · ${row.sample_count}`);
-        if (row.status_label) chips.push(row.status_label);
+        if (row.status) chips.push(statusLabel(row.status));
         if (row.source_label) chips.push(row.source_label);
         if (row.time_kind) chips.push((TEXT[language][row.time_kind] || row.time_kind) + (row.time ? ` · ${displayDate(row.time)}` : ""));
         return chips.length ? `<div class="detail-row">${chips.slice(0, 5).map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join("")}</div>` : "";
@@ -680,6 +684,10 @@ FEED_INDEX_HTML = r"""<!doctype html>
       function urgencyLabel(value) {
         const raw = String(value || "");
         return URGENCY_TEXT[language]?.[raw] || raw;
+      }
+      function statusLabel(value) {
+        const raw = String(value || "");
+        return STATUS_TEXT[language]?.[raw] || raw;
       }
       function kindLabel(row) {
         const raw = String(row.kind || row.type || row.status || "");
