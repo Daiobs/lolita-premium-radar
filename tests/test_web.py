@@ -183,6 +183,101 @@ sources:
             self.assertEqual(len(source_alerts), 1)
             self.assertEqual(source_alerts[0]["url"], "https://angelicpretty.com/Page/news/")
 
+    def test_feed_state_outputs_feed_os_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "sources.yaml"
+            db_path = root / "radar.sqlite"
+            market_path = root / "market.json"
+            config_path.write_text(
+                """
+sources:
+  angelic_pretty:
+    type: angelic_pretty
+    enabled: true
+    url: "https://example.com/ap"
+  proxy:
+    type: generic_page
+    enabled: true
+    url: "https://example.com/proxy"
+    keywords:
+      - "JSK"
+""".strip(),
+                encoding="utf-8",
+            )
+            market_path.write_text(
+                """
+[
+  {
+    "brand_alias": "AP",
+    "item_name": "Shell Garden JSK",
+    "retail_price": 2000,
+    "resale_price": 3000,
+    "observed_at": "2026-06-30"
+  },
+  {
+    "brand_alias": "AP",
+    "item_name": "Shell Garden OP",
+    "retail_price": 1800,
+    "resale_price": 2700,
+    "observed_at": "2026-06-30"
+  }
+]
+""".strip(),
+                encoding="utf-8",
+            )
+            connection = connect(db_path)
+            try:
+                diff_and_store(
+                    connection,
+                    [
+                        RadarItem(
+                            source="angelic_pretty",
+                            title="Shell Garden JSK",
+                            url="https://example.com/ap/shell",
+                            status=ItemStatus.NEW_ARRIVAL,
+                            published_at="2026-06-30",
+                            metadata={"price": "¥38,280"},
+                        ),
+                        RadarItem(
+                            source="generic_page",
+                            title="Proxy public page",
+                            url="https://example.com/proxy",
+                            status=ItemStatus.SHOP_NEWS,
+                            metadata={
+                                "shop": {"name": "Proxy Shop"},
+                                "item": {"title": "Shell Garden JSK", "url": "https://example.com/proxy/shell"},
+                                "matched_keywords": ["JSK"],
+                            },
+                        ),
+                    ],
+                )
+                record_source_run(
+                    connection,
+                    "angelic_pretty",
+                    ok=False,
+                    status="failed",
+                    error_rate=1.0,
+                    latency_ms=1200,
+                    item_count=0,
+                    error_message="timeout",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            state = get_feed_state(config_path=config_path, db_path=db_path, market_path=market_path)
+            feed = state["feed"]
+
+            self.assertEqual(set(feed["streams"]), {"release", "drop", "trend", "alert"})
+            self.assertEqual(feed["streams"]["release"][0]["price"], "¥38,280")
+            self.assertEqual(feed["streams"]["drop"][0]["shop"], "Proxy Shop")
+            self.assertEqual(feed["streams"]["drop"][0]["item"], "Shell Garden JSK")
+            self.assertEqual(feed["streams"]["trend"][0]["trend"], "rising")
+            self.assertEqual(feed["streams"]["trend"][0]["price_delta"], 0.5)
+            self.assertIn("latency_ms=1200", feed["streams"]["alert"][0]["meta"])
+            self.assertEqual([row["feed_type"] for row in feed["all"][:4]], ["release", "drop", "alert", "trend"])
+
     def test_index_html_is_feed_app_alias(self) -> None:
         self.assertEqual(INDEX_HTML, FEED_INDEX_HTML)
         self.assertIn("Lolita Radar OS", INDEX_HTML)
