@@ -728,6 +728,46 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("missing summary fields: releases", check.detail)
 
+    def test_runtime_feed_audit_rejects_shop_summary_mismatch(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        drop_rows = [
+            {
+                "feed_type": "drop",
+                "shop": "Proxy Shop",
+                "item": f"Shell Garden {index}",
+                "keywords": ["JSK"],
+                "urgency": "watch",
+                "url": f"https://example.com/drop/{index}",
+                "visual": self.visual("SH", "D", "shop_news"),
+            }
+            for index in range(2)
+        ]
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"releases": 0, "drops": 2, "trends": 0, "alerts": 0, "shops": 2},
+                    "streams": {
+                        "release": [],
+                        "drop": drop_rows,
+                        "trend": [],
+                        "alert": [],
+                    },
+                    "all": [
+                        {"feed_type": "drop", "url": "https://example.com/drop/0"},
+                        {"feed_type": "drop", "url": "https://example.com/drop/1"},
+                    ],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("summary shops=2 does not match unique drop shops=1", check.detail)
+
     def test_runtime_feed_audit_rejects_duplicate_home_links(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         try:

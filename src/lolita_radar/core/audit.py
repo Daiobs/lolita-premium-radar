@@ -357,7 +357,20 @@ def summary_count_problem(summary: dict[str, Any], streams: dict[str, Any]) -> s
         actual = summary.get(summary_key)
         if actual != expected:
             return f"summary {summary_key}={actual} does not match {stream_name} count={expected}"
+    drop_rows = streams.get("drop", [])
+    expected_shops = unique_drop_shop_count(drop_rows) if isinstance(drop_rows, list) else 0
+    if summary.get("shops") != expected_shops:
+        return f"summary shops={summary.get('shops')} does not match unique drop shops={expected_shops}"
     return ""
+
+
+def unique_drop_shop_count(rows: list[Any]) -> int:
+    shops = {
+        str(row.get("shop") or row.get("brand") or "").strip()
+        for row in rows
+        if isinstance(row, dict) and str(row.get("shop") or row.get("brand") or "").strip()
+    }
+    return len(shops)
 
 
 def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
