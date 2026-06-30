@@ -93,6 +93,9 @@ sources:
         self.assertIn("🔥 Drops", FEED_INDEX_HTML)
         self.assertIn("reasonHtml(row.reason_codes)", FEED_INDEX_HTML)
         self.assertIn("class=\"reasons\"", FEED_INDEX_HTML)
+        self.assertIn('const tag = hasUrl ? "a" : "article"', FEED_INDEX_HTML)
+        self.assertIn("No source link", FEED_INDEX_HTML)
+        self.assertNotIn('href="${escapeHtml(href)}"', FEED_INDEX_HTML)
         self.assertNotIn("northStarRadar", FEED_INDEX_HTML)
         self.assertNotIn("brandCrownQueue", FEED_INDEX_HTML)
 

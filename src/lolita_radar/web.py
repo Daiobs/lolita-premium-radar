@@ -421,10 +421,14 @@ FEED_INDEX_HTML = r"""<!doctype html>
       }
       function cardHtml(row) {
         const type = row.feed_type || "alert";
-        const href = row.url || "#";
+        const hasUrl = Boolean(row.url);
+        const tag = hasUrl ? "a" : "article";
+        const attrs = hasUrl
+          ? `href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer"`
+          : `aria-disabled="true"`;
         const confidence = row.confidence !== undefined ? ` · confidence ${row.confidence}` : "";
         const reasons = reasonHtml(row.reason_codes);
-        return `<a class="feed-card" href="${escapeHtml(href)}" target="${row.url ? "_blank" : "_self"}" rel="noreferrer">
+        return `<${tag} class="feed-card ${hasUrl ? "" : "no-link"}" ${attrs}>
           <div class="feed-head">
             <span class="badge ${escapeHtml(type)}">${escapeHtml(type.toUpperCase())} · ${escapeHtml(row.brand || "-")}</span>
             <span class="kind">${escapeHtml(row.kind || "")}</span>
@@ -432,8 +436,8 @@ FEED_INDEX_HTML = r"""<!doctype html>
           <h2>${escapeHtml(row.title || "-")}</h2>
           <p class="meta">${escapeHtml(row.meta || "")}${escapeHtml(confidence)}</p>
           ${reasons}
-          <div class="foot"><span>${escapeHtml(row.time || "")}</span><span class="cta">Open source</span></div>
-        </a>`;
+          <div class="foot"><span>${escapeHtml(row.time || "")}</span><span class="cta">${hasUrl ? "Open source" : "No source link"}</span></div>
+        </${tag}>`;
       }
       function reasonHtml(reasonCodes) {
         const reasons = Array.isArray(reasonCodes) ? reasonCodes.filter(Boolean).slice(0, 4) : [];
