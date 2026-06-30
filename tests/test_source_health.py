@@ -749,7 +749,7 @@ class SourceHealthTests(unittest.TestCase):
                 )
 
             self.assertEqual(exit_code, 1)
-            self.assertIn("status: incomplete", stdout.getvalue())
+            self.assertIn("status: failed", stdout.getvalue())
             self.assertIn("missing_cycles: []", stdout.getvalue())
             self.assertIn("duplicate_cycles: 2", stdout.getvalue())
 
@@ -812,7 +812,7 @@ class SourceHealthTests(unittest.TestCase):
                 )
 
             self.assertEqual(exit_code, 1)
-            self.assertIn("status: incomplete", stdout.getvalue())
+            self.assertIn("status: failed", stdout.getvalue())
             self.assertIn("cycle_time_mismatches: 2", stdout.getvalue())
 
     def test_verify_loop_rejects_partially_missing_cycle_timestamps(self) -> None:
@@ -874,7 +874,7 @@ class SourceHealthTests(unittest.TestCase):
                 )
 
             self.assertEqual(exit_code, 1)
-            self.assertIn("status: incomplete", stdout.getvalue())
+            self.assertIn("status: failed", stdout.getvalue())
             self.assertIn("missing_cycle_timestamps: 2", stdout.getvalue())
 
     def test_verify_loop_reports_missing_cycle_even_when_log_line_count_matches(self) -> None:
@@ -924,7 +924,7 @@ class SourceHealthTests(unittest.TestCase):
                 )
 
             self.assertEqual(exit_code, 1)
-            self.assertIn("status: incomplete", stdout.getvalue())
+            self.assertIn("status: failed", stdout.getvalue())
             self.assertIn("observed_cycles: 2", stdout.getvalue())
             self.assertIn("missing_cycles: 2", stdout.getvalue())
 

@@ -342,6 +342,7 @@ def verify_check_loop(
     enough_duration = min_duration == 0 or duration_seconds >= min_duration
     enough_source_runs = all(source_cycle_counts.get(source, 0) >= expected for source in sources)
     healthy_source_runs = not unhealthy_source_runs
+    invalid_cycle_evidence = bool(duplicate_cycles or missing_cycle_timestamps or cycle_time_mismatches)
     complete = (
         exit_code == 0
         and enough_log_cycles
@@ -356,7 +357,7 @@ def verify_check_loop(
     )
     if complete:
         status = "complete"
-    elif exit_code not in (None, 0) or failed_cycles or unhealthy_source_runs:
+    elif exit_code not in (None, 0) or failed_cycles or unhealthy_source_runs or invalid_cycle_evidence:
         status = "failed"
     else:
         status = "incomplete"

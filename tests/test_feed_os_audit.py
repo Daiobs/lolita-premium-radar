@@ -165,7 +165,7 @@ class FeedOsAuditTests(unittest.TestCase):
             payload = json.loads(format_feed_os_audit_json(audit))
             stable_check = next(check for check in payload["checks"] if check["name"] == "stable_loop_evidence")
             self.assertFalse(audit.complete)
-            self.assertEqual(stable_check["status"], "missing")
+            self.assertEqual(stable_check["status"], "fail")
             self.assertIn("duplicate=[2]", stable_check["detail"])
             self.assertIn("missing_cycle_timestamps=[]", stable_check["detail"])
             self.assertIn("cycle_time_mismatches=[]", stable_check["detail"])
