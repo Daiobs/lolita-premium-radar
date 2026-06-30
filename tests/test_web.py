@@ -6,9 +6,34 @@ import urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
+import lolita_radar.runner as runner
 from lolita_radar.models import ItemStatus, RadarItem
 from lolita_radar.storage import connect, diff_and_store, record_source_run
 from lolita_radar.web import FEED_INDEX_HTML, INDEX_HTML, get_feed_state, make_handler
+
+
+class FakeGoodAdapter:
+    def __init__(self, config) -> None:
+        self.config = config
+
+    def fetch_items(self) -> list[RadarItem]:
+        return [
+            RadarItem(
+                source=self.config.name,
+                title="New Arrival: Test JSK",
+                url=f"{self.config.url}/new",
+                status=ItemStatus.NEW_ARRIVAL,
+                content="fixture content",
+            )
+        ]
+
+
+class FakeBadAdapter:
+    def __init__(self, config) -> None:
+        self.config = config
+
+    def fetch_items(self) -> list[RadarItem]:
+        raise RuntimeError("adapter boom")
 
 
 class WebTests(unittest.TestCase):
@@ -210,6 +235,61 @@ sources:
             finally:
                 server.shutdown()
                 server.server_close()
+
+    def test_check_all_keeps_feed_state_when_one_source_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "sources.yaml"
+            db_path = root / "radar.sqlite"
+            config_path.write_text(
+                """
+sources:
+  good:
+    type: fake_good
+    enabled: true
+    url: "https://example.com/good"
+  bad:
+    type: fake_bad
+    enabled: true
+    url: "https://example.com/bad"
+""".strip(),
+                encoding="utf-8",
+            )
+
+            original = dict(runner.ADAPTERS)
+            runner.ADAPTERS.update({"fake_good": FakeGoodAdapter, "fake_bad": FakeBadAdapter})
+            handler = make_handler(config_path=config_path, db_path=db_path)
+            server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = f"http://127.0.0.1:{server.server_port}/api/check"
+                request = urllib.request.Request(
+                    url,
+                    data=json.dumps({"notify": False}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(request) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+
+                self.assertTrue(payload["ok"])
+                self.assertEqual(payload["checked_source"], "all")
+                self.assertEqual(payload["new_event_count"], 1)
+                self.assertEqual(payload["new_events"][0]["source"], "good")
+                source_alerts = [
+                    alert
+                    for alert in payload["feed"]["streams"]["alert"]
+                    if alert.get("reason_codes") == ["source_health"]
+                ]
+                self.assertEqual(len(source_alerts), 1)
+                self.assertEqual(source_alerts[0]["brand"], "bad")
+                self.assertEqual(source_alerts[0]["url"], "https://example.com/bad")
+            finally:
+                server.shutdown()
+                server.server_close()
+                runner.ADAPTERS.clear()
+                runner.ADAPTERS.update(original)
 
     def test_market_observation_post_appends_sample(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
