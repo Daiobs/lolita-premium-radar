@@ -91,6 +91,8 @@ sources:
         self.assertIn("data-filter=\"trend\"", FEED_INDEX_HTML)
         self.assertIn("data-filter=\"alert\"", FEED_INDEX_HTML)
         self.assertIn("🔥 Drops", FEED_INDEX_HTML)
+        self.assertIn("reasonHtml(row.reason_codes)", FEED_INDEX_HTML)
+        self.assertIn("class=\"reasons\"", FEED_INDEX_HTML)
         self.assertNotIn("northStarRadar", FEED_INDEX_HTML)
         self.assertNotIn("brandCrownQueue", FEED_INDEX_HTML)
 

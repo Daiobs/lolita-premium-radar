@@ -348,6 +348,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
       .kind { color: var(--muted); font-size: 12px; }
       .feed-card h2 { margin: 0; font-size: 17px; line-height: 1.25; overflow-wrap: anywhere; }
       .meta { margin: 7px 0 0; color: var(--muted); overflow-wrap: anywhere; }
+      .reasons { margin: 7px 0 0; color: var(--blue); font-size: 12px; overflow-wrap: anywhere; }
       .foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; color: var(--muted); font-size: 12px; }
       .cta { color: var(--rose); font-weight: 700; }
       .empty { border: 1px dashed var(--line); border-radius: 8px; padding: 18px; color: var(--muted); text-align: center; }
@@ -413,6 +414,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         const type = row.feed_type || "alert";
         const href = row.url || "#";
         const confidence = row.confidence !== undefined ? ` · confidence ${row.confidence}` : "";
+        const reasons = reasonHtml(row.reason_codes);
         return `<a class="feed-card" href="${escapeHtml(href)}" target="${row.url ? "_blank" : "_self"}" rel="noreferrer">
           <div class="feed-head">
             <span class="badge ${escapeHtml(type)}">${escapeHtml(type.toUpperCase())} · ${escapeHtml(row.brand || "-")}</span>
@@ -420,8 +422,13 @@ FEED_INDEX_HTML = r"""<!doctype html>
           </div>
           <h2>${escapeHtml(row.title || "-")}</h2>
           <p class="meta">${escapeHtml(row.meta || "")}${escapeHtml(confidence)}</p>
+          ${reasons}
           <div class="foot"><span>${escapeHtml(row.time || "")}</span><span class="cta">Open source</span></div>
         </a>`;
+      }
+      function reasonHtml(reasonCodes) {
+        const reasons = Array.isArray(reasonCodes) ? reasonCodes.filter(Boolean).slice(0, 4) : [];
+        return reasons.length ? `<p class="reasons">${escapeHtml(reasons.join(" · "))}</p>` : "";
       }
       function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
