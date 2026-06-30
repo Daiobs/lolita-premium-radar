@@ -67,6 +67,7 @@ class CheckLoopVerification:
     exit_code: int | None
     expected_sources: tuple[str, ...]
     source_cycle_counts: dict[str, int]
+    unhealthy_source_runs: dict[str, int]
 
 
 def build_adapter(config: SourceConfig) -> SourceAdapter:
@@ -250,13 +251,15 @@ def verify_check_loop(
     failed_cycles = tuple(result.cycle for result in results if not result.ok)
     sources = tuple(source.name for source in select_sources(load_sources(config_path), None))
     source_cycle_counts = count_source_runs(db_path, sources)
+    unhealthy_source_runs = count_unhealthy_source_runs(db_path, sources)
     exit_code = read_exit_code(exit_path) if exit_path else None
     enough_log_cycles = len(results) >= expected
     enough_source_runs = all(source_cycle_counts.get(source, 0) >= expected for source in sources)
-    complete = exit_code == 0 and enough_log_cycles and not failed_cycles and enough_source_runs
+    healthy_source_runs = not unhealthy_source_runs
+    complete = exit_code == 0 and enough_log_cycles and not failed_cycles and enough_source_runs and healthy_source_runs
     if complete:
         status = "complete"
-    elif exit_code not in (None, 0) or failed_cycles:
+    elif exit_code not in (None, 0) or failed_cycles or unhealthy_source_runs:
         status = "failed"
     else:
         status = "incomplete"
@@ -269,6 +272,7 @@ def verify_check_loop(
         exit_code=exit_code,
         expected_sources=sources,
         source_cycle_counts=source_cycle_counts,
+        unhealthy_source_runs=unhealthy_source_runs,
     )
 
 
@@ -307,6 +311,27 @@ def count_source_runs(db_path: Path, sources: tuple[str, ...]) -> dict[str, int]
             if source in counts:
                 counts[source] = int(row["count"])
         return counts
+    finally:
+        connection.close()
+
+
+def count_unhealthy_source_runs(db_path: Path, sources: tuple[str, ...]) -> dict[str, int]:
+    connection = connect(db_path)
+    try:
+        counts = {source: 0 for source in sources}
+        rows = connection.execute(
+            """
+            SELECT source, COUNT(*) AS count
+            FROM source_runs
+            WHERE ok = 0 OR status IN ('failed', 'degraded')
+            GROUP BY source
+            """
+        ).fetchall()
+        for row in rows:
+            source = str(row["source"])
+            if source in counts:
+                counts[source] = int(row["count"])
+        return {source: count for source, count in counts.items() if count > 0}
     finally:
         connection.close()
 
