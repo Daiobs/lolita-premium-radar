@@ -224,6 +224,8 @@ state, rule-based Trend output, Shop DROP signals, crawler health fields,
 GenericPage noise controls, and optional loop evidence. Without a loop log it
 reports the stability evidence as `missing` instead of treating the system as
 fully accepted.
+Add `--json` when a CI job or review script needs machine-readable status,
+counts, and per-check details.
 
 Start the local feed app:
 

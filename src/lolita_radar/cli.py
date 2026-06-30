@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import signal
 import sys
 from pathlib import Path
@@ -116,6 +117,7 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_LOOP_MIN_DURATION_SECONDS,
         help="minimum elapsed time required when loop evidence is provided",
     )
+    audit_parser.add_argument("--json", action="store_true", help="print machine-readable JSON audit output")
 
     web_parser = subparsers.add_parser("web", help="start the local feed app")
     web_parser.add_argument("--config", type=Path, default=default_config_path())
@@ -207,7 +209,7 @@ def main(argv: list[str] | None = None) -> int:
             expected_cycles=args.expected_cycles,
             min_duration_seconds=args.min_duration_seconds,
         )
-        print(format_feed_os_audit(audit))
+        print(format_feed_os_audit_json(audit) if args.json else format_feed_os_audit(audit))
         return 0 if audit.complete else 1
     if args.command == "web":
         return run_web(
@@ -403,6 +405,10 @@ def format_feed_os_audit(audit: FeedOsAudit) -> str:
     for check in audit.checks:
         lines.append(f"  - {check.status} | {check.name} | {check.detail}")
     return "\n".join(lines)
+
+
+def format_feed_os_audit_json(audit: FeedOsAudit) -> str:
+    return json.dumps(audit.to_dict(), ensure_ascii=False, indent=2, sort_keys=True)
 
 
 if __name__ == "__main__":

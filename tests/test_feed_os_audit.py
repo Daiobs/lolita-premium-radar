@@ -5,7 +5,7 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from lolita_radar.cli import format_feed_os_audit, main
+from lolita_radar.cli import format_feed_os_audit, format_feed_os_audit_json, main
 from lolita_radar.core import audit_feed_os
 from lolita_radar.models import ItemStatus, RadarItem
 from lolita_radar.storage import connect, diff_and_store, record_source_run
@@ -204,6 +204,47 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             self.assertIn("status: incomplete", stdout.getvalue())
             self.assertIn("missing | stable_loop_evidence", stdout.getvalue())
+
+    def test_cli_audit_can_emit_machine_readable_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root)
+            db_path = root / "radar.sqlite"
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "audit-feed-os",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--expected-cycles",
+                        "2",
+                        "--json",
+                    ]
+                )
+
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(payload["status"], "incomplete")
+            self.assertFalse(payload["complete"])
+            self.assertEqual(payload["counts"]["missing"], 1)
+            self.assertIn("checks", payload)
+            self.assertTrue(any(check["name"] == "stable_loop_evidence" for check in payload["checks"]))
+
+    def test_format_feed_os_audit_json_includes_counts_and_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            audit = audit_feed_os(config_path=self.write_config(root), db_path=root / "radar.sqlite", expected_cycles=2)
+
+            payload = json.loads(format_feed_os_audit_json(audit))
+
+            self.assertEqual(payload["status"], audit.status)
+            self.assertEqual(payload["complete"], audit.complete)
+            self.assertEqual(payload["counts"], audit.counts())
+            self.assertEqual(payload["checks"][0]["name"], audit.checks[0].name)
 
     def write_config(self, root: Path) -> Path:
         config_path = root / "sources.yaml"

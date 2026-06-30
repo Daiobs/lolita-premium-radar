@@ -27,6 +27,9 @@ class FeedOsAuditCheck:
         if self.status not in AUDIT_STATUSES:
             raise ValueError(f"unknown audit status: {self.status}")
 
+    def to_dict(self) -> dict[str, str]:
+        return {"name": self.name, "status": self.status, "detail": self.detail}
+
 
 @dataclass(frozen=True)
 class FeedOsAudit:
@@ -46,6 +49,14 @@ class FeedOsAudit:
 
     def counts(self) -> dict[str, int]:
         return {status: sum(1 for check in self.checks if check.status == status) for status in sorted(AUDIT_STATUSES)}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "complete": self.complete,
+            "counts": self.counts(),
+            "checks": [check.to_dict() for check in self.checks],
+        }
 
 
 def audit_feed_os(
