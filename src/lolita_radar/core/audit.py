@@ -309,6 +309,9 @@ def audit_runtime_feed_state(
     feed = state.get("feed")
     if not isinstance(feed, dict):
         return FeedOsAuditCheck("runtime_feed_state", "fail", "state.feed is missing")
+    state_boundary_problem = runtime_state_boundary_problem(state)
+    if state_boundary_problem:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", state_boundary_problem)
     streams = feed.get("streams")
     if not isinstance(streams, dict):
         return FeedOsAuditCheck("runtime_feed_state", "fail", "state.feed.streams is missing")
@@ -350,6 +353,20 @@ def audit_runtime_feed_state(
         return FeedOsAuditCheck("runtime_feed_state", "fail", payload_problem)
     counts = ", ".join(f"{name}={len(streams.get(name, []))}" for name in expected_streams)
     return FeedOsAuditCheck("runtime_feed_state", "pass", f"current config/db builds Feed OS streams ({counts})")
+
+
+def runtime_state_boundary_problem(state: dict[str, Any]) -> str:
+    blocked_top_level = ("market_alerts", "focus_queue", "opportunity_radar", "brand_weight_profile")
+    leaked = [key for key in blocked_top_level if key in state]
+    if leaked:
+        return "runtime state exposes legacy analysis blocks: " + ", ".join(leaked)
+    market = state.get("market")
+    if isinstance(market, dict):
+        blocked_market = ("patterns", "sample_plan")
+        leaked_market = [key for key in blocked_market if key in market]
+        if leaked_market:
+            return "runtime state.market exposes legacy analysis blocks: " + ", ".join(leaked_market)
+    return ""
 
 
 def runtime_feed_payload_problem(

@@ -950,6 +950,61 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("mismatched feed_type", check.detail)
 
+    def test_runtime_feed_audit_rejects_legacy_state_blocks(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            state = self.runtime_state(
+                {
+                    "brand": "AP",
+                    "title": "Shell Garden JSK",
+                    "type": "new_arrival",
+                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time_kind": "published",
+                    "price": "¥38,280",
+                    "url": "https://example.com/ap",
+                }
+            )
+            state["opportunity_radar"] = []
+            state["focus_queue"] = []
+            audit_module.get_feed_state = lambda **_kwargs: state
+
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("legacy analysis blocks", check.detail)
+
+    def test_runtime_feed_audit_rejects_legacy_market_blocks(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            state = self.runtime_state(
+                {
+                    "brand": "AP",
+                    "title": "Shell Garden JSK",
+                    "type": "new_arrival",
+                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time_kind": "published",
+                    "price": "¥38,280",
+                    "url": "https://example.com/ap",
+                }
+            )
+            state["market"] = {"summary": {}, "momentum": [], "patterns": [], "sample_plan": []}
+            audit_module.get_feed_state = lambda **_kwargs: state
+
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("state.market exposes legacy analysis blocks", check.detail)
+
     def test_runtime_feed_audit_checks_all_rows_not_only_first_items(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         current_year = datetime.now(timezone.utc).year
