@@ -405,7 +405,9 @@ def drop_card_context_problem(row: dict[str, Any]) -> str:
     if price not in (None, "") and not isinstance(price, str):
         return f"stream drop row has invalid price: {price}"
     time_value = str(row.get("time") or "")
-    if time_value and row.get("time_kind") != "published":
+    if not time_value:
+        return "stream drop row is missing source time"
+    if row.get("time_kind") != "published":
         return f"stream drop row has invalid time_kind: {row.get('time_kind')}"
     visual = row.get("visual")
     if isinstance(visual, dict):
@@ -509,6 +511,7 @@ def sample_home_feed() -> dict[str, Any]:
             "status": "shop_news",
             "title": "Proxy JSK 预约",
             "url": "https://example.com/shop",
+            "published_at": "2026-06-30",
             "created_at": "2026-06-30T10:01:00+00:00",
             "metadata": {
                 "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},

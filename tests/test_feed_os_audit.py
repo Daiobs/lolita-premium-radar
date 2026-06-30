@@ -410,6 +410,7 @@ class FeedOsAuditTests(unittest.TestCase):
                             title="Proxy Shell Garden JSK",
                             url="https://example.com/proxy/shell",
                             status=ItemStatus.SHOP_NEWS,
+                            published_at="2026-06-30",
                             metadata={
                                 "shop": {"name": "Proxy Shop", "url": "https://example.com/proxy"},
                                 "item": {"title": "Shell Garden JSK", "url": "https://example.com/proxy/shell"},
@@ -740,6 +741,25 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "fail")
         self.assertIn("invalid price", check.detail)
+
+    def test_runtime_feed_audit_rejects_missing_drop_source_time(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.drop_runtime_state(
+                {
+                    "price": "¥12,800",
+                    "visual": self.visual("SH", "D", "shop_news"),
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("missing source time", check.detail)
 
     def test_runtime_feed_audit_rejects_invalid_drop_image_url(self) -> None:
         original_get_feed_state = audit_module.get_feed_state

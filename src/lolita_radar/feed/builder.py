@@ -61,14 +61,18 @@ def release_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> l
 
 
 def drop_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows = [drop_card(row) for row in events if is_drop_row(row)]
+    rows = [drop_card(row) for row in events if is_current_drop_row(row)]
     if rows:
         return unique_cards(sort_cards(rows))[:HOME_LINK_LIMIT]
-    return unique_cards(sort_cards([drop_card(row) for row in items if is_drop_row(row)]))[:HOME_LINK_LIMIT]
+    return unique_cards(sort_cards([drop_card(row) for row in items if is_current_drop_row(row)]))[:HOME_LINK_LIMIT]
 
 
 def is_drop_row(row: dict[str, Any]) -> bool:
     return build_drop_signal(row) is not None
+
+
+def is_current_drop_row(row: dict[str, Any]) -> bool:
+    return is_drop_row(row) and is_current_source_date(str(row.get("published_at") or ""))
 
 
 def is_current_release_row(row: dict[str, Any]) -> bool:

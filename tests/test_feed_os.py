@@ -25,6 +25,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "shop_news",
                 "title": "Proxy JSK 预约",
                 "url": "https://example.com/shop",
+                "published_at": "2026-06-30",
                 "created_at": "2026-06-30T10:01:00+00:00",
                 "metadata": {
                     "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
@@ -178,6 +179,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "shop_news",
                 "title": "Shop drop",
                 "url": "https://example.com/drop",
+                "published_at": "2026-01-01",
                 "metadata": {"matched_keywords": ["JSK"]},
             },
         ]
@@ -361,6 +363,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "shop_news",
                 "title": "Proxy page changed",
                 "url": "https://example.com/shop/no-keywords",
+                "published_at": "2026-06-30",
                 "created_at": "2026-06-30T10:00:00+00:00",
                 "metadata": {"matched_keywords": []},
             },
@@ -370,6 +373,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "shop_news",
                 "title": "Proxy JSK 预约",
                 "url": "https://example.com/shop/jsk",
+                "published_at": "2026-06-30",
                 "created_at": "2026-06-30T10:01:00+00:00",
                 "metadata": {
                     "shop_name": "Proxy Shop",
@@ -387,6 +391,44 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["drop"][0]["shop"], "Proxy Shop")
         self.assertEqual(feed["streams"]["drop"][0]["urgency"], "high")
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
+
+    def test_drop_feed_requires_current_source_publish_time(self) -> None:
+        events = [
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "status": "shop_news",
+                "title": "Old Proxy JSK 预约",
+                "url": "https://example.com/shop/old",
+                "published_at": "2025-12-31",
+                "metadata": {"shop_name": "Proxy Shop", "item_title": "Old JSK", "matched_keywords": ["JSK", "预约"]},
+            },
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "status": "shop_news",
+                "title": "Missing date OP",
+                "url": "https://example.com/shop/no-date",
+                "created_at": "2026-06-30T10:01:00+00:00",
+                "metadata": {"shop_name": "Proxy Shop", "item_title": "Missing date OP", "matched_keywords": ["OP"]},
+            },
+            {
+                "source": "generic_page",
+                "event_type": "content_changed",
+                "status": "shop_news",
+                "title": "Current JSK 预约",
+                "url": "https://example.com/shop/current",
+                "published_at": "2026-06-30",
+                "metadata": {"shop_name": "Proxy Shop", "item_title": "Current JSK", "matched_keywords": ["JSK", "预约"]},
+            },
+        ]
+
+        feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
+        drop_titles = [row["title"] for row in feed["streams"]["drop"]]
+
+        self.assertEqual(drop_titles, ["Current JSK"])
+        self.assertEqual(feed["streams"]["drop"][0]["time"], "2026-06-30")
+        self.assertEqual(feed["streams"]["drop"][0]["time_kind"], "published")
 
     def test_drop_feed_accepts_named_generic_page_source_type(self) -> None:
         events = [

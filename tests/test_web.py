@@ -248,6 +248,7 @@ sources:
                             title="Proxy public page",
                             url="https://example.com/proxy",
                             status=ItemStatus.SHOP_NEWS,
+                            published_at="2026-06-30",
                             metadata={
                                 "shop": {"name": "Proxy Shop"},
                                 "item": {"title": "Shell Garden JSK", "url": "https://example.com/proxy/shell"},

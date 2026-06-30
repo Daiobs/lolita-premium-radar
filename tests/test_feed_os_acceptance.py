@@ -28,6 +28,7 @@ class FeedOsAcceptanceTests(unittest.TestCase):
                 "status": "shop_news",
                 "title": "Proxy page",
                 "url": "https://example.com/drop",
+                "published_at": "2026-06-30",
                 "metadata": {
                     "shop": {"name": "Proxy Shop"},
                     "item": {"title": "Shell Garden JSK", "url": "https://example.com/drop/item"},
