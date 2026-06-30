@@ -391,9 +391,20 @@ def runtime_feed_noise_problem(streams: dict[str, Any]) -> str:
             token = navigation_noise_token(row)
             if token:
                 return f"stream {name} row contains navigation noise: {token}"
-            if name == "release" and stale_release_time(row):
-                return f"stream release row has stale source time: {row.get('time')}"
+            if is_release_noise_candidate(name, row) and stale_release_time(row):
+                return f"stream {name} row has stale source time: {row.get('time')}"
     return ""
+
+
+def is_release_noise_candidate(stream_name: str, row: dict[str, Any]) -> bool:
+    if stream_name == "release":
+        return True
+    if stream_name != "alert":
+        return False
+    if str(row.get("kind") or "") == "new_release":
+        return True
+    reason_codes = row.get("reason_codes")
+    return isinstance(reason_codes, list) and "new_release" in reason_codes
 
 
 NAVIGATION_NOISE_TOKENS = {

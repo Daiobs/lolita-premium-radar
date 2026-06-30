@@ -253,6 +253,59 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("stale source time", check.detail)
 
+    def test_runtime_feed_audit_rejects_stale_release_alert_time(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"drops": 0, "shops": 0, "trends": 0, "alerts": 1},
+                    "streams": {
+                        "release": [],
+                        "drop": [],
+                        "trend": [],
+                        "alert": [
+                            {
+                                "feed_type": "alert",
+                                "kind": "new_release",
+                                "title": "Old Release JSK",
+                                "reason_codes": ["new_release"],
+                                "time": "2025-12-31",
+                                "url": "https://example.com/ap/old",
+                            }
+                        ],
+                    },
+                    "all": [{"feed_type": "alert", "url": "https://example.com/ap/old"}],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("stream alert row has stale source time", check.detail)
+
+    def test_runtime_feed_audit_allows_old_source_health_alert_time(self) -> None:
+        streams = {
+            "release": [],
+            "drop": [],
+            "trend": [],
+            "alert": [
+                {
+                    "feed_type": "alert",
+                    "kind": "failed",
+                    "title": "angelic_pretty failed",
+                    "reason_codes": ["source_health"],
+                    "time": "2025-12-31T00:00:00+00:00",
+                    "url": "https://example.com/ap",
+                }
+            ],
+        }
+
+        self.assertEqual(audit_module.runtime_feed_noise_problem(streams), "")
+
     def test_runtime_feed_audit_checks_all_rows_not_only_first_items(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         current_year = datetime.now(timezone.utc).year
