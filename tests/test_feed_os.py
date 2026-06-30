@@ -44,6 +44,9 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("keywords: JSK, 预约", feed["streams"]["drop"][0]["meta"])
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
         self.assertEqual(feed["streams"]["trend"][0]["kind"], "rising")
+        alert_titles = {row["title"] for row in feed["streams"]["alert"]}
+        self.assertIn("Shell Garden JSK", alert_titles)
+        self.assertNotIn("Proxy JSK 预约", alert_titles)
 
     def test_alert_feed_normalizes_high_premium_and_sample_gap(self) -> None:
         market_alerts = {

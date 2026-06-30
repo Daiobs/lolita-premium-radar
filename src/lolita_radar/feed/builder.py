@@ -69,7 +69,7 @@ def alert_feed(
 ) -> list[dict[str, Any]]:
     alerts = []
     for event in events[:20]:
-        if event.get("event_type") in {"new_item", "content_changed"}:
+        if is_release_event(event):
             alerts.append(feed_card("alert", event, kind="new_release"))
     for alert in market_alerts.get("alerts", [])[:20]:
         kind = market_alert_kind(alert)
@@ -102,6 +102,14 @@ def alert_feed(
                 }
             )
     return alerts[:40]
+
+
+def is_release_event(event: dict[str, Any]) -> bool:
+    return (
+        event.get("event_type") in {"new_item", "content_changed"}
+        and event.get("source") in RELEASE_SOURCES
+        and event.get("status") in RELEASE_STATUSES
+    )
 
 
 def market_alert_kind(alert: dict[str, Any]) -> str:
