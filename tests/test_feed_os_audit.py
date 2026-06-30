@@ -560,12 +560,50 @@ class FeedOsAuditTests(unittest.TestCase):
                     "reason_codes": ["source_health"],
                     "time": "2025-12-31T00:00:00+00:00",
                     "url": "https://example.com/ap",
+                    "error_rate": 1.0,
+                    "latency_ms": 1200,
+                    "item_count": 0,
                     "visual": self.visual("AL", "!", "failed"),
                 }
             ],
         }
 
         self.assertEqual(audit_module.runtime_feed_noise_problem(streams), "")
+
+    def test_runtime_feed_audit_rejects_missing_source_health_metrics(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"releases": 0, "drops": 0, "trends": 0, "alerts": 1, "shops": 0},
+                    "streams": {
+                        "release": [],
+                        "drop": [],
+                        "trend": [],
+                        "alert": [
+                            {
+                                "feed_type": "alert",
+                                "kind": "failed",
+                                "title": "angelic_pretty failed",
+                                "reason_codes": ["source_health"],
+                                "time": "2026-06-30T00:00:00+00:00",
+                                "url": "https://example.com/ap",
+                                "visual": self.visual("AL", "!", "failed"),
+                            }
+                        ],
+                    },
+                    "all": [{"feed_type": "alert", "url": "https://example.com/ap"}],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("source_health row missing metrics", check.detail)
 
     def test_runtime_feed_audit_rejects_missing_card_visual(self) -> None:
         original_get_feed_state = audit_module.get_feed_state

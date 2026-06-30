@@ -414,6 +414,9 @@ def runtime_feed_value_problem(streams: dict[str, Any]) -> str:
     for row in feed_rows(streams, "alert"):
         if not non_empty_list(row.get("reason_codes")):
             return "stream alert row reason_codes must be a non-empty list"
+        source_health_problem = source_health_alert_problem(row)
+        if source_health_problem:
+            return source_health_problem
     return ""
 
 
@@ -449,6 +452,22 @@ def is_number(value: object) -> bool:
 
 def non_empty_list(value: object) -> bool:
     return isinstance(value, list) and bool(value)
+
+
+def source_health_alert_problem(row: dict[str, Any]) -> str:
+    reason_codes = row.get("reason_codes")
+    if not (isinstance(reason_codes, list) and "source_health" in reason_codes):
+        return ""
+    missing = [key for key in ("error_rate", "latency_ms", "item_count") if key not in row]
+    if missing:
+        return "stream alert source_health row missing metrics: " + ", ".join(missing)
+    if not is_number(row.get("error_rate")):
+        return f"stream alert source_health row has invalid error_rate: {row.get('error_rate')}"
+    if not isinstance(row.get("latency_ms"), int) or isinstance(row.get("latency_ms"), bool):
+        return f"stream alert source_health row has invalid latency_ms: {row.get('latency_ms')}"
+    if not isinstance(row.get("item_count"), int) or isinstance(row.get("item_count"), bool):
+        return f"stream alert source_health row has invalid item_count: {row.get('item_count')}"
+    return ""
 
 
 def runtime_feed_noise_problem(streams: dict[str, Any]) -> str:
