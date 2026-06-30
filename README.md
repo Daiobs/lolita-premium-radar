@@ -196,7 +196,8 @@ coverage, the log proves at least 86400 seconds elapsed, the exit file is `0`,
 every enabled source has enough recent `source_runs` records in the database,
 and those recent source runs are healthy. When the log contains `started_at` and
 `finished_at`, source runs must fall inside that same window. Duplicate cycle
-numbers and cycle `checked_at` values outside the evidence window are rejected.
+numbers, partially missing cycle `checked_at` values, and cycle `checked_at`
+values outside the evidence window are rejected.
 This keeps the 24-hour stability check auditable and prevents old failures,
 duplicate log lines, mismatched cycle timestamps, or fast synthetic cycles from
 producing a false result.
@@ -238,9 +239,10 @@ UI tokens, Release/Drop/Trend/Alert fields, the current config/database feed
 state, rule-based Trend output, Shop DROP signals, crawler health fields,
 GenericPage noise controls, and optional loop evidence. When loop evidence is
 provided, the JSON output includes `window_start`, `window_end`,
-`duplicate_cycles`, `cycle_time_mismatches`, source cycle counts, and source
-health summaries. Without a loop log it reports the stability evidence as
-`missing` instead of treating the system as fully accepted.
+`duplicate_cycles`, `missing_cycle_timestamps`, `cycle_time_mismatches`, source
+cycle counts, and source health summaries. Without a loop log it reports the
+stability evidence as `missing` instead of treating the system as fully
+accepted.
 Add `--json` when a CI job or review script needs machine-readable status,
 counts, and per-check details.
 
