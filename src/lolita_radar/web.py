@@ -477,7 +477,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           noLink: "暂无来源链接",
           emptyPrefix: "暂无",
           original: "原文",
-          published: "发布时间",
+          published: "源头发布时间",
           seen: "检查时间",
           confidence: "信心",
           price: "价格",
@@ -503,7 +503,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           noLink: "リンクなし",
           emptyPrefix: "まだありません",
           original: "原文",
-          published: "掲載日",
+          published: "掲載元日",
           seen: "確認時刻",
           confidence: "信頼度",
           price: "価格",
@@ -684,6 +684,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
       function titleText(row) {
         const localized = localizedTitle(row);
         if (row.use_localized_title && localized) return localized;
+        if (language === "zh" && localized && row.title) return `${localized} · ${row.title}`;
         return row.title || localized || "";
       }
       function titleAltHtml(row) {
@@ -692,7 +693,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         if (row.use_localized_title && row.title && row.title !== primary) {
           return `<p class="title-alt">${escapeHtml(row.title)}</p>`;
         }
-        if (!row.use_localized_title && language === "zh" && row.title_zh) {
+        if (!row.use_localized_title && language === "zh" && row.title_zh && primary !== `${row.title_zh} · ${row.title}`) {
           return `<p class="title-alt">${escapeHtml(row.title_zh)}</p>`;
         }
         if (!row.use_localized_title && language === "ja" && row.title_ja) {
