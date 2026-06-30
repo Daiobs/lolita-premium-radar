@@ -54,7 +54,16 @@ class GenericPageAdapter(SourceAdapter):
                 status=classify_title(title + " " + text[:500]),
                 content=text,
                 metadata={
+                    "shop": {
+                        "name": str(self.config.options.get("shop_name") or self.config.name),
+                        "url": self.config.url,
+                    },
+                    "item": {
+                        "title": str(self.config.options.get("item_title") or title),
+                        "url": self.config.url,
+                    },
                     "matched_keywords": matches,
+                    "drop_keywords": matches,
                     "content_change_alert": bool(self.config.options.get("content_change_alert", True)),
                 },
             )

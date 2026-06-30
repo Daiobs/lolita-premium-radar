@@ -24,7 +24,11 @@ class FeedOsTests(unittest.TestCase):
                 "title": "Proxy JSK 预约",
                 "url": "https://example.com/shop",
                 "created_at": "2026-06-30T10:01:00+00:00",
-                "metadata": {"matched_keywords": ["JSK", "预约"]},
+                "metadata": {
+                    "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+                    "item": {"title": "Shell Garden JSK", "url": "https://example.com/shop/shell"},
+                    "matched_keywords": ["JSK", "预约"],
+                },
             },
         ]
         market_summary = {
@@ -42,6 +46,10 @@ class FeedOsTests(unittest.TestCase):
         self.assertGreaterEqual(feed["summary"]["alerts"], 2)
         self.assertEqual(feed["streams"]["release"][0]["brand"], "AP")
         self.assertEqual(feed["streams"]["drop"][0]["feed_type"], "drop")
+        self.assertEqual(feed["streams"]["drop"][0]["shop"], "Tokyo Proxy")
+        self.assertEqual(feed["streams"]["drop"][0]["item"], "Shell Garden JSK")
+        self.assertEqual(feed["streams"]["drop"][0]["urgency"], "high")
+        self.assertEqual(feed["streams"]["drop"][0]["keywords"], ["JSK", "预约"])
         self.assertIn("keywords: JSK, 预约", feed["streams"]["drop"][0]["meta"])
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
         self.assertEqual(feed["streams"]["trend"][0]["kind"], "rising")
@@ -303,15 +311,21 @@ class FeedOsTests(unittest.TestCase):
                 "title": "Proxy JSK 预约",
                 "url": "https://example.com/shop/jsk",
                 "created_at": "2026-06-30T10:01:00+00:00",
-                "metadata": {"matched_keywords": ["JSK", "预约"]},
+                "metadata": {
+                    "shop_name": "Proxy Shop",
+                    "item_title": "Usakumya OP",
+                    "matched_keywords": ["JSK", "预约"],
+                },
             },
         ]
 
         feed = build_home_feed(events, [], {"brands": []}, {"alerts": []}, [], [])
         drop_titles = [row["title"] for row in feed["streams"]["drop"]]
 
-        self.assertEqual(drop_titles, ["Proxy JSK 预约"])
+        self.assertEqual(drop_titles, ["Usakumya OP"])
         self.assertEqual(feed["summary"]["shops"], 1)
+        self.assertEqual(feed["streams"]["drop"][0]["shop"], "Proxy Shop")
+        self.assertEqual(feed["streams"]["drop"][0]["urgency"], "high")
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
 
     def test_alert_feed_uses_latest_source_health_per_source(self) -> None:

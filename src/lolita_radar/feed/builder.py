@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from ..shop import build_drop_signal
 from ..trend import build_trend_feed
 
 
@@ -67,7 +68,7 @@ def drop_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> list
 
 
 def is_drop_row(row: dict[str, Any]) -> bool:
-    return row.get("source") == "generic_page" and bool(matched_keywords(row))
+    return build_drop_signal(row) is not None
 
 
 def is_current_release_row(row: dict[str, Any]) -> bool:
@@ -211,14 +212,28 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
 
 def drop_card(row: dict[str, Any]) -> dict[str, Any]:
     card = feed_card("drop", row)
-    matches = matched_keywords(row)
-    if matches:
-        card["meta"] = " · ".join(
-            part for part in [card.get("meta", ""), "keywords: " + ", ".join(matches[:6])] if part
-        )
-        card["reason_codes"] = ["keyword_match", *[f"kw:{match}" for match in matches[:6]]]
-    else:
+    signal = build_drop_signal(row)
+    if signal is None:
         card["reason_codes"] = ["generic_page"]
+        return card
+    keywords = list(signal.item.keywords)
+    card["brand"] = signal.shop.name
+    card["shop"] = signal.shop.name
+    card["item"] = signal.item.title
+    card["title"] = signal.item.title
+    card["url"] = signal.item.url or signal.shop.url or card.get("url", "")
+    card["keywords"] = keywords
+    card["urgency"] = signal.urgency
+    card["meta"] = " · ".join(
+        part
+        for part in [
+            signal.shop.name,
+            f"urgency: {signal.urgency}",
+            "keywords: " + ", ".join(keywords[:6]) if keywords else "",
+        ]
+        if part
+    )
+    card["reason_codes"] = list(signal.reason_codes)
     return card
 
 

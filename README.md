@@ -28,6 +28,7 @@ Product structure:
 lolita-radar
 ├── feed/        home feed stream
 ├── trend/       rule-based premium trend analysis
+├── shop/        public shop and item drop model
 ├── crawler/     source health and crawler observability
 ├── core/        shared primitives
 ```
@@ -37,6 +38,7 @@ The current OS includes:
 - `SourceAdapter` abstraction.
 - Feed home with Release, Drop, Trend, and Alert streams.
 - Rule-based trend engine with rising/stable/cooling, confidence, and reasons.
+- Shop -> Item model for public proxy-shop/Taobao-style DROP signals.
 - Official brand adapters for Angelic Pretty, BABY, AATP, Metamorphose, and
   Moi-meme-Moitie public release/news pages.
 - `GenericPageAdapter` for arbitrary public pages with keyword matching.
@@ -277,6 +279,7 @@ python -m unittest discover -s tests
 - Fetches any public URL.
 - Extracts visible text.
 - Emits one synthetic page item when configured keywords match.
+- Adds structured `shop`, `item`, and `drop_keywords` metadata for Drop Feed.
 - A text-only edit on the same page can generate `content_changed` without
   creating duplicate `new_item` events.
 - `min_keyword_hits` controls how many configured keywords must match.
@@ -284,6 +287,11 @@ python -m unittest discover -s tests
 - `content_change_alert` can suppress content-only events for noisy pages.
 - `max_content_chars` limits stored/hashable text size.
 - `title_template` lets a source keep a stable item title.
+
+Drop Feed treats matching `generic_page` rows as public Shop -> Item signals.
+DROP candidates require one of the configured item/action keywords such as
+`JSK`, `OP`, `再贩`, `预约`, or `尾款`; new page items and reservation/restock
+keywords are ranked as higher urgency.
 
 ## Notifications
 
