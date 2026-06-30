@@ -11,7 +11,7 @@ from ..runner import verify_check_loop
 from ..shop import build_drop_signal
 from ..storage import connect
 from ..trend import build_trend_feed
-from ..web import FEED_INDEX_HTML
+from ..web import FEED_INDEX_HTML, get_feed_state
 
 
 AUDIT_STATUSES = {"pass", "fail", "missing"}
@@ -51,6 +51,8 @@ class FeedOsAudit:
 def audit_feed_os(
     config_path: Path,
     db_path: Path,
+    brands_path: Path | None = None,
+    market_path: Path | None = None,
     loop_log_path: Path | None = None,
     loop_exit_path: Path | None = None,
     expected_cycles: int = 288,
@@ -61,6 +63,7 @@ def audit_feed_os(
         audit_required_modules(root),
         audit_frontend_feed_os(),
         audit_feed_contract(),
+        audit_runtime_feed_state(config_path, db_path, brands_path, market_path),
         audit_trend_engine(),
         audit_shop_drop_model(),
         audit_crawler_health_contract(db_path),
@@ -132,6 +135,83 @@ def audit_feed_contract() -> FeedOsAuditCheck:
             detail.append(f"ordering={ordering}")
         return FeedOsAuditCheck("feed_contract", "fail", "; ".join(detail))
     return FeedOsAuditCheck("feed_contract", "pass", "4 streams expose required fields and priority ordering")
+
+
+def audit_runtime_feed_state(
+    config_path: Path,
+    db_path: Path,
+    brands_path: Path | None = None,
+    market_path: Path | None = None,
+) -> FeedOsAuditCheck:
+    try:
+        state = get_feed_state(config_path=config_path, db_path=db_path, brands_path=brands_path, market_path=market_path)
+    except Exception as exc:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", f"get_feed_state failed: {exc}")
+    feed = state.get("feed")
+    if not isinstance(feed, dict):
+        return FeedOsAuditCheck("runtime_feed_state", "fail", "state.feed is missing")
+    streams = feed.get("streams")
+    if not isinstance(streams, dict):
+        return FeedOsAuditCheck("runtime_feed_state", "fail", "state.feed.streams is missing")
+    expected_streams = ("release", "drop", "trend", "alert")
+    missing_streams = [name for name in expected_streams if name not in streams]
+    if missing_streams:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", "missing streams: " + ", ".join(missing_streams))
+    summary = feed.get("summary")
+    if not isinstance(summary, dict):
+        return FeedOsAuditCheck("runtime_feed_state", "fail", "state.feed.summary is missing")
+    missing_summary = [name for name in ("drops", "shops", "trends", "alerts") if name not in summary]
+    if missing_summary:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", "missing summary fields: " + ", ".join(missing_summary))
+    all_rows = feed.get("all")
+    if not isinstance(all_rows, list):
+        return FeedOsAuditCheck("runtime_feed_state", "fail", "state.feed.all is not a list")
+    if len(all_rows) > 30:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", f"state.feed.all has {len(all_rows)} rows")
+    ordering_problem = feed_ordering_problem(all_rows)
+    if ordering_problem:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", ordering_problem)
+    field_problem = runtime_feed_field_problem(streams)
+    if field_problem:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", field_problem)
+    counts = ", ".join(f"{name}={len(streams.get(name, []))}" for name in expected_streams)
+    return FeedOsAuditCheck("runtime_feed_state", "pass", f"current config/db builds Feed OS streams ({counts})")
+
+
+def feed_ordering_problem(rows: list[dict[str, Any]]) -> str:
+    priority = {"release": 0, "drop": 1, "alert": 2, "trend": 3}
+    previous = -1
+    for row in rows:
+        feed_type = str(row.get("feed_type") or "")
+        current = priority.get(feed_type)
+        if current is None:
+            return f"unknown feed_type in state.feed.all: {feed_type}"
+        if current < previous:
+            return "state.feed.all violates RELEASE > DROP > ALERT > TREND ordering"
+        previous = current
+        if not row.get("url"):
+            return "state.feed.all contains a row without url"
+    return ""
+
+
+def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
+    required_by_stream = {
+        "release": ("brand", "title", "type", "time", "price", "url"),
+        "drop": ("shop", "item", "keywords", "urgency", "url"),
+        "trend": ("brand", "trend", "confidence", "price_delta", "reason_codes"),
+        "alert": ("feed_type", "kind", "title", "reason_codes", "url"),
+    }
+    for name, required in required_by_stream.items():
+        rows = streams.get(name, [])
+        if not isinstance(rows, list):
+            return f"stream {name} is not a list"
+        for row in rows[:3]:
+            if not isinstance(row, dict):
+                return f"stream {name} contains non-object row"
+            missing = required_keys(row, required)
+            if missing:
+                return f"stream {name} row missing fields: {missing}"
+    return ""
 
 
 def sample_home_feed() -> dict[str, Any]:

@@ -62,6 +62,8 @@ class FeedOsTests(unittest.TestCase):
         alert_titles = {row["title"] for row in feed["streams"]["alert"]}
         self.assertIn("Shell Garden JSK", alert_titles)
         self.assertNotIn("Proxy JSK 预约", alert_titles)
+        release_alert = next(row for row in feed["streams"]["alert"] if row["title"] == "Shell Garden JSK")
+        self.assertEqual(release_alert["reason_codes"], ["new_release", "new_item", "new_arrival"])
 
     def test_release_feed_prefers_published_at_over_seen_time(self) -> None:
         events = [
@@ -92,6 +94,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(card["type"], "new_arrival")
         self.assertEqual(card["time"], "2026-06-22")
         self.assertEqual(card["time_kind"], "published")
+        self.assertEqual(card["price"], "未取得")
         self.assertEqual(feed["streams"]["release"][1]["time"], "2026-06-20")
         self.assertEqual(feed["streams"]["release"][1]["title_zh"], "新作")
         self.assertIn("新作 / 新品", card["status_label"])

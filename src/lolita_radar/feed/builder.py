@@ -93,7 +93,9 @@ def alert_feed(
             continue
         if release_count >= 20:
             break
-        alerts.append(feed_card("alert", event, kind="new_release"))
+        card = feed_card("alert", event, kind="new_release")
+        card["reason_codes"] = release_alert_reasons(event)
+        alerts.append(card)
         release_count += 1
     market_count = 0
     for alert in market_alerts.get("alerts", []):
@@ -202,6 +204,8 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
     brand = brand_label(source, str(row.get("title") or ""))
     resolved_kind = kind or str(row.get("event_type") or status or feed_type)
     price = metadata_text(row, "price")
+    if feed_type == "release" and not price:
+        price = "未取得"
     return {
         "id": f"{feed_type}:{source}:{row.get('item_hash') or row.get('url') or row.get('title')}",
         "feed_type": feed_type,
@@ -221,6 +225,15 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
         "source_label": source_label(source),
         "visual": visual_token(feed_type, brand, status),
     }
+
+
+def release_alert_reasons(event: dict[str, Any]) -> list[str]:
+    reasons = ["new_release"]
+    for key in ("event_type", "status"):
+        value = str(event.get(key) or "")
+        if value and value not in reasons:
+            reasons.append(value)
+    return reasons
 
 
 def drop_card(row: dict[str, Any]) -> dict[str, Any]:

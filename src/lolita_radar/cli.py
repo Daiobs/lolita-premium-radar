@@ -97,6 +97,8 @@ def main(argv: list[str] | None = None) -> int:
     audit_parser = subparsers.add_parser("audit-feed-os", help="audit Feed OS product acceptance evidence")
     audit_parser.add_argument("--config", type=Path, default=default_config_path())
     audit_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+    audit_parser.add_argument("--brands", type=Path, default=default_brand_weights_path())
+    audit_parser.add_argument("--market", type=Path, default=default_market_observations_path())
     audit_parser.add_argument("--loop-log", type=Path)
     audit_parser.add_argument("--loop-exit-file", type=Path)
     audit_parser.add_argument("--expected-cycles", type=int, default=DEFAULT_LOOP_CYCLES)
@@ -179,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
         audit = audit_feed_os(
             config_path=args.config,
             db_path=args.db,
+            brands_path=args.brands,
+            market_path=args.market,
             loop_log_path=args.loop_log,
             loop_exit_path=args.loop_exit_file,
             expected_cycles=args.expected_cycles,

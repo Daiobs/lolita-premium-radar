@@ -221,8 +221,18 @@ class MarketTests(unittest.TestCase):
 
         alerts = build_market_alerts(
             brand_weights=[
-                {"alias": "AP", "name": "Angelic Pretty", "weight": 100},
-                {"alias": "BABY", "name": "BABY", "weight": 95},
+                {
+                    "alias": "AP",
+                    "name": "Angelic Pretty",
+                    "weight": 100,
+                    "watch_urls": [{"label": "闲鱼", "url": "https://example.com/ap-watch"}],
+                },
+                {
+                    "alias": "BABY",
+                    "name": "BABY",
+                    "weight": 95,
+                    "watch_urls": [{"label": "闲鱼", "url": "https://example.com/baby-watch"}],
+                },
             ],
             market_summary=summary,
         )
@@ -230,7 +240,9 @@ class MarketTests(unittest.TestCase):
         self.assertGreaterEqual(alerts["summary"]["total"], 2)
         self.assertEqual(alerts["alerts"][0]["kind"], "sample_spike")
         self.assertEqual(alerts["alerts"][0]["severity"], "critical")
-        self.assertTrue(any(alert["kind"] == "sample_gap" and alert["alias"] == "BABY" for alert in alerts["alerts"]))
+        self.assertEqual(alerts["alerts"][0]["url"], "https://example.com/shell")
+        baby_gap = next(alert for alert in alerts["alerts"] if alert["kind"] == "sample_gap" and alert["alias"] == "BABY")
+        self.assertEqual(baby_gap["url"], "https://example.com/baby-watch")
 
     def test_build_pattern_radar_matches_market_keywords(self) -> None:
         patterns = build_pattern_radar(

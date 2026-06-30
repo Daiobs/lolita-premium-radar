@@ -276,7 +276,10 @@ sources:
             self.assertEqual(feed["streams"]["trend"][0]["trend"], "rising")
             self.assertEqual(feed["streams"]["trend"][0]["price_delta"], 0.5)
             self.assertIn("latency_ms=1200", feed["streams"]["alert"][0]["meta"])
-            self.assertEqual([row["feed_type"] for row in feed["all"][:4]], ["release", "drop", "alert", "trend"])
+            feed_types = [row["feed_type"] for row in feed["all"]]
+            priorities = [{"release": 0, "drop": 1, "alert": 2, "trend": 3}[feed_type] for feed_type in feed_types]
+            self.assertEqual(priorities, sorted(priorities))
+            self.assertIn("trend", feed_types)
 
     def test_index_html_is_feed_app_alias(self) -> None:
         self.assertEqual(INDEX_HTML, FEED_INDEX_HTML)

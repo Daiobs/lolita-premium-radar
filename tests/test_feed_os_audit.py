@@ -1,4 +1,5 @@
 import io
+import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -6,7 +7,8 @@ from pathlib import Path
 
 from lolita_radar.cli import format_feed_os_audit, main
 from lolita_radar.core import audit_feed_os
-from lolita_radar.storage import connect, record_source_run
+from lolita_radar.models import ItemStatus, RadarItem
+from lolita_radar.storage import connect, diff_and_store, record_source_run
 
 
 class FeedOsAuditTests(unittest.TestCase):
@@ -80,6 +82,102 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertTrue(audit.complete)
             self.assertIn("status: complete", format_feed_os_audit(audit))
             self.assertIn("pass | stable_loop_evidence", format_feed_os_audit(audit))
+
+    def test_audit_checks_runtime_feed_state_from_current_config_and_db(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root)
+            brands_path = root / "brands.json"
+            market_path = root / "market.json"
+            db_path = root / "radar.sqlite"
+            brands_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "alias": "AP",
+                            "name": "Angelic Pretty",
+                            "weight": 100,
+                            "watch_urls": [{"label": "market", "url": "https://example.com/market/ap"}],
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            market_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "brand_alias": "AP",
+                            "item_name": "Shell Garden JSK",
+                            "retail_price": 2000,
+                            "resale_price": 3000,
+                            "url": "https://example.com/resale/shell",
+                        },
+                        {
+                            "brand_alias": "AP",
+                            "item_name": "Shell Garden OP",
+                            "retail_price": 1800,
+                            "resale_price": 2700,
+                            "url": "https://example.com/resale/op",
+                        },
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            connection = connect(db_path)
+            try:
+                diff_and_store(
+                    connection,
+                    [
+                        RadarItem(
+                            source="angelic_pretty",
+                            title="Shell Garden JSK",
+                            url="https://example.com/ap/shell",
+                            status=ItemStatus.NEW_ARRIVAL,
+                            published_at="2026-06-30",
+                            metadata={"price": "¥38,280"},
+                        ),
+                        RadarItem(
+                            source="generic_page",
+                            title="Proxy Shell Garden JSK",
+                            url="https://example.com/proxy/shell",
+                            status=ItemStatus.SHOP_NEWS,
+                            metadata={
+                                "shop": {"name": "Proxy Shop", "url": "https://example.com/proxy"},
+                                "item": {"title": "Shell Garden JSK", "url": "https://example.com/proxy/shell"},
+                                "matched_keywords": ["JSK", "预约"],
+                            },
+                        ),
+                    ],
+                )
+                record_source_run(
+                    connection,
+                    "angelic_pretty",
+                    ok=False,
+                    status="failed",
+                    error_rate=1.0,
+                    latency_ms=800,
+                    item_count=0,
+                    error_message="timeout",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            audit = audit_feed_os(
+                config_path=config_path,
+                db_path=db_path,
+                brands_path=brands_path,
+                market_path=market_path,
+                expected_cycles=2,
+            )
+            text = format_feed_os_audit(audit)
+
+            self.assertIn("pass | runtime_feed_state", text)
+            self.assertIn("release=1", text)
+            self.assertIn("drop=1", text)
+            self.assertIn("trend=1", text)
+            self.assertIn("alert=", text)
 
     def test_cli_audit_returns_nonzero_when_evidence_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

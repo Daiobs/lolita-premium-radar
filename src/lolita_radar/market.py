@@ -353,6 +353,7 @@ def build_market_alerts(
                     "premium_band": band or premium_band(premium_rate),
                     "quality_score": quality_score,
                     "reason": sample_alert_reason(band, priority_score, quality_score),
+                    "url": text(record.get("url")),
                 }
             )
     for brand in brand_weights:
@@ -375,6 +376,7 @@ def build_market_alerts(
                     "premium_rate": round(avg_premium_rate, 4),
                     "sample_count": sample_count,
                     "reason": "brand_hot_average",
+                    "url": primary_watch_url(brand),
                 }
             )
         elif sample_count < 2 and weight >= 85:
@@ -388,6 +390,7 @@ def build_market_alerts(
                     "premium_rate": round(avg_premium_rate, 4),
                     "sample_count": sample_count,
                     "reason": "core_needs_samples",
+                    "url": primary_watch_url(brand),
                 }
             )
     sorted_alerts = sorted(
@@ -404,6 +407,19 @@ def build_market_alerts(
         },
         "alerts": sorted_alerts,
     }
+
+
+def primary_watch_url(brand: dict[str, Any]) -> str:
+    watch_urls = brand.get("watch_urls")
+    if not isinstance(watch_urls, list):
+        return ""
+    for row in watch_urls:
+        if not isinstance(row, dict):
+            continue
+        url = text(row.get("url"))
+        if url.startswith(("http://", "https://")):
+            return url
+    return ""
 
 
 def build_pattern_radar(
