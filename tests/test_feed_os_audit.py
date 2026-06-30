@@ -129,6 +129,7 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "pass")
         self.assertIn("rising/cooling/stable", check.detail)
         self.assertIn("release activity", check.detail)
+        self.assertIn("stale release filtering", check.detail)
 
     def test_trend_engine_audit_rejects_missing_direction_brand(self) -> None:
         original_build_trend_feed = audit_module.build_trend_feed
@@ -179,6 +180,44 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertEqual(check.status, "fail")
         self.assertIn("release events", check.detail)
+
+    def test_trend_engine_audit_rejects_stale_release_activity(self) -> None:
+        original_build_trend_feed = audit_module.build_trend_feed
+
+        def fake_build_trend_feed(_market, _momentum, events, **_kwargs):
+            ap_reasons = ["sample_supported", "premium_rising", "momentum_observed"]
+            if events:
+                ap_reasons.append("release_activity")
+            return [
+                {
+                    "brand": "AP",
+                    "trend": "rising",
+                    "confidence": 75 if events else 70,
+                    "reason_codes": ap_reasons,
+                },
+                {
+                    "brand": "Meta",
+                    "trend": "cooling",
+                    "confidence": 50,
+                    "reason_codes": ["sample_supported", "premium_cooling"],
+                },
+                {
+                    "brand": "BABY",
+                    "trend": "stable",
+                    "confidence": 0,
+                    "reason_codes": ["sample_gap", "premium_stable"],
+                },
+            ]
+
+        try:
+            audit_module.build_trend_feed = fake_build_trend_feed
+
+            check = audit_module.audit_trend_engine()
+        finally:
+            audit_module.build_trend_feed = original_build_trend_feed
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("stale release events", check.detail)
 
     def test_audit_passes_with_complete_loop_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

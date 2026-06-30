@@ -577,11 +577,29 @@ def audit_trend_engine() -> FeedOsAuditCheck:
             return FeedOsAuditCheck("trend_engine", "fail", f"invalid trend output for {brand}: {trend}")
         if not trend.get("reason_codes"):
             return FeedOsAuditCheck("trend_engine", "fail", f"missing reason_codes for {brand}")
-    without_release = build_trend_feed(market_summary, momentum, [])[0]
+    without_release = build_trend_feed(market_summary, momentum, [], brand_weights=[{"alias": "BABY"}])[0]
     ap_trend = trends_by_brand["AP"]
     if "release_activity" not in ap_trend.get("reason_codes", []) or int(ap_trend.get("confidence") or 0) <= int(without_release.get("confidence") or 0):
         return FeedOsAuditCheck("trend_engine", "fail", "release events did not affect trend reasons/confidence")
-    return FeedOsAuditCheck("trend_engine", "pass", "rule-based rising/cooling/stable output with confidence, release activity, and reasons")
+    stale_trends = build_trend_feed(
+        market_summary,
+        momentum,
+        [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{year - 1}-12-31"}],
+        brand_weights=[{"alias": "BABY"}],
+    )
+    stale_by_brand = {str(trend.get("brand") or ""): trend for trend in stale_trends}
+    stale_ap = stale_by_brand.get("AP")
+    if not stale_ap:
+        return FeedOsAuditCheck("trend_engine", "fail", "stale release check missing AP trend")
+    if "release_activity" in stale_ap.get("reason_codes", []):
+        return FeedOsAuditCheck("trend_engine", "fail", "stale release events affected trend reasons")
+    if int(ap_trend.get("confidence") or 0) <= int(stale_ap.get("confidence") or 0):
+        return FeedOsAuditCheck("trend_engine", "fail", "current release events did not outrank stale release confidence")
+    return FeedOsAuditCheck(
+        "trend_engine",
+        "pass",
+        "rule-based rising/cooling/stable output with confidence, current release activity, stale release filtering, and reasons",
+    )
 
 
 def audit_shop_drop_model() -> FeedOsAuditCheck:
