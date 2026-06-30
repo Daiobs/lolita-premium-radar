@@ -46,6 +46,22 @@ class BrandParserTests(unittest.TestCase):
         self.assertEqual(items[0].published_at, "2026-06-27")
         self.assertEqual(items[0].status, ItemStatus.PREORDER)
 
+    def test_angelic_pretty_extracts_japanese_parent_source_date(self) -> None:
+        html = """
+        <article>
+          <time>2026年6月30日</time>
+          <span class="category">NEW ARRIVAL</span>
+          <a href="/Page/Feature/NewsDetail.aspx?news=rose-jsk">Rose Garden ジャンパースカート</a>
+        </article>
+        """
+
+        items = parse_angelic_pretty_news(html, "https://angelicpretty.com/Page/news/")
+
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0].published_at, "2026-06-30")
+        self.assertEqual(items[0].status, ItemStatus.NEW_ARRIVAL)
+        self.assertIn("2026年6月30日", items[0].metadata["context"])
+
     def test_brand_metadata_keeps_bounded_parent_context(self) -> None:
         long_context = " ".join(["新作"] * 120)
         html = f"""

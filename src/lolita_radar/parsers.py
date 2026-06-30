@@ -10,6 +10,7 @@ from .models import RadarItem, classify_title
 
 
 DATE_RE = re.compile(r"(20\d{2})[./-](\d{1,2})[./-](\d{1,2})")
+JAPANESE_DATE_RE = re.compile(r"(20\d{2})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日?")
 COMPACT_DATE_RE = re.compile(r"(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)")
 IMAGE_TITLE_RE = re.compile(r"(?:^/|%2f|\.(?:jpe?g|png|webp|gif))(?:.*の画像)?", re.IGNORECASE)
 PRICE_RE = re.compile(r"(?:[¥￥]\s?[\d,]+|[\d,]+\s?円)")
@@ -544,6 +545,10 @@ def extract_date(text: str) -> str:
     match = DATE_RE.search(text)
     if match:
         year, month, day = (int(part) for part in match.groups())
+        return normalized_date(year, month, day)
+    japanese_match = JAPANESE_DATE_RE.search(text)
+    if japanese_match:
+        year, month, day = (int(part) for part in japanese_match.groups())
         return normalized_date(year, month, day)
     compact_match = COMPACT_DATE_RE.search(text)
     if compact_match:

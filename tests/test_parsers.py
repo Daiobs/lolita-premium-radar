@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 
 from lolita_radar.models import ItemStatus
-from lolita_radar.parsers import parse_generic_text, parse_metamorphose_news
+from lolita_radar.parsers import extract_date, parse_generic_text, parse_metamorphose_news
 
 
 class ParserTests(unittest.TestCase):
@@ -24,6 +24,9 @@ class ParserTests(unittest.TestCase):
 
         self.assertIn("Shop", text)
         self.assertIn("preorder", text)
+
+    def test_extract_date_accepts_japanese_year_month_day_source_time(self) -> None:
+        self.assertEqual(extract_date("掲載日：2026年6月30日 新作入荷"), "2026-06-30")
 
 
 if __name__ == "__main__":
