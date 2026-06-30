@@ -231,6 +231,9 @@ def audit_runtime_feed_state(
     missing_summary = [name for name in ("drops", "shops", "trends", "alerts") if name not in summary]
     if missing_summary:
         return FeedOsAuditCheck("runtime_feed_state", "fail", "missing summary fields: " + ", ".join(missing_summary))
+    summary_problem = summary_count_problem(summary, streams)
+    if summary_problem:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", summary_problem)
     all_rows = feed.get("all")
     if not isinstance(all_rows, list):
         return FeedOsAuditCheck("runtime_feed_state", "fail", "state.feed.all is not a list")
@@ -265,6 +268,21 @@ def feed_ordering_problem(rows: list[dict[str, Any]]) -> str:
         previous = current
         if not row.get("url"):
             return "state.feed.all contains a row without url"
+    return ""
+
+
+def summary_count_problem(summary: dict[str, Any], streams: dict[str, Any]) -> str:
+    summary_to_stream = {
+        "drops": "release",
+        "shops": "drop",
+        "trends": "trend",
+        "alerts": "alert",
+    }
+    for summary_key, stream_name in summary_to_stream.items():
+        expected = len(streams.get(stream_name, [])) if isinstance(streams.get(stream_name), list) else 0
+        actual = summary.get(summary_key)
+        if actual != expected:
+            return f"summary {summary_key}={actual} does not match {stream_name} count={expected}"
     return ""
 
 
