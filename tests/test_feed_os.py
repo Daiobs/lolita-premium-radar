@@ -148,9 +148,17 @@ class FeedOsTests(unittest.TestCase):
             {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]},
             [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
             [{"source": "angelic_pretty", "status": "new_arrival"}],
+            brand_weights=[
+                {
+                    "alias": "AP",
+                    "weight": 100,
+                    "watch_urls": [{"label": "闲鱼", "url": "https://www.goofish.com/search?q=AP"}],
+                }
+            ],
         )
 
         self.assertEqual(trends[0]["kind"], "rising")
+        self.assertEqual(trends[0]["url"], "https://www.goofish.com/search?q=AP")
         self.assertGreaterEqual(trends[0]["confidence"], 60)
         self.assertEqual(trends[0]["avg_premium_rate"], 0.5)
         self.assertEqual(trends[0]["sample_count"], 4)
@@ -174,11 +182,18 @@ class FeedOsTests(unittest.TestCase):
             {"brands": []},
             [],
             [],
-            brand_weights=[{"alias": "AP", "weight": 100}],
+            brand_weights=[
+                {
+                    "alias": "AP",
+                    "weight": 100,
+                    "watch_urls": [{"label": "Mercari", "url": "https://jp.mercari.com/search?keyword=AP"}],
+                }
+            ],
         )
 
         self.assertEqual(trends[0]["brand"], "AP")
         self.assertEqual(trends[0]["kind"], "stable")
+        self.assertEqual(trends[0]["url"], "https://jp.mercari.com/search?keyword=AP")
         self.assertIn("reason: sample_gap", trends[0]["meta"])
         self.assertIn("sample_gap", trends[0]["reason_codes"])
 

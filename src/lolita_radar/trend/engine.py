@@ -47,7 +47,11 @@ def build_trend_feed(
 
 
 def trend_brand_rows(market_summary: dict[str, Any], brand_weights: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows = list(market_summary.get("brands", []))
+    weights_by_alias = {str(row.get("alias") or ""): row for row in brand_weights}
+    rows = []
+    for row in market_summary.get("brands", []):
+        alias = str(row.get("brand_alias") or "")
+        rows.append({**row, "url": str(row.get("url") or primary_watch_url(weights_by_alias.get(alias, {})))})
     seen = {str(row.get("brand_alias") or "") for row in rows}
     for brand in brand_weights:
         alias = str(brand.get("alias") or "")
@@ -59,10 +63,23 @@ def trend_brand_rows(market_summary: dict[str, Any], brand_weights: list[dict[st
                 "sample_count": 0,
                 "avg_premium_rate": 0,
                 "max_premium_rate": 0,
-                "url": "",
+                "url": primary_watch_url(brand),
             }
         )
     return rows
+
+
+def primary_watch_url(brand: dict[str, Any]) -> str:
+    watch_urls = brand.get("watch_urls")
+    if not isinstance(watch_urls, list):
+        return ""
+    for row in watch_urls:
+        if not isinstance(row, dict):
+            continue
+        url = str(row.get("url") or "")
+        if url.startswith(("http://", "https://")):
+            return url
+    return ""
 
 
 def count_release_events(events: list[dict[str, Any]]) -> dict[str, int]:
