@@ -24,6 +24,7 @@ class FakeGoodAdapter:
                 url=f"{self.config.url}/new",
                 status=ItemStatus.NEW_ARRIVAL,
                 content="fixture content",
+                metadata={"brand": "Test Brand", "price": "¥12,000"},
             )
         ]
 
@@ -298,6 +299,8 @@ sources:
                 self.assertEqual(payload["checked_source"], "all")
                 self.assertEqual(payload["new_event_count"], 1)
                 self.assertEqual(payload["new_events"][0]["source"], "good")
+                self.assertEqual(payload["new_events"][0]["metadata"]["brand"], "Test Brand")
+                self.assertEqual(payload["new_events"][0]["metadata"]["price"], "¥12,000")
                 source_alerts = [
                     alert
                     for alert in payload["feed"]["streams"]["alert"]

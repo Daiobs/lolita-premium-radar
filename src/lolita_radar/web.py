@@ -271,6 +271,7 @@ def event_to_dict(event: RadarEvent) -> dict[str, Any]:
         "url": event.item.url,
         "status": event.item.status.value,
         "published_at": event.item.published_at,
+        "metadata": dict(event.item.metadata or {}),
         "previous_title": event.previous_title,
         "previous_status": event.previous_status,
         "content_hash": event.item.content_hash,
