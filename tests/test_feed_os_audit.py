@@ -703,6 +703,31 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("summary releases=2", check.detail)
 
+    def test_runtime_feed_audit_rejects_missing_release_summary(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"drops": 0, "trends": 0, "alerts": 0, "shops": 0},
+                    "streams": {
+                        "release": [],
+                        "drop": [],
+                        "trend": [],
+                        "alert": [],
+                    },
+                    "all": [],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("missing summary fields: releases", check.detail)
+
     def test_runtime_feed_audit_rejects_invalid_trend_values(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         try:

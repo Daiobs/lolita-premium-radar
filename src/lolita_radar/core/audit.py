@@ -257,7 +257,7 @@ def audit_runtime_feed_state(
     summary = feed.get("summary")
     if not isinstance(summary, dict):
         return FeedOsAuditCheck("runtime_feed_state", "fail", "state.feed.summary is missing")
-    missing_summary = [name for name in ("drops", "shops", "trends", "alerts") if name not in summary]
+    missing_summary = [name for name in ("releases", "drops", "shops", "trends", "alerts") if name not in summary]
     if missing_summary:
         return FeedOsAuditCheck("runtime_feed_state", "fail", "missing summary fields: " + ", ".join(missing_summary))
     summary_problem = summary_count_problem(summary, streams)
