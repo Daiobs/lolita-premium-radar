@@ -89,6 +89,51 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[2]["kind"], "sample_gap")
         self.assertIn("sample_gap", alerts[2]["reason_codes"])
 
+    def test_alert_feed_uses_latest_source_health_per_source(self) -> None:
+        source_runs = [
+            {
+                "source": "angelic_pretty",
+                "ok": True,
+                "status": "degraded",
+                "error_rate": 0.3,
+                "checked_at": "2026-06-30T10:05:00+00:00",
+                "error_message": "",
+            },
+            {
+                "source": "angelic_pretty",
+                "ok": False,
+                "status": "failed",
+                "error_rate": 0.6,
+                "checked_at": "2026-06-30T10:00:00+00:00",
+                "error_message": "timeout",
+            },
+            {
+                "source": "baby_ssb",
+                "ok": True,
+                "status": "ok",
+                "error_rate": 0.0,
+                "checked_at": "2026-06-30T10:05:00+00:00",
+                "error_message": "",
+            },
+            {
+                "source": "baby_ssb",
+                "ok": False,
+                "status": "failed",
+                "error_rate": 0.5,
+                "checked_at": "2026-06-30T10:00:00+00:00",
+                "error_message": "old timeout",
+            },
+        ]
+
+        feed = build_home_feed([], [], {"brands": []}, {"alerts": []}, [], source_runs)
+        alerts = feed["streams"]["alert"]
+
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0]["brand"], "angelic_pretty")
+        self.assertEqual(alerts[0]["kind"], "degraded")
+        self.assertEqual(alerts[0]["reason_codes"], ["source_health"])
+        self.assertEqual(alerts[0]["time"], "2026-06-30T10:05:00+00:00")
+
     def test_trend_engine_outputs_direction_confidence_and_reasons(self) -> None:
         trends = build_trend_feed(
             {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]},

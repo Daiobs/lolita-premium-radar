@@ -86,7 +86,7 @@ def alert_feed(
                 "reason_codes": market_alert_reasons(alert, kind),
             }
         )
-    for run in source_runs:
+    for run in latest_source_runs_by_source(source_runs):
         if str(run.get("status") or "") in {"failed", "degraded"}:
             alerts.append(
                 {
@@ -102,6 +102,18 @@ def alert_feed(
                 }
             )
     return alerts[:40]
+
+
+def latest_source_runs_by_source(source_runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    latest = []
+    seen = set()
+    for run in source_runs:
+        source = str(run.get("source") or "")
+        if not source or source in seen:
+            continue
+        seen.add(source)
+        latest.append(run)
+    return latest
 
 
 def is_release_event(event: dict[str, Any]) -> bool:
