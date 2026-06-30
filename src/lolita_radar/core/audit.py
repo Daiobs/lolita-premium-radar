@@ -413,6 +413,8 @@ def drop_card_context_problem(row: dict[str, Any]) -> str:
         return "stream drop row is missing source time"
     if row.get("time_kind") != "published":
         return f"stream drop row has invalid time_kind: {row.get('time_kind')}"
+    if stale_release_time(row):
+        return f"stream drop row has stale source time: {time_value}"
     visual = row.get("visual")
     if isinstance(visual, dict):
         image_url = str(visual.get("image_url") or "")
