@@ -9,7 +9,11 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("pull_request:", workflow)
         self.assertIn("python -m unittest discover -s tests", workflow)
         self.assertIn("python -m lolita_radar.cli audit-feed-os --json > feed-os-audit.json", workflow)
+        self.assertIn('AUDIT_EXIT="${audit_exit}" python - <<', workflow)
         self.assertIn("counts.get(\"fail\", 0)", workflow)
+        self.assertIn("counts.get(\"missing\", 0)", workflow)
+        self.assertIn("missing evidence is visible but allowed", workflow)
+        self.assertIn("if audit_exit != 0 and missing_count == 0", workflow)
         self.assertIn("actions/upload-artifact@v4", workflow)
         self.assertIn("feed-os-audit.json", workflow)
 

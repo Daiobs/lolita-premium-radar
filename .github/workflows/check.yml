@@ -35,17 +35,25 @@ jobs:
           python -m lolita_radar.cli audit-feed-os --json > feed-os-audit.json
           audit_exit=$?
           set -e
-          python - <<'PY'
+          AUDIT_EXIT="${audit_exit}" python - <<'PY'
           import json
+          import os
           import pathlib
           import sys
 
           payload = json.loads(pathlib.Path("feed-os-audit.json").read_text(encoding="utf-8"))
           counts = payload.get("counts", {})
-          print(f"Feed OS audit: {payload.get('status')} {counts}")
+          audit_exit = int(os.environ.get("AUDIT_EXIT", "0"))
+          fail_count = int(counts.get("fail", 0))
+          missing_count = int(counts.get("missing", 0))
+          print(f"Feed OS audit: {payload.get('status')} {counts} exit={audit_exit}")
           for check in payload.get("checks", []):
               print(f"{check.get('status')} | {check.get('name')} | {check.get('detail')}")
-          if int(counts.get("fail", 0)) > 0:
+          if missing_count > 0:
+              print(f"Feed OS audit missing evidence is visible but allowed: {missing_count}")
+          if fail_count > 0:
+              sys.exit(1)
+          if audit_exit != 0 and missing_count == 0:
               sys.exit(1)
           PY
           echo "audit command exit code: ${audit_exit}"
