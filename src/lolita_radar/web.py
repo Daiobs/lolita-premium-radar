@@ -48,7 +48,7 @@ def run_web(
         market_path = default_market_observations_path()
     handler = make_handler(config_path=config_path, db_path=db_path, brands_path=brands_path, market_path=market_path)
     server = ThreadingHTTPServer((host, port), handler)
-    print(f"Lolita Premium Radar web UI: http://{host}:{port}")
+    print(f"Lolita Radar OS web UI: http://{host}:{port}")
     print(f"Config: {config_path.resolve()}")
     print(f"Brand weights: {brands_path.resolve()}")
     print(f"Market observations: {market_path.resolve()}")
@@ -378,8 +378,8 @@ FEED_INDEX_HTML = r"""<!doctype html>
           <p>日牌发售与二级市场信息流</p>
         </div>
         <div class="actions">
-          <button id="refreshBtn" type="button">Refresh</button>
-          <button id="checkBtn" type="button">Check</button>
+          <button id="refreshBtn" type="button">刷新 / Refresh</button>
+          <button id="checkBtn" type="button">检查 / Check</button>
         </div>
       </header>
       <section class="summary" aria-label="Summary">
@@ -389,16 +389,23 @@ FEED_INDEX_HTML = r"""<!doctype html>
         <article class="summary-card"><strong id="alertsCount">0</strong><span>⚠️ Alerts</span></article>
       </section>
       <nav class="filters" aria-label="Feed filter">
-        <button class="active" data-filter="all" type="button">All</button>
-        <button data-filter="release" type="button">Release</button>
-        <button data-filter="drop" type="button">Drop</button>
-        <button data-filter="trend" type="button">Trend</button>
-        <button data-filter="alert" type="button">Alert</button>
+        <button class="active" data-filter="all" type="button">全部 / All</button>
+        <button data-filter="release" type="button">发售 / Release</button>
+        <button data-filter="drop" type="button">上新 / Drop</button>
+        <button data-filter="trend" type="button">趋势 / Trend</button>
+        <button data-filter="alert" type="button">提醒 / Alert</button>
       </nav>
       <section id="feedStream" class="feed-stream" aria-live="polite"></section>
     </main>
     <script>
       const $ = (id) => document.getElementById(id);
+      const FEED_LABELS = {
+        all: "全部 Feed",
+        release: "发售 Feed",
+        drop: "上新 Feed",
+        trend: "趋势 Feed",
+        alert: "提醒 Feed",
+      };
       let state = {};
       let activeFilter = "all";
       async function api(path, options = {}) {
@@ -417,7 +424,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         $("trendsCount").textContent = feed.summary?.trends || 0;
         $("alertsCount").textContent = feed.summary?.alerts || 0;
         const rows = activeFilter === "all" ? (feed.all || []) : (feed.streams?.[activeFilter] || []);
-        $("feedStream").innerHTML = rows.length ? rows.map(cardHtml).join("") : `<div class="empty">暂无 ${escapeHtml(activeFilter)} feed</div>`;
+        $("feedStream").innerHTML = rows.length ? rows.map(cardHtml).join("") : `<div class="empty">暂无 ${escapeHtml(FEED_LABELS[activeFilter] || activeFilter)}</div>`;
       }
       function cardHtml(row) {
         const type = row.feed_type || "alert";
@@ -436,7 +443,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           <h2>${escapeHtml(row.title || "-")}</h2>
           <p class="meta">${escapeHtml(row.meta || "")}${escapeHtml(confidence)}</p>
           ${reasons}
-          <div class="foot"><span>${escapeHtml(row.time || "")}</span><span class="cta">${hasUrl ? "Open source" : "No source link"}</span></div>
+          <div class="foot"><span>${escapeHtml(row.time || "")}</span><span class="cta">${hasUrl ? "打开来源 / Source" : "暂无来源链接"}</span></div>
         </${tag}>`;
       }
       function reasonHtml(reasonCodes) {
