@@ -50,6 +50,39 @@ class NotificationTests(unittest.TestCase):
         self.assertIn("ALERT · generic_page", text)
         self.assertIn("变化 / 変更: abcdef1234 ->", text)
 
+    def test_shop_news_notification_uses_drop_model_boundary(self) -> None:
+        drop_item = RadarItem(
+            source="generic_page",
+            title="Shell Garden JSK 预约",
+            url="https://example.com/shop/shell",
+            status=ItemStatus.SHOP_NEWS,
+            published_at="2026-06-30",
+            metadata={
+                "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+                "item": {"title": "Shell Garden JSK 预约", "url": "https://example.com/shop/shell"},
+                "matched_keywords": ["JSK", "预约"],
+            },
+        )
+        page_item = RadarItem(
+            source="generic_page",
+            title="Proxy watched page",
+            url="https://example.com/shop",
+            status=ItemStatus.SHOP_NEWS,
+            published_at="2026-06-30",
+            metadata={
+                "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+                "item": {"title": "Proxy watched page", "url": "https://example.com/shop"},
+                "page_level": True,
+                "matched_keywords": ["JSK", "预约"],
+            },
+        )
+
+        drop_text = format_event(RadarEvent(source=drop_item.source, event_type=EventType.NEW_ITEM, item=drop_item))
+        page_text = format_event(RadarEvent(source=page_item.source, event_type=EventType.NEW_ITEM, item=page_item))
+
+        self.assertIn("DROP · generic_page", drop_text)
+        self.assertIn("ALERT · generic_page", page_text)
+
     def test_build_notifiers_from_env_stays_local_only(self) -> None:
         with patch.dict(
             "os.environ",

@@ -351,14 +351,31 @@ def audit_notification_contract() -> FeedOsAuditCheck:
     missing = [token for token in required if token not in text]
     legacy_fields = ("brand:", "source:", "event_type:", "status:", "title:", "published_at:", "url:", "matched_keywords:")
     leaked = [token for token in legacy_fields if token in text]
-    if missing or leaked:
+    page_item = RadarItem(
+        source="generic_page",
+        title="Proxy watched page",
+        url="https://example.com/shop",
+        status=ItemStatus.SHOP_NEWS,
+        published_at="2026-06-30",
+        metadata={
+            "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
+            "item": {"title": "Proxy watched page", "url": "https://example.com/shop"},
+            "page_level": True,
+            "matched_keywords": ["JSK", "预约"],
+        },
+    )
+    page_text = format_event(RadarEvent(source=page_item.source, event_type=EventType.NEW_ITEM, item=page_item))
+    mislabeled_drop = page_text.startswith("DROP")
+    if missing or leaked or mislabeled_drop:
         detail = []
         if missing:
             detail.append("missing notification tokens: " + ", ".join(missing))
         if leaked:
             detail.append("legacy notification fields present: " + ", ".join(leaked))
+        if mislabeled_drop:
+            detail.append("page-level shop notification mislabeled as DROP")
         return FeedOsAuditCheck("notification_contract", "fail", "; ".join(detail))
-    return FeedOsAuditCheck("notification_contract", "pass", "local notifications render Feed OS card summaries with source publish time")
+    return FeedOsAuditCheck("notification_contract", "pass", "local notifications render Feed OS card summaries with source publish time and Drop-model boundaries")
 
 
 def audit_feed_contract() -> FeedOsAuditCheck:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from .models import RadarEvent
+from .shop import build_drop_signal
 
 
 class Notifier(Protocol):
@@ -64,13 +65,26 @@ def notification_kind(event: RadarEvent) -> str:
     status = event.item.status.value
     if event.event_type.value == "content_changed":
         return "ALERT"
+    if status == "shop_news":
+        return "DROP" if build_drop_signal(event_row(event)) is not None else "ALERT"
     return {
         "new_arrival": "RELEASE",
         "preorder": "RELEASE",
         "restock": "RELEASE",
-        "shop_news": "DROP",
         "sold_out": "ALERT",
     }.get(status, "ALERT")
+
+
+def event_row(event: RadarEvent) -> dict[str, object]:
+    return {
+        "source": event.source,
+        "event_type": event.event_type.value,
+        "status": event.item.status.value,
+        "title": event.item.title,
+        "url": event.item.url,
+        "published_at": event.item.published_at,
+        "metadata": dict(event.item.metadata or {}),
+    }
 
 
 def status_label(status: str) -> str:
