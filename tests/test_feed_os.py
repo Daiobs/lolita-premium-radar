@@ -42,6 +42,47 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["drop"][0]["feed_type"], "drop")
         self.assertEqual(feed["streams"]["trend"][0]["kind"], "rising")
 
+    def test_alert_feed_normalizes_high_premium_and_sample_gap(self) -> None:
+        market_alerts = {
+            "alerts": [
+                {
+                    "kind": "sample_spike",
+                    "severity": "critical",
+                    "alias": "AP",
+                    "item_name": "Shell Garden JSK",
+                    "premium_rate": 0.82,
+                    "reason": "collector_premium",
+                },
+                {
+                    "kind": "brand_heat",
+                    "severity": "watch",
+                    "alias": "BABY",
+                    "title": "BABY",
+                    "premium_rate": 0.55,
+                    "reason": "brand_hot_average",
+                },
+                {
+                    "kind": "sample_gap",
+                    "severity": "sample_gap",
+                    "alias": "AATP",
+                    "title": "ALICE and the PIRATES",
+                    "reason": "core_needs_samples",
+                },
+            ]
+        }
+
+        feed = build_home_feed([], [], {"brands": []}, market_alerts, [], [])
+        alerts = feed["streams"]["alert"]
+
+        self.assertEqual(alerts[0]["kind"], "high_premium")
+        self.assertEqual(alerts[0]["title"], "Shell Garden JSK")
+        self.assertIn("82% premium", alerts[0]["meta"])
+        self.assertIn("sample_spike", alerts[0]["reason_codes"])
+        self.assertEqual(alerts[1]["kind"], "high_premium")
+        self.assertIn("brand_heat", alerts[1]["reason_codes"])
+        self.assertEqual(alerts[2]["kind"], "sample_gap")
+        self.assertIn("sample_gap", alerts[2]["reason_codes"])
+
     def test_trend_engine_outputs_direction_confidence_and_reasons(self) -> None:
         trends = build_trend_feed(
             {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]},

@@ -72,17 +72,18 @@ def alert_feed(
         if event.get("event_type") in {"new_item", "content_changed"}:
             alerts.append(feed_card("alert", event, kind="new_release"))
     for alert in market_alerts.get("alerts", [])[:20]:
+        kind = market_alert_kind(alert)
         alerts.append(
             {
                 "id": f"alert:{alert.get('kind')}:{alert.get('alias')}:{alert.get('item_name', '')}",
                 "feed_type": "alert",
-                "kind": str(alert.get("kind") or "market_alert"),
+                "kind": kind,
                 "brand": str(alert.get("alias") or ""),
-                "title": str(alert.get("item_name") or alert.get("reason") or "Market alert"),
-                "meta": str(alert.get("reason") or alert.get("severity") or ""),
+                "title": str(alert.get("item_name") or alert.get("title") or alert.get("reason") or "Market alert"),
+                "meta": market_alert_meta(alert),
                 "time": "",
                 "url": str(alert.get("url") or ""),
-                "reason_codes": [str(alert.get("kind") or "market_alert")],
+                "reason_codes": market_alert_reasons(alert, kind),
             }
         )
     for run in source_runs:
@@ -101,6 +102,35 @@ def alert_feed(
                 }
             )
     return alerts[:40]
+
+
+def market_alert_kind(alert: dict[str, Any]) -> str:
+    raw_kind = str(alert.get("kind") or "market_alert")
+    if raw_kind in {"sample_spike", "brand_heat"}:
+        return "high_premium"
+    return raw_kind
+
+
+def market_alert_meta(alert: dict[str, Any]) -> str:
+    parts = [str(alert.get("reason") or alert.get("severity") or "")]
+    premium_rate = alert.get("premium_rate")
+    if premium_rate not in (None, ""):
+        try:
+            parts.append(f"{round(float(premium_rate) * 100)}% premium")
+        except (TypeError, ValueError):
+            parts.append(f"{premium_rate} premium")
+    return " · ".join(part for part in parts if part)
+
+
+def market_alert_reasons(alert: dict[str, Any], kind: str) -> list[str]:
+    reasons = [kind]
+    raw_kind = str(alert.get("kind") or "")
+    severity = str(alert.get("severity") or "")
+    if raw_kind and raw_kind not in reasons:
+        reasons.append(raw_kind)
+    if severity and severity not in reasons:
+        reasons.append(severity)
+    return reasons
 
 
 def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> dict[str, Any]:
