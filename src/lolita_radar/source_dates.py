@@ -10,7 +10,8 @@ def is_current_source_date(value: str) -> bool:
     source_date = parse_source_date(value)
     if source_date is None:
         return False
-    return source_date.year >= current_year() and source_date >= recent_source_cutoff_date()
+    today = current_source_date()
+    return source_date.year >= current_year() and recent_source_cutoff_date(today) <= source_date <= today
 
 
 def parse_source_date(value: str) -> date | None:
@@ -23,8 +24,12 @@ def parse_source_date(value: str) -> date | None:
         return None
 
 
-def recent_source_cutoff_date() -> date:
-    return datetime.now(timezone.utc).date() - timedelta(days=CURRENT_SOURCE_WINDOW_DAYS)
+def current_source_date() -> date:
+    return datetime.now(timezone.utc).date()
+
+
+def recent_source_cutoff_date(today: date | None = None) -> date:
+    return (today or current_source_date()) - timedelta(days=CURRENT_SOURCE_WINDOW_DAYS)
 
 
 def current_year() -> int:
