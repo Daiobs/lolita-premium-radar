@@ -79,10 +79,13 @@ def alert_feed(
     for event in events[:20]:
         if is_release_event(event):
             alerts.append(feed_card("alert", event, kind="new_release"))
-    for alert in market_alerts.get("alerts", [])[:20]:
+    market_count = 0
+    for alert in market_alerts.get("alerts", []):
         kind = market_alert_kind(alert)
         if kind not in MARKET_ALERT_KINDS:
             continue
+        if market_count >= 20:
+            break
         alerts.append(
             {
                 "id": f"alert:{alert.get('kind')}:{alert.get('alias')}:{alert.get('item_name', '')}",
@@ -96,6 +99,7 @@ def alert_feed(
                 "reason_codes": market_alert_reasons(alert, kind),
             }
         )
+        market_count += 1
     for run in latest_source_runs_by_source(source_runs):
         if str(run.get("status") or "") in {"failed", "degraded"}:
             alerts.append(

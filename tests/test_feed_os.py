@@ -115,6 +115,28 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual([alert["kind"] for alert in alerts], ["sample_gap"])
         self.assertEqual(alerts[0]["brand"], "BABY")
 
+    def test_alert_feed_filters_market_kinds_before_limit(self) -> None:
+        noisy_alerts = [
+            {"kind": "debug_note", "severity": "info", "alias": f"debug-{index}", "title": "Debug"}
+            for index in range(20)
+        ]
+        noisy_alerts.append(
+            {
+                "kind": "sample_gap",
+                "severity": "sample_gap",
+                "alias": "BABY",
+                "title": "BABY",
+                "reason": "core_needs_samples",
+            }
+        )
+
+        feed = build_home_feed([], [], {"brands": []}, {"alerts": noisy_alerts}, [], [])
+        alerts = feed["streams"]["alert"]
+
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0]["kind"], "sample_gap")
+        self.assertEqual(alerts[0]["brand"], "BABY")
+
     def test_release_feed_keeps_non_target_brand_sources_out(self) -> None:
         events = [
             {
