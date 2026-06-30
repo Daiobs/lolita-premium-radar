@@ -56,10 +56,10 @@ def release_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> l
 
 
 def drop_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows = [feed_card("drop", row) for row in events if row.get("source") == "generic_page"]
+    rows = [drop_card(row) for row in events if row.get("source") == "generic_page"]
     if rows:
         return rows[:30]
-    return [feed_card("drop", row) for row in items if row.get("source") == "generic_page"][:30]
+    return [drop_card(row) for row in items if row.get("source") == "generic_page"][:30]
 
 
 def alert_feed(
@@ -147,6 +147,30 @@ def feed_card(feed_type: str, row: dict[str, Any], kind: str | None = None) -> d
         "url": str(row.get("url") or ""),
         "status": status,
     }
+
+
+def drop_card(row: dict[str, Any]) -> dict[str, Any]:
+    card = feed_card("drop", row)
+    matches = matched_keywords(row)
+    if matches:
+        card["meta"] = " · ".join(
+            part for part in [card.get("meta", ""), "keywords: " + ", ".join(matches[:6])] if part
+        )
+        card["reason_codes"] = ["keyword_match", *[f"kw:{match}" for match in matches[:6]]]
+    else:
+        card["reason_codes"] = ["generic_page"]
+    return card
+
+
+def matched_keywords(row: dict[str, Any]) -> list[str]:
+    metadata = row.get("metadata")
+    if not isinstance(metadata, dict):
+        return []
+    raw = metadata.get("matched_keywords") or []
+    if isinstance(raw, list):
+        return [str(keyword) for keyword in raw if str(keyword)]
+    text = str(raw)
+    return [text] if text else []
 
 
 def brand_label(source: str, title: str) -> str:

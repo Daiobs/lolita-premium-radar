@@ -215,29 +215,41 @@ def list_items(connection: sqlite3.Connection, limit: int = 100) -> list[dict[st
         """
         SELECT
             source, item_hash, title, url, status, published_at,
-            content_hash, first_seen_at, last_seen_at
+            content_hash, metadata_json, first_seen_at, last_seen_at
         FROM items
         ORDER BY last_seen_at DESC, id DESC
         LIMIT ?
         """,
         (limit,),
     ).fetchall()
-    return [dict(row) for row in rows]
+    return [with_metadata(dict(row)) for row in rows]
 
 
 def list_events(connection: sqlite3.Connection, limit: int = 100) -> list[dict[str, Any]]:
     rows = connection.execute(
         """
         SELECT
-            source, item_hash, event_type, title, url, status,
-            previous_title, previous_status, content_hash, previous_content_hash, created_at
+            events.source, events.item_hash, event_type, events.title, events.url, events.status,
+            previous_title, previous_status, events.content_hash, previous_content_hash,
+            created_at, items.metadata_json
         FROM events
-        ORDER BY created_at DESC, id DESC
+        LEFT JOIN items ON items.item_hash = events.item_hash
+        ORDER BY created_at DESC, events.id DESC
         LIMIT ?
         """,
         (limit,),
     ).fetchall()
-    return [dict(row) for row in rows]
+    return [with_metadata(dict(row)) for row in rows]
+
+
+def with_metadata(row: dict[str, Any]) -> dict[str, Any]:
+    raw = str(row.pop("metadata_json", "") or "{}")
+    try:
+        metadata = json.loads(raw)
+    except json.JSONDecodeError:
+        metadata = {}
+    row["metadata"] = metadata if isinstance(metadata, dict) else {}
+    return row
 
 
 def storage_counts(connection: sqlite3.Connection) -> dict[str, int]:

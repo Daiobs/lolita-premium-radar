@@ -23,6 +23,7 @@ class FeedOsTests(unittest.TestCase):
                 "title": "Proxy JSK 预约",
                 "url": "https://example.com/shop",
                 "created_at": "2026-06-30T10:01:00+00:00",
+                "metadata": {"matched_keywords": ["JSK", "预约"]},
             },
         ]
         market_summary = {
@@ -40,6 +41,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertGreaterEqual(feed["summary"]["alerts"], 2)
         self.assertEqual(feed["streams"]["release"][0]["brand"], "AP")
         self.assertEqual(feed["streams"]["drop"][0]["feed_type"], "drop")
+        self.assertIn("keywords: JSK, 预约", feed["streams"]["drop"][0]["meta"])
+        self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
         self.assertEqual(feed["streams"]["trend"][0]["kind"], "rising")
 
     def test_alert_feed_normalizes_high_premium_and_sample_gap(self) -> None:
