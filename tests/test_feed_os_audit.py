@@ -51,9 +51,11 @@ class FeedOsAuditTests(unittest.TestCase):
             log_path.write_text(
                 "\n".join(
                     [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
                         "cycle | ok | event_count | error_message",
                         "1 | ok | 1 | ",
                         "2 | ok | 0 | ",
+                        "# finished_at: 2026-06-30T00:05:00+00:00",
                     ]
                 )
                 + "\n",
@@ -98,6 +100,78 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertTrue(audit.complete)
             self.assertIn("status: complete", format_feed_os_audit(audit))
             self.assertIn("pass | stable_loop_evidence", format_feed_os_audit(audit))
+            payload = json.loads(format_feed_os_audit_json(audit))
+            stable_check = next(check for check in payload["checks"] if check["name"] == "stable_loop_evidence")
+            self.assertEqual(stable_check["status"], "pass")
+            self.assertEqual(stable_check["evidence"]["status"], "complete")
+            self.assertEqual(stable_check["evidence"]["duration_seconds"], 300)
+            self.assertEqual(stable_check["evidence"]["duplicate_cycles"], [])
+            self.assertEqual(stable_check["evidence"]["source_cycle_counts"], {"angelic_pretty": 2})
+            self.assertEqual(stable_check["evidence"]["unhealthy_source_runs"], {})
+
+    def test_audit_reports_duplicate_loop_cycles(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root)
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 1 | ",
+                        "2 | ok | 0 | ",
+                        "2 | ok | 0 | ",
+                        "# finished_at: 2026-06-30T00:05:00+00:00",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "angelic_pretty",
+                    ok=True,
+                    status="ok",
+                    item_count=1,
+                    checked_at="2026-06-30T00:00:00+00:00",
+                )
+                record_source_run(
+                    connection,
+                    "angelic_pretty",
+                    ok=True,
+                    status="ok",
+                    item_count=1,
+                    checked_at="2026-06-30T00:05:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            audit = audit_feed_os(
+                config_path=config_path,
+                db_path=db_path,
+                loop_log_path=log_path,
+                loop_exit_path=exit_path,
+                expected_cycles=2,
+                min_duration_seconds=0,
+            )
+
+            payload = json.loads(format_feed_os_audit_json(audit))
+            stable_check = next(check for check in payload["checks"] if check["name"] == "stable_loop_evidence")
+            self.assertFalse(audit.complete)
+            self.assertEqual(stable_check["status"], "fail")
+            self.assertIn("duplicate=[2]", stable_check["detail"])
+            self.assertIn("missing_cycle_timestamps=[]", stable_check["detail"])
+            self.assertIn("cycle_time_mismatches=[]", stable_check["detail"])
+            self.assertEqual(stable_check["evidence"]["duplicate_cycles"], [2])
+            self.assertEqual(stable_check["evidence"]["missing_cycle_timestamps"], [])
+            self.assertEqual(stable_check["evidence"]["cycle_time_mismatches"], [])
 
     def test_audit_checks_runtime_feed_state_from_current_config_and_db(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -244,6 +318,59 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("stale source time", check.detail)
 
+    def test_runtime_feed_audit_rejects_stale_release_alert_time(self) -> None:
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: {
+                "feed": {
+                    "summary": {"drops": 0, "shops": 0, "trends": 0, "alerts": 1},
+                    "streams": {
+                        "release": [],
+                        "drop": [],
+                        "trend": [],
+                        "alert": [
+                            {
+                                "feed_type": "alert",
+                                "kind": "new_release",
+                                "title": "Old Release JSK",
+                                "reason_codes": ["new_release"],
+                                "time": "2025-12-31",
+                                "url": "https://example.com/ap/old",
+                            }
+                        ],
+                    },
+                    "all": [{"feed_type": "alert", "url": "https://example.com/ap/old"}],
+                }
+            }
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("stream alert row has stale source time", check.detail)
+
+    def test_runtime_feed_audit_allows_old_source_health_alert_time(self) -> None:
+        streams = {
+            "release": [],
+            "drop": [],
+            "trend": [],
+            "alert": [
+                {
+                    "feed_type": "alert",
+                    "kind": "failed",
+                    "title": "angelic_pretty failed",
+                    "reason_codes": ["source_health"],
+                    "time": "2025-12-31T00:00:00+00:00",
+                    "url": "https://example.com/ap",
+                }
+            ],
+        }
+
+        self.assertEqual(audit_module.runtime_feed_noise_problem(streams), "")
+
     def test_runtime_feed_audit_checks_all_rows_not_only_first_items(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         current_year = datetime.now(timezone.utc).year
@@ -384,6 +511,64 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("invalid urgency", check.detail)
 
+    def test_runtime_feed_payload_audit_rejects_full_state_leak(self) -> None:
+        original_get_feed_payload = audit_module.get_feed_payload
+        expected_feed = {
+            "summary": {"drops": 0, "shops": 0, "trends": 0, "alerts": 0},
+            "streams": {"release": [], "drop": [], "trend": [], "alert": []},
+            "all": [],
+        }
+        try:
+            audit_module.get_feed_payload = lambda **_kwargs: {
+                "ok": True,
+                "counts": {},
+                "feed": expected_feed,
+                "items": [],
+                "events": [],
+            }
+            problem = audit_module.runtime_feed_payload_problem(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+                brands_path=None,
+                market_path=None,
+                expected_feed=expected_feed,
+            )
+        finally:
+            audit_module.get_feed_payload = original_get_feed_payload
+
+        self.assertIn("leaks full state keys", problem)
+        self.assertIn("items", problem)
+        self.assertIn("events", problem)
+
+    def test_runtime_feed_payload_audit_rejects_feed_mismatch(self) -> None:
+        original_get_feed_payload = audit_module.get_feed_payload
+        expected_feed = {
+            "summary": {"drops": 0, "shops": 0, "trends": 0, "alerts": 0},
+            "streams": {"release": [], "drop": [], "trend": [], "alert": []},
+            "all": [],
+        }
+        try:
+            audit_module.get_feed_payload = lambda **_kwargs: {
+                "ok": True,
+                "counts": {},
+                "feed": {
+                    "summary": {"drops": 1, "shops": 0, "trends": 0, "alerts": 0},
+                    "streams": {"release": [], "drop": [], "trend": [], "alert": []},
+                    "all": [],
+                },
+            }
+            problem = audit_module.runtime_feed_payload_problem(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+                brands_path=None,
+                market_path=None,
+                expected_feed=expected_feed,
+            )
+        finally:
+            audit_module.get_feed_payload = original_get_feed_payload
+
+        self.assertIn("does not match", problem)
+
     def test_cli_audit_returns_nonzero_when_evidence_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -435,7 +620,14 @@ class FeedOsAuditTests(unittest.TestCase):
             self.assertFalse(payload["complete"])
             self.assertEqual(payload["counts"]["missing"], 1)
             self.assertIn("checks", payload)
-            self.assertTrue(any(check["name"] == "stable_loop_evidence" for check in payload["checks"]))
+            stable_check = next(check for check in payload["checks"] if check["name"] == "stable_loop_evidence")
+            self.assertEqual(stable_check["status"], "missing")
+            self.assertTrue(stable_check["evidence"]["required"]["loop_log"])
+            self.assertTrue(stable_check["evidence"]["required"]["loop_exit_file"])
+            self.assertTrue(stable_check["evidence"]["required"]["source_runs"])
+            self.assertEqual(stable_check["evidence"]["expected_cycles"], 2)
+            self.assertEqual(stable_check["evidence"]["min_duration_seconds"], 86400)
+            self.assertIn("no duplicate cycles", stable_check["evidence"]["required_checks"])
 
     def test_format_feed_os_audit_json_includes_counts_and_checks(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

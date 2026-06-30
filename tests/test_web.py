@@ -9,7 +9,7 @@ from pathlib import Path
 import lolita_radar.runner as runner
 from lolita_radar.models import ItemStatus, RadarItem
 from lolita_radar.storage import connect, diff_and_store, record_source_run
-from lolita_radar.web import FEED_INDEX_HTML, INDEX_HTML, get_feed_state, make_handler
+from lolita_radar.web import FEED_INDEX_HTML, INDEX_HTML, get_feed_payload, get_feed_state, make_handler
 
 
 class FakeGoodAdapter:
@@ -136,6 +136,7 @@ sources:
         self.assertIn("暂无来源链接", FEED_INDEX_HTML)
         self.assertIn("FEED_LABELS", FEED_INDEX_HTML)
         self.assertIn("FEED_LABELS[language][activeFilter]", FEED_INDEX_HTML)
+        self.assertIn('api("/api/feed")', FEED_INDEX_HTML)
         self.assertNotIn('href="${escapeHtml(href)}"', FEED_INDEX_HTML)
         self.assertNotIn("northStarRadar", FEED_INDEX_HTML)
         self.assertNotIn("brandCrownQueue", FEED_INDEX_HTML)
@@ -280,6 +281,100 @@ sources:
             priorities = [{"release": 0, "drop": 1, "alert": 2, "trend": 3}[feed_type] for feed_type in feed_types]
             self.assertEqual(priorities, sorted(priorities))
             self.assertIn("trend", feed_types)
+
+    def test_feed_payload_is_feed_os_contract_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "sources.yaml"
+            db_path = root / "radar.sqlite"
+            config_path.write_text(
+                """
+sources:
+  angelic_pretty:
+    type: angelic_pretty
+    enabled: true
+    url: "https://example.com/ap"
+""".strip(),
+                encoding="utf-8",
+            )
+            connection = connect(db_path)
+            try:
+                diff_and_store(
+                    connection,
+                    [
+                        RadarItem(
+                            source="angelic_pretty",
+                            title="Shell Garden JSK",
+                            url="https://example.com/ap/shell",
+                            status=ItemStatus.NEW_ARRIVAL,
+                            published_at="2026-06-30",
+                            metadata={"price": "¥38,280"},
+                        )
+                    ],
+                )
+            finally:
+                connection.close()
+
+            payload = get_feed_payload(config_path=config_path, db_path=db_path)
+
+            self.assertTrue(payload["ok"])
+            self.assertEqual(set(payload["feed"]["streams"]), {"release", "drop", "trend", "alert"})
+            self.assertEqual(payload["feed"]["streams"]["release"][0]["title"], "Shell Garden JSK")
+            self.assertEqual(payload["counts"]["items"], 1)
+            self.assertNotIn("items", payload)
+            self.assertNotIn("events", payload)
+            self.assertNotIn("market", payload)
+
+    def test_feed_api_serves_feed_os_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "sources.yaml"
+            db_path = root / "radar.sqlite"
+            config_path.write_text(
+                """
+sources:
+  angelic_pretty:
+    type: angelic_pretty
+    enabled: true
+    url: "https://example.com/ap"
+""".strip(),
+                encoding="utf-8",
+            )
+            connection = connect(db_path)
+            try:
+                diff_and_store(
+                    connection,
+                    [
+                        RadarItem(
+                            source="angelic_pretty",
+                            title="Shell Garden JSK",
+                            url="https://example.com/ap/shell",
+                            status=ItemStatus.NEW_ARRIVAL,
+                            published_at="2026-06-30",
+                        )
+                    ],
+                )
+            finally:
+                connection.close()
+
+            handler = make_handler(config_path=config_path, db_path=db_path)
+            server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = f"http://127.0.0.1:{server.server_port}/api/feed"
+                with urllib.request.urlopen(url) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+
+                self.assertTrue(payload["ok"])
+                self.assertEqual(response.headers.get_content_type(), "application/json")
+                self.assertEqual(set(payload["feed"]["streams"]), {"release", "drop", "trend", "alert"})
+                self.assertEqual(payload["feed"]["streams"]["release"][0]["url"], "https://example.com/ap/shell")
+                self.assertNotIn("items", payload)
+                self.assertNotIn("events", payload)
+            finally:
+                server.shutdown()
+                server.server_close()
 
     def test_index_html_is_feed_app_alias(self) -> None:
         self.assertEqual(INDEX_HTML, FEED_INDEX_HTML)

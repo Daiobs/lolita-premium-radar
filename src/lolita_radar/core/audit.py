@@ -13,7 +13,7 @@ from ..runner import verify_check_loop
 from ..shop import build_drop_signal
 from ..storage import connect
 from ..trend import build_trend_feed
-from ..web import FEED_INDEX_HTML, get_feed_state
+from ..web import FEED_INDEX_HTML, get_feed_payload, get_feed_state
 
 
 AUDIT_STATUSES = {"pass", "fail", "missing"}
@@ -24,13 +24,17 @@ class FeedOsAuditCheck:
     name: str
     status: str
     detail: str
+    evidence: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.status not in AUDIT_STATUSES:
             raise ValueError(f"unknown audit status: {self.status}")
 
-    def to_dict(self) -> dict[str, str]:
-        return {"name": self.name, "status": self.status, "detail": self.detail}
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {"name": self.name, "status": self.status, "detail": self.detail}
+        if self.evidence is not None:
+            payload["evidence"] = self.evidence
+        return payload
 
 
 @dataclass(frozen=True)
@@ -155,6 +159,7 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "feed-card",
         "badge",
         "summary",
+        "/api/feed",
         'data-filter="release"',
         'data-filter="drop"',
         'data-filter="trend"',
@@ -251,8 +256,38 @@ def audit_runtime_feed_state(
     noise_problem = runtime_feed_noise_problem(streams)
     if noise_problem:
         return FeedOsAuditCheck("runtime_feed_state", "fail", noise_problem)
+    payload_problem = runtime_feed_payload_problem(config_path, db_path, brands_path, market_path, feed)
+    if payload_problem:
+        return FeedOsAuditCheck("runtime_feed_state", "fail", payload_problem)
     counts = ", ".join(f"{name}={len(streams.get(name, []))}" for name in expected_streams)
     return FeedOsAuditCheck("runtime_feed_state", "pass", f"current config/db builds Feed OS streams ({counts})")
+
+
+def runtime_feed_payload_problem(
+    config_path: Path,
+    db_path: Path,
+    brands_path: Path | None,
+    market_path: Path | None,
+    expected_feed: dict[str, Any],
+) -> str:
+    try:
+        payload = get_feed_payload(
+            config_path=config_path,
+            db_path=db_path,
+            brands_path=brands_path,
+            market_path=market_path,
+        )
+    except Exception as exc:
+        return f"get_feed_payload failed: {exc}"
+    if payload.get("feed") != expected_feed:
+        return "api feed payload does not match runtime Feed OS state"
+    forbidden_payload_keys = ("items", "events", "market", "source_runs", "brand_weights")
+    leaked = [key for key in forbidden_payload_keys if key in payload]
+    if leaked:
+        return "api feed payload leaks full state keys: " + ", ".join(leaked)
+    if "counts" not in payload:
+        return "api feed payload missing counts"
+    return ""
 
 
 def feed_ordering_problem(rows: list[dict[str, Any]]) -> str:
@@ -356,9 +391,20 @@ def runtime_feed_noise_problem(streams: dict[str, Any]) -> str:
             token = navigation_noise_token(row)
             if token:
                 return f"stream {name} row contains navigation noise: {token}"
-            if name == "release" and stale_release_time(row):
-                return f"stream release row has stale source time: {row.get('time')}"
+            if is_release_noise_candidate(name, row) and stale_release_time(row):
+                return f"stream {name} row has stale source time: {row.get('time')}"
     return ""
+
+
+def is_release_noise_candidate(stream_name: str, row: dict[str, Any]) -> bool:
+    if stream_name == "release":
+        return True
+    if stream_name != "alert":
+        return False
+    if str(row.get("kind") or "") == "new_release":
+        return True
+    reason_codes = row.get("reason_codes")
+    return isinstance(reason_codes, list) and "new_release" in reason_codes
 
 
 NAVIGATION_NOISE_TOKENS = {
@@ -559,6 +605,7 @@ def audit_stable_loop_evidence(
             "stable_loop_evidence",
             "missing",
             "provide --loop-log and --loop-exit-file after run-loop to prove crawler stability",
+            missing_loop_evidence_requirements(expected_cycles, min_duration_seconds),
         )
     verification = verify_check_loop(
         config_path=config_path,
@@ -573,6 +620,7 @@ def audit_stable_loop_evidence(
             "stable_loop_evidence",
             "pass",
             f"verify-loop complete for {verification.observed_cycles}/{verification.expected_cycles} cycles",
+            verification.to_dict(),
         )
     status = "fail" if verification.status == "failed" else "missing"
     return FeedOsAuditCheck(
@@ -581,7 +629,33 @@ def audit_stable_loop_evidence(
         (
             f"verify-loop {verification.status}: observed={verification.observed_cycles}/"
             f"{verification.expected_cycles}, missing={list(verification.missing_cycles)}, "
-            f"failed={list(verification.failed_cycles)}, unhealthy={verification.unhealthy_source_runs}, "
+            f"duplicate={list(verification.duplicate_cycles)}, failed={list(verification.failed_cycles)}, "
+            f"missing_cycle_timestamps={list(verification.missing_cycle_timestamps)}, "
+            f"cycle_time_mismatches={list(verification.cycle_time_mismatches)}, "
+            f"unhealthy={verification.unhealthy_source_runs}, "
             f"duration={verification.duration_seconds}/{verification.min_duration_seconds}"
         ),
+        verification.to_dict(),
     )
+
+
+def missing_loop_evidence_requirements(expected_cycles: int, min_duration_seconds: int) -> dict[str, Any]:
+    return {
+        "required": {
+            "loop_log": True,
+            "loop_exit_file": True,
+            "source_runs": True,
+        },
+        "expected_cycles": max(1, int(expected_cycles)),
+        "min_duration_seconds": max(0, int(min_duration_seconds)),
+        "required_checks": [
+            "loop log contains expected cycle coverage",
+            "loop log duration meets min_duration_seconds",
+            "exit file contains 0",
+            "source_runs fall inside loop evidence window",
+            "source_runs are healthy",
+            "no duplicate cycles",
+            "no missing cycle timestamps in checked_at logs",
+            "no cycle timestamps outside loop evidence window",
+        ],
+    }

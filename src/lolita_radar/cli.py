@@ -102,6 +102,7 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_LOOP_MIN_DURATION_SECONDS,
         help="minimum elapsed time required in the loop log; default is 86400 seconds",
     )
+    verify_loop_parser.add_argument("--json", action="store_true", help="print machine-readable verification output")
 
     audit_parser = subparsers.add_parser("audit-feed-os", help="audit Feed OS product acceptance evidence")
     audit_parser.add_argument("--config", type=Path, default=default_config_path())
@@ -151,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
         print(format_health_rows(latest_source_health(config_path=args.config, db_path=args.db)))
         return 0
     if args.command == "run-loop":
-        header = "cycle | ok | event_count | error_message"
+        header = "cycle | checked_at | ok | event_count | error_message"
         loop_started_at = utc_now_iso()
         print(header, flush=True)
         write_loop_log_header(args.log_file, header, loop_started_at)
@@ -196,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
             exit_path=args.exit_file,
             min_duration_seconds=args.min_duration_seconds,
         )
-        print(format_loop_verification(verification))
+        print(format_loop_verification_json(verification) if args.json else format_loop_verification(verification))
         return 0 if verification.complete else 1
     if args.command == "audit-feed-os":
         audit = audit_feed_os(
@@ -330,7 +331,7 @@ def format_health_rows(rows: list[dict[str, object]]) -> str:
 
 
 def format_loop_results(results: list[CheckLoopResult]) -> str:
-    lines = ["cycle | ok | event_count | error_message"]
+    lines = ["cycle | checked_at | ok | event_count | error_message"]
     for result in results:
         lines.append(format_loop_result_line(result))
     return "\n".join(lines)
@@ -340,6 +341,7 @@ def format_loop_result_line(result: CheckLoopResult) -> str:
     return " | ".join(
         [
             str(result.cycle),
+            result.checked_at,
             "ok" if result.ok else "failed",
             str(result.event_count),
             result.error_message,
@@ -353,6 +355,8 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
         f"status: {verification.status}",
         f"expected_cycles: {verification.expected_cycles}",
         f"observed_cycles: {verification.observed_cycles}",
+        f"window_start: {verification.window_start or '-'}",
+        f"window_end: {verification.window_end or '-'}",
         f"min_duration_seconds: {verification.min_duration_seconds}",
         f"duration_seconds: {verification.duration_seconds}",
         f"exit_code: {exit_code}",
@@ -360,6 +364,20 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
         + (", ".join(str(cycle) for cycle in verification.failed_cycles) if verification.failed_cycles else "[]"),
         "missing_cycles: "
         + (", ".join(str(cycle) for cycle in verification.missing_cycles) if verification.missing_cycles else "[]"),
+        "duplicate_cycles: "
+        + (", ".join(str(cycle) for cycle in verification.duplicate_cycles) if verification.duplicate_cycles else "[]"),
+        "missing_cycle_timestamps: "
+        + (
+            ", ".join(str(cycle) for cycle in verification.missing_cycle_timestamps)
+            if verification.missing_cycle_timestamps
+            else "[]"
+        ),
+        "cycle_time_mismatches: "
+        + (
+            ", ".join(str(cycle) for cycle in verification.cycle_time_mismatches)
+            if verification.cycle_time_mismatches
+            else "[]"
+        ),
         "unhealthy_source_runs: "
         + (
             ", ".join(
@@ -391,6 +409,10 @@ def format_loop_verification(verification: CheckLoopVerification) -> str:
             )
         )
     return "\n".join(lines)
+
+
+def format_loop_verification_json(verification: CheckLoopVerification) -> str:
+    return json.dumps(verification.to_dict(), ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def format_feed_os_audit(audit: FeedOsAudit) -> str:

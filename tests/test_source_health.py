@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 import io
+import json
 import os
 from pathlib import Path
 import signal
@@ -217,12 +218,13 @@ class SourceHealthTests(unittest.TestCase):
 
             output = stdout.getvalue()
             self.assertEqual(exit_code, 0)
-            self.assertIn("cycle | ok | event_count | error_message", output)
-            self.assertIn("1 | ok", output)
-            self.assertIn("2 | ok", output)
-            self.assertIn("cycle | ok | event_count | error_message", log_path.read_text(encoding="utf-8"))
-            self.assertIn("1 | ok", log_path.read_text(encoding="utf-8"))
-            self.assertIn("2 | ok", log_path.read_text(encoding="utf-8"))
+            self.assertIn("cycle | checked_at | ok | event_count | error_message", output)
+            self.assertRegex(output, r"1 \| .+ \| ok \|")
+            self.assertRegex(output, r"2 \| .+ \| ok \|")
+            log_text = log_path.read_text(encoding="utf-8")
+            self.assertIn("cycle | checked_at | ok | event_count | error_message", log_text)
+            self.assertRegex(log_text, r"1 \| .+ \| ok \|")
+            self.assertRegex(log_text, r"2 \| .+ \| ok \|")
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "0\n")
 
             verify_stdout = io.StringIO()
@@ -282,8 +284,8 @@ class SourceHealthTests(unittest.TestCase):
                 runner.ADAPTERS.update(original)
 
             self.assertEqual(exit_code, 1)
-            self.assertIn("1 | failed", stdout.getvalue())
-            self.assertIn("1 | failed", log_path.read_text(encoding="utf-8"))
+            self.assertRegex(stdout.getvalue(), r"1 \| .+ \| failed \|")
+            self.assertRegex(log_path.read_text(encoding="utf-8"), r"1 \| .+ \| failed \|")
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "1\n")
 
     def test_run_loop_writes_sigterm_exit_file(self) -> None:
@@ -327,7 +329,7 @@ class SourceHealthTests(unittest.TestCase):
             self.assertEqual(exit_code, 143)
             self.assertIn("interrupted by SIGTERM", stderr.getvalue())
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "143\n")
-            self.assertIn("cycle | ok | event_count | error_message", log_path.read_text(encoding="utf-8"))
+            self.assertIn("cycle | checked_at | ok | event_count | error_message", log_path.read_text(encoding="utf-8"))
 
     def test_run_loop_ignores_old_source_failure_after_latest_success(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -373,20 +375,66 @@ class SourceHealthTests(unittest.TestCase):
                 runner.ADAPTERS.update(original)
 
             self.assertEqual(exit_code, 0)
-            self.assertIn("1 | ok", stdout.getvalue())
+            self.assertRegex(stdout.getvalue(), r"1 \| .+ \| ok \|")
             self.assertEqual(exit_path.read_text(encoding="utf-8"), "0\n")
 
     def test_loop_result_formatter_keeps_audit_table_shape(self) -> None:
         output = format_loop_results(
             [
-                CheckLoopResult(cycle=1, ok=True, event_count=2),
-                CheckLoopResult(cycle=2, ok=False, event_count=0, error_message="boom"),
+                CheckLoopResult(cycle=1, ok=True, event_count=2, checked_at="2026-06-30T00:00:00+00:00"),
+                CheckLoopResult(cycle=2, ok=False, event_count=0, error_message="boom", checked_at="2026-06-30T00:05:00+00:00"),
             ]
         )
 
-        self.assertIn("cycle | ok | event_count | error_message", output)
-        self.assertIn("1 | ok | 2 |", output)
-        self.assertIn("2 | failed | 0 | boom", output)
+        self.assertIn("cycle | checked_at | ok | event_count | error_message", output)
+        self.assertIn("1 | 2026-06-30T00:00:00+00:00 | ok | 2 |", output)
+        self.assertIn("2 | 2026-06-30T00:05:00+00:00 | failed | 0 | boom", output)
+
+    def test_loop_log_parser_accepts_checked_at_column(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "loop.log"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "cycle | checked_at | ok | event_count | error_message",
+                        "1 | 2026-06-30T00:00:00+00:00 | ok | 2 |",
+                        "2 | 2026-06-30T00:05:00+00:00 | failed | 0 | boom",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            rows = runner.parse_check_loop_log(log_path)
+
+            self.assertEqual(rows[0].checked_at, "2026-06-30T00:00:00+00:00")
+            self.assertTrue(rows[0].ok)
+            self.assertEqual(rows[0].event_count, 2)
+            self.assertEqual(rows[1].checked_at, "2026-06-30T00:05:00+00:00")
+            self.assertFalse(rows[1].ok)
+            self.assertEqual(rows[1].error_message, "boom")
+
+    def test_loop_log_parser_keeps_legacy_log_compatibility(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "loop.log"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 2 |",
+                        "2 | failed | 0 | boom",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            rows = runner.parse_check_loop_log(log_path)
+
+            self.assertEqual(rows[0].checked_at, "")
+            self.assertTrue(rows[0].ok)
+            self.assertEqual(rows[0].event_count, 2)
+            self.assertEqual(rows[1].checked_at, "")
+            self.assertFalse(rows[1].ok)
+            self.assertEqual(rows[1].error_message, "boom")
 
     def test_loop_default_cycles_cover_24h_at_five_minutes(self) -> None:
         self.assertEqual(DEFAULT_LOOP_CYCLES, 288)
@@ -498,8 +546,8 @@ class SourceHealthTests(unittest.TestCase):
             exit_path.write_text("0\n", encoding="utf-8")
             connection = connect(db_path)
             try:
-                record_source_run(connection, "good", ok=True, item_count=1)
-                record_source_run(connection, "good", ok=True, item_count=1)
+                record_source_run(connection, "good", ok=True, item_count=1, checked_at="2026-06-30T00:00:00+00:00")
+                record_source_run(connection, "good", ok=True, item_count=1, checked_at="2026-06-30T00:05:00+00:00")
                 connection.commit()
             finally:
                 connection.close()
@@ -576,6 +624,258 @@ class SourceHealthTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertIn("status: complete", stdout.getvalue())
             self.assertIn("duration_seconds: 86400", stdout.getvalue())
+            self.assertIn("window_start: 2026-06-30T00:00:00Z", stdout.getvalue())
+            self.assertIn("window_end: 2026-07-01T00:00:00Z", stdout.getvalue())
+
+    def test_verify_loop_rejects_source_runs_outside_loop_window(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 1 |",
+                        "2 | ok | 0 |",
+                        "# finished_at: 2026-07-01T00:00:00+00:00",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-29T23:50:00+00:00",
+                )
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-29T23:55:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("status: incomplete", stdout.getvalue())
+            self.assertIn("good: 0", stdout.getvalue())
+
+    def test_verify_loop_rejects_duplicate_cycle_numbers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 1 |",
+                        "2 | ok | 0 |",
+                        "2 | ok | 0 |",
+                        "# finished_at: 2026-07-01T00:00:00+00:00",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-30T00:00:00+00:00",
+                )
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-30T00:05:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("status: failed", stdout.getvalue())
+            self.assertIn("missing_cycles: []", stdout.getvalue())
+            self.assertIn("duplicate_cycles: 2", stdout.getvalue())
+
+    def test_verify_loop_rejects_cycle_timestamps_outside_loop_window(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
+                        "cycle | checked_at | ok | event_count | error_message",
+                        "1 | 2026-06-30T00:00:00+00:00 | ok | 1 |",
+                        "2 | 2026-07-01T00:05:00+00:00 | ok | 0 |",
+                        "# finished_at: 2026-07-01T00:00:00+00:00",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-30T00:00:00+00:00",
+                )
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-30T00:05:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("status: failed", stdout.getvalue())
+            self.assertIn("cycle_time_mismatches: 2", stdout.getvalue())
+
+    def test_verify_loop_rejects_partially_missing_cycle_timestamps(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
+                        "cycle | checked_at | ok | event_count | error_message",
+                        "1 | 2026-06-30T00:00:00+00:00 | ok | 1 |",
+                        "2 | ok | 0 |",
+                        "# finished_at: 2026-07-01T00:00:00+00:00",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-30T00:00:00+00:00",
+                )
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    item_count=1,
+                    checked_at="2026-06-30T00:05:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "2",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("status: failed", stdout.getvalue())
+            self.assertIn("missing_cycle_timestamps: 2", stdout.getvalue())
 
     def test_verify_loop_reports_missing_cycle_even_when_log_line_count_matches(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -624,7 +924,7 @@ class SourceHealthTests(unittest.TestCase):
                 )
 
             self.assertEqual(exit_code, 1)
-            self.assertIn("status: incomplete", stdout.getvalue())
+            self.assertIn("status: failed", stdout.getvalue())
             self.assertIn("observed_cycles: 2", stdout.getvalue())
             self.assertIn("missing_cycles: 2", stdout.getvalue())
 
@@ -789,6 +1089,78 @@ class SourceHealthTests(unittest.TestCase):
             self.assertIn("status: incomplete", stdout.getvalue())
             self.assertIn("observed_cycles: 1", stdout.getvalue())
             self.assertIn("exit_code: -", stdout.getvalue())
+
+    def test_verify_loop_can_emit_machine_readable_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            log_path = root / "loop.log"
+            exit_path = root / "loop.exit"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        "# started_at: 2026-06-30T00:00:00+00:00",
+                        "cycle | ok | event_count | error_message",
+                        "1 | ok | 1 |",
+                        "# finished_at: 2026-06-30T00:05:00+00:00",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            exit_path.write_text("0\n", encoding="utf-8")
+            connection = connect(db_path)
+            try:
+                record_source_run(
+                    connection,
+                    "good",
+                    ok=True,
+                    status="ok",
+                    item_count=1,
+                    latency_ms=12,
+                    checked_at="2026-06-30T00:01:00+00:00",
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            stdout = io.StringIO()
+
+            with redirect_stdout(stdout):
+                exit_code = main(
+                    [
+                        "verify-loop",
+                        "--config",
+                        str(config_path),
+                        "--db",
+                        str(db_path),
+                        "--log",
+                        str(log_path),
+                        "--exit-file",
+                        str(exit_path),
+                        "--expected-cycles",
+                        "1",
+                        "--min-duration-seconds",
+                        "0",
+                        "--json",
+                    ]
+                )
+
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(payload["status"], "complete")
+            self.assertTrue(payload["complete"])
+            self.assertEqual(payload["expected_cycles"], 1)
+            self.assertEqual(payload["observed_cycles"], 1)
+            self.assertEqual(payload["window_start"], "2026-06-30T00:00:00Z")
+            self.assertEqual(payload["window_end"], "2026-06-30T00:05:00Z")
+            self.assertEqual(payload["duration_seconds"], 300)
+            self.assertEqual(payload["duplicate_cycles"], [])
+            self.assertEqual(payload["missing_cycle_timestamps"], [])
+            self.assertEqual(payload["cycle_time_mismatches"], [])
+            self.assertEqual(payload["expected_sources"], ["good"])
+            self.assertEqual(payload["source_cycle_counts"], {"good": 1})
+            self.assertEqual(payload["unhealthy_source_runs"], {})
+            self.assertEqual(payload["source_health_summary"]["good"]["max_latency_ms"], 12)
 
     def test_verify_loop_reports_failed_cycle(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

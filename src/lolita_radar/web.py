@@ -88,6 +88,8 @@ def make_handler(
                     self.send_asset(parsed.path.removeprefix("/assets/"))
                 elif parsed.path == "/api/health":
                     self.send_json({"ok": True})
+                elif parsed.path == "/api/feed":
+                    self.send_json(get_feed_payload(config_path, db_path, brands_path, market_path))
                 elif parsed.path == "/api/state":
                     self.send_json(get_feed_state(config_path, db_path, brands_path, market_path))
                 else:
@@ -250,6 +252,24 @@ def get_feed_state(
         "source_runs": source_runs,
         "items": items,
         "events": events,
+    }
+
+
+def get_feed_payload(
+    config_path: Path,
+    db_path: Path,
+    brands_path: Path | None = None,
+    market_path: Path | None = None,
+) -> dict[str, Any]:
+    state = get_feed_state(config_path, db_path, brands_path, market_path)
+    return {
+        "ok": True,
+        "config_path": state["config_path"],
+        "db_path": state["db_path"],
+        "brands_path": state["brands_path"],
+        "market_path": state["market_path"],
+        "counts": state["counts"],
+        "feed": state["feed"],
     }
 
 
@@ -494,7 +514,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         return response.json();
       }
       async function load() {
-        state = await api("/api/state");
+        state = await api("/api/feed");
         render();
       }
       function renderChrome() {
