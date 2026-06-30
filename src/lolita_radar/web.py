@@ -401,6 +401,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
       .kind { color: var(--muted); font-size: 12px; }
       .feed-card h2 { margin: 0; font-size: 17px; line-height: 1.25; overflow-wrap: anywhere; }
       .title-alt { margin: 4px 0 0; color: var(--teal); font-size: 13px; overflow-wrap: anywhere; }
+      .source-context { margin: 6px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
       .meta { margin: 7px 0 0; color: var(--muted); overflow-wrap: anywhere; }
       .reasons { margin: 7px 0 0; color: var(--blue); font-size: 12px; overflow-wrap: anywhere; }
       .detail-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -489,6 +490,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           latency: "延迟",
           itemCount: "条目",
           priceDelta: "价差",
+          sourceContext: "来源摘要",
         },
         ja: {
           tagline: "ロリィタ発売情報と二次流通シグナル",
@@ -515,6 +517,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           latency: "遅延",
           itemCount: "件数",
           priceDelta: "価格差",
+          sourceContext: "ソース要約",
         },
       };
       const FILTER_TEXT = {
@@ -655,6 +658,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         const meta = metaHtml(row, text);
         const reasons = reasonHtml(row.reason_codes);
         const titleAlt = titleAltHtml(row);
+        const sourceContext = sourceContextHtml(row);
         const detail = detailHtml(row);
         const visual = row.visual || {};
         const title = titleText(row);
@@ -674,6 +678,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
             </div>
             <h2>${escapeHtml(title || "-")}</h2>
             ${titleAlt}
+            ${sourceContext}
             ${meta}
             ${detail}
             ${reasons}
@@ -705,6 +710,11 @@ FEED_INDEX_HTML = r"""<!doctype html>
         if (language === "zh" && row.title_zh) return row.title_zh;
         if (language === "ja" && row.title_ja) return row.title_ja;
         return "";
+      }
+      function sourceContextHtml(row) {
+        const value = String(row.source_context || "").trim();
+        if (!value) return "";
+        return `<p class="source-context">${escapeHtml(TEXT[language].sourceContext)} · ${escapeHtml(value)}</p>`;
       }
       function detailHtml(row) {
         const chips = [];

@@ -189,6 +189,9 @@ def audit_frontend_feed_os() -> FeedOsAuditCheck:
         "REASON_TEXT",
         "reasonLabel",
         "metaHtml",
+        "sourceContextHtml",
+        "source_context",
+        "source-context",
         "row.keywords",
         "keywords",
         "sampleCount",
@@ -237,7 +240,7 @@ def audit_feed_contract() -> FeedOsAuditCheck:
     summary = feed.get("summary", {})
     checks = [
         required_keys(summary, ("releases", "drops", "trends", "alerts", "shops")),
-        required_keys(streams["release"][0], ("brand", "title", "type", "time", "price", "url")),
+        required_keys(streams["release"][0], ("brand", "title", "type", "time", "price", "url", "source_context")),
         required_keys(streams["drop"][0], ("shop", "item", "keywords", "urgency", "url")),
         required_keys(streams["trend"][0], ("brand", "trend", "confidence", "price_delta", "reason_codes")),
         required_keys(streams["alert"][0], ("feed_type", "kind", "title", "reason_codes", "url")),
@@ -656,7 +659,11 @@ def sample_home_feed() -> dict[str, Any]:
             "url": "https://example.com/ap/shell",
             "published_at": "2026-06-30",
             "created_at": "2026-06-30T10:00:00+00:00",
-            "metadata": {"price": "¥38,280", "image_url": "https://example.com/images/shell.webp"},
+            "metadata": {
+                "price": "¥38,280",
+                "image_url": "https://example.com/images/shell.webp",
+                "context": "2026-06-30 NEW ARRIVAL Shell Garden JSK ¥38,280",
+            },
         },
         {
             "source": "generic_page",

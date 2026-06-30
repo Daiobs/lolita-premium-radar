@@ -17,7 +17,11 @@ class FeedOsTests(unittest.TestCase):
                 "url": "https://example.com/ap",
                 "published_at": "2026-06-30",
                 "created_at": "2026-06-30T10:00:00+00:00",
-                "metadata": {"price": "¥38,280", "image_url": "https://example.com/shell.webp"},
+                "metadata": {
+                    "price": "¥38,280",
+                    "image_url": "https://example.com/shell.webp",
+                    "context": "2026-06-30 NEW ARRIVAL Shell Garden JSK ¥38,280",
+                },
             },
             {
                 "source": "generic_page",
@@ -31,6 +35,7 @@ class FeedOsTests(unittest.TestCase):
                     "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
                     "item": {"title": "Shell Garden JSK", "url": "https://example.com/shop/shell"},
                     "matched_keywords": ["JSK", "预约"],
+                    "context": "2026-06-30 预约 Shell Garden JSK",
                 },
             },
         ]
@@ -52,6 +57,10 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["release"][0]["type"], "new_arrival")
         self.assertEqual(feed["streams"]["release"][0]["price"], "¥38,280")
         self.assertEqual(feed["streams"]["release"][0]["url"], "https://example.com/ap")
+        self.assertEqual(
+            feed["streams"]["release"][0]["source_context"],
+            "2026-06-30 NEW ARRIVAL Shell Garden JSK ¥38,280",
+        )
         self.assertEqual(feed["streams"]["release"][0]["visual"]["image_url"], "https://example.com/shell.webp")
         self.assertEqual(feed["streams"]["release"][0]["visual"]["mark"], "R")
         self.assertEqual(feed["streams"]["drop"][0]["feed_type"], "drop")
@@ -61,6 +70,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["drop"][0]["keywords"], ["JSK", "预约"])
         self.assertEqual(feed["streams"]["drop"][0]["visual"]["mark"], "D")
         self.assertEqual(feed["streams"]["drop"][0]["meta"], "Tokyo Proxy")
+        self.assertEqual(feed["streams"]["drop"][0]["source_context"], "2026-06-30 预约 Shell Garden JSK")
         self.assertNotIn("keywords:", feed["streams"]["drop"][0]["meta"])
         self.assertNotIn("urgency:", feed["streams"]["drop"][0]["meta"])
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
