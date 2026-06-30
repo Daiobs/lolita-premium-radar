@@ -63,6 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     loop_parser.add_argument("--cycles", type=int, default=288, help="number of check cycles; 288 at 5 minutes covers 24h")
     loop_parser.add_argument("--interval-seconds", type=int, default=300)
     loop_parser.add_argument("--notify", action="store_true", help="send notifications during the loop")
+    loop_parser.add_argument("--exit-file", type=Path, help="write the loop exit code for later verify-loop audit")
 
     verify_loop_parser = subparsers.add_parser("verify-loop", help="verify a long-running check loop log and database")
     verify_loop_parser.add_argument("--config", type=Path, default=default_config_path())
@@ -115,8 +116,11 @@ def main(argv: list[str] | None = None) -> int:
             )
         except KeyboardInterrupt:
             print("interrupted", file=sys.stderr)
+            write_exit_file(args.exit_file, 130)
             return 130
-        return 0 if all(result.ok for result in results) else 1
+        exit_code = 0 if all(result.ok for result in results) else 1
+        write_exit_file(args.exit_file, exit_code)
+        return exit_code
     if args.command == "verify-loop":
         verification = verify_check_loop(
             config_path=args.config,
@@ -169,6 +173,13 @@ def format_inspect_results(results: list[InspectResult], limit: int) -> str:
             lines.append("items: []")
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
+
+
+def write_exit_file(path: Path | None, exit_code: int) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"{int(exit_code)}\n", encoding="utf-8")
 
 
 def format_health_rows(rows: list[dict[str, object]]) -> str:

@@ -231,13 +231,31 @@ def run_check_loop(
         except Exception as exc:
             result = CheckLoopResult(cycle=cycle, ok=False, event_count=0, error_message=str(exc))
         else:
-            result = CheckLoopResult(cycle=cycle, ok=True, event_count=len(events))
+            unhealthy_sources = latest_unhealthy_sources(config_path, db_path)
+            if unhealthy_sources:
+                result = CheckLoopResult(
+                    cycle=cycle,
+                    ok=False,
+                    event_count=len(events),
+                    error_message="unhealthy sources: " + ", ".join(unhealthy_sources),
+                )
+            else:
+                result = CheckLoopResult(cycle=cycle, ok=True, event_count=len(events))
         results.append(result)
         if on_result is not None:
             on_result(result)
         if cycle < total_cycles and sleep_seconds:
             time.sleep(sleep_seconds)
     return results
+
+
+def latest_unhealthy_sources(config_path: Path, db_path: Path) -> list[str]:
+    rows = latest_source_health(config_path=config_path, db_path=db_path)
+    return [
+        str(row["source"])
+        for row in rows
+        if str(row.get("status") or "") in {"failed", "degraded"} or row.get("ok") is False
+    ]
 
 
 def verify_check_loop(

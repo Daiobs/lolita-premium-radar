@@ -126,6 +126,7 @@ class SourceHealthTests(unittest.TestCase):
             root = Path(temp_dir)
             config_path = self.write_config(root, {"good": "fake_good"})
             db_path = root / "radar.sqlite"
+            exit_path = root / "loop.exit"
             original = dict(runner.ADAPTERS)
             stdout = io.StringIO()
             try:
@@ -142,6 +143,8 @@ class SourceHealthTests(unittest.TestCase):
                             "2",
                             "--interval-seconds",
                             "0",
+                            "--exit-file",
+                            str(exit_path),
                         ]
                     )
             finally:
@@ -153,6 +156,41 @@ class SourceHealthTests(unittest.TestCase):
             self.assertIn("cycle | ok | event_count | error_message", output)
             self.assertIn("1 | ok", output)
             self.assertIn("2 | ok", output)
+            self.assertEqual(exit_path.read_text(encoding="utf-8"), "0\n")
+
+    def test_run_loop_writes_failed_exit_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"bad": "fake_bad"})
+            db_path = root / "radar.sqlite"
+            exit_path = root / "logs" / "loop.exit"
+            original = dict(runner.ADAPTERS)
+            stdout = io.StringIO()
+            try:
+                runner.ADAPTERS.update({"fake_bad": FakeBadAdapter})
+                with redirect_stdout(stdout):
+                    exit_code = main(
+                        [
+                            "run-loop",
+                            "--config",
+                            str(config_path),
+                            "--db",
+                            str(db_path),
+                            "--cycles",
+                            "1",
+                            "--interval-seconds",
+                            "0",
+                            "--exit-file",
+                            str(exit_path),
+                        ]
+                    )
+            finally:
+                runner.ADAPTERS.clear()
+                runner.ADAPTERS.update(original)
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("1 | failed", stdout.getvalue())
+            self.assertEqual(exit_path.read_text(encoding="utf-8"), "1\n")
 
     def test_loop_result_formatter_keeps_audit_table_shape(self) -> None:
         output = format_loop_results(
