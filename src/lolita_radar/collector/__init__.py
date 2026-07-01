@@ -7,12 +7,11 @@ from .official_shop import OfficialShopCollector
 from .market import FixtureMarketCollector
 from .placeholders import (
     GoofishMarketCollector,
-    LaceMarketCollector,
     MercariMarketCollector,
     TaobaoPublicShopCollector,
-    WunderweltMarketCollector,
     YahooAuctionMarketCollector,
 )
+from .public_market import LaceMarketCollector, WunderweltMarketCollector
 from .runner import collector_for_type, run_collector_job
 
 __all__ = [

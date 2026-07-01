@@ -2,21 +2,25 @@ from __future__ import annotations
 
 import json
 from datetime import date, timedelta
-from pathlib import Path
 from urllib.parse import urljoin
 
 from ..models import ShopItem, utc_now_iso
 from .base import CollectorJob, CollectorResult
 from .html_cards import CardParser
+from .http import DEFAULT_USER_AGENT, fetch_text
 
 
 class OfficialShopCollector:
     collector_type = "official_shop"
 
     def collect(self, job: CollectorJob) -> CollectorResult:
-        html = load_html(job.url)
+        fetch = fetch_for_job(job)
+        html = fetch.text
+        if fetch.warnings and not html:
+            return CollectorResult(warnings=fetch.warnings)
         if str(job.options.get("parser") or "").strip() == "shopify_products_json" or job.url.endswith(".json") or "products.json" in job.url:
-            return collect_shopify_products(job, html)
+            result = collect_shopify_products(job, html)
+            return CollectorResult(shop_items=result.shop_items, market_samples=result.market_samples, warnings=fetch.warnings + result.warnings)
         parser = CardParser("product-card")
         parser.feed(html)
         keywords = [str(item) for item in job.options.get("keywords", [])] if isinstance(job.options.get("keywords"), list) else []
@@ -48,7 +52,7 @@ class OfficialShopCollector:
                     priority=str(card.get("priority") or priority_for_keywords(matched)),
                 )
             )
-        return CollectorResult(shop_items=items)
+        return CollectorResult(shop_items=items, warnings=fetch.warnings)
 
 
 def collect_shopify_products(job: CollectorJob, raw: str) -> CollectorResult:
@@ -102,15 +106,17 @@ def collect_shopify_products(job: CollectorJob, raw: str) -> CollectorResult:
 
 
 def load_html(url: str) -> str:
-    if url.startswith("file://"):
-        return Path(url.removeprefix("file://")).read_text(encoding="utf-8")
-    path = Path(url)
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    from urllib.request import urlopen
+    return fetch_text(url).text
 
-    with urlopen(url, timeout=20) as response:
-        return response.read().decode("utf-8", "replace")
+
+def fetch_for_job(job: CollectorJob):
+    return fetch_text(
+        job.url,
+        user_agent=str(job.options.get("user_agent") or DEFAULT_USER_AGENT),
+        timeout=safe_positive_int(job.options.get("timeout")) or 20,
+        retries=safe_positive_int(job.options.get("retries")) or 1,
+        backoff=safe_float(job.options.get("backoff"), default=0.25),
+    )
 
 
 def matched_keywords(title: str, keywords: list[str]) -> list[str]:
@@ -139,3 +145,10 @@ def is_recent_source_date(raw: str, max_age_days: int) -> bool:
     except ValueError:
         return True
     return source_date >= date.today() - timedelta(days=max_age_days)
+
+
+def safe_float(value: object, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default

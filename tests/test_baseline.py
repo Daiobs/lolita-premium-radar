@@ -8,7 +8,7 @@ from pathlib import Path
 import lolita_radar.runner as runner
 from lolita_radar.cli import main
 from lolita_radar.models import ItemStatus, RadarItem
-from lolita_radar.storage import connect, list_events, list_items, storage_counts
+from lolita_radar.storage import connect, list_events, list_items, storage_counts, upsert_collector_job
 
 
 class BaselineFakeAdapter:
@@ -152,6 +152,26 @@ sources:
             self.assertEqual(exit_code, 2)
             self.assertIn("baseline-only is intended for first deployment", stderr.getvalue())
 
+    def test_cli_collect_baseline_guardrail_returns_non_zero(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            db_path = root / "radar.sqlite"
+            connection = connect(db_path)
+            try:
+                upsert_collector_job(connection, "baby", "official_shop", "tests/fixtures/official_shop_products.html")
+            finally:
+                connection.close()
+
+            self.assertEqual(main(["collect", "--db", str(db_path), "--baseline-only"]), 0)
+            old_counts = self.counts(db_path)
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                exit_code = main(["collect", "--db", str(db_path), "--baseline-only"])
+
+            self.assertEqual(exit_code, 2)
+            self.assertIn("baseline-only is intended for first collector deployment", stderr.getvalue())
+            self.assertEqual(self.counts(db_path), old_counts)
+
     def test_suppress_initial_notify_writes_events_without_notifying(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -221,6 +241,13 @@ sources:
         connection = connect(db_path)
         try:
             return str(list_items(connection)[0]["content_hash"])
+        finally:
+            connection.close()
+
+    def counts(self, db_path: Path) -> dict[str, int]:
+        connection = connect(db_path)
+        try:
+            return storage_counts(connection)
         finally:
             connection.close()
 

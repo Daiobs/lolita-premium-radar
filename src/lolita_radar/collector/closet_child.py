@@ -6,15 +6,18 @@ from urllib.parse import urljoin
 
 from ..models import MarketSample, ShopItem, utc_now_iso
 from .base import CollectorJob, CollectorResult
-from .official_shop import load_html, matched_keywords, priority_for_keywords
+from .official_shop import fetch_for_job, matched_keywords, priority_for_keywords
 
 
 class ClosetChildMarketCollector:
     collector_type = "closet_child_market"
 
     def collect(self, job: CollectorJob) -> CollectorResult:
-        html = load_html(job.url)
-        return parse_closet_child(job, html)
+        fetch = fetch_for_job(job)
+        if fetch.warnings and not fetch.text:
+            return CollectorResult(warnings=fetch.warnings)
+        result = parse_closet_child(job, fetch.text)
+        return CollectorResult(shop_items=result.shop_items, market_samples=result.market_samples, warnings=fetch.warnings + result.warnings)
 
 
 def parse_closet_child(job: CollectorJob, html: str) -> CollectorResult:

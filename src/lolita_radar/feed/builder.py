@@ -24,6 +24,7 @@ def build_home_feed(
     source_urls: dict[str, str] | None = None,
     shop_events: list[dict[str, Any]] | None = None,
     market_samples: list[dict[str, Any]] | None = None,
+    collector_runs: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     release = release_feed(events, items)
     drop = drop_feed(events, items, shop_events=shop_events or [])
@@ -39,6 +40,7 @@ def build_home_feed(
         source_urls=source_urls or {},
         shop_events=shop_events or [],
         trends=trend,
+        collector_runs=collector_runs or [],
     )
     streams = {
         "release": release,
@@ -107,6 +109,7 @@ def alert_feed(
     source_urls: dict[str, str] | None = None,
     shop_events: list[dict[str, Any]] | None = None,
     trends: list[dict[str, Any]] | None = None,
+    collector_runs: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     alerts = []
     urls = source_urls or {}
@@ -141,7 +144,7 @@ def alert_feed(
         if assist:
             alerts.append(assist)
     for trend in trends or []:
-        if trend.get("trend") == "rising" and int(trend.get("confidence") or 0) >= 70:
+        if trend.get("trend") == "rising" and int(trend.get("confidence") or 0) >= 70 and int(trend.get("sample_count") or 0) >= 3:
             alerts.append(
                 {
                     "id": f"alert:trend:{trend.get('id')}",
@@ -186,6 +189,34 @@ def alert_feed(
                     "visual": visual_token("alert", label or "Source", status),
                 }
             )
+    for run in latest_collector_runs_by_job(collector_runs or []):
+        status = str(run.get("status") or "")
+        if status not in {"failed", "degraded"}:
+            continue
+        job_name = str(run.get("job_name") or "")
+        collector_type = str(run.get("collector_type") or "")
+        alerts.append(
+            {
+                "id": f"alert:collector:{job_name}",
+                "feed_type": "alert",
+                "kind": status,
+                "brand": job_name,
+                "job_name": job_name,
+                "collector_type": collector_type,
+                "title": f"Collector {status}: {job_name}",
+                "title_zh": f"采集器{status}: {job_name}",
+                "title_ja": f"コレクター{status}: {job_name}",
+                "use_localized_title": True,
+                "meta": str(run.get("error_message") or collector_type),
+                "time": str(run.get("checked_at") or ""),
+                "url": "",
+                "latency_ms": run.get("latency_ms", 0),
+                "item_count": run.get("item_count", 0),
+                "error_message": str(run.get("error_message") or ""),
+                "reason_codes": ["collector_health"],
+                "visual": visual_token("alert", job_name or "Collector", status),
+            }
+        )
     return unique_cards(sort_cards(alerts))[:HOME_LINK_LIMIT]
 
 
@@ -292,6 +323,19 @@ def latest_source_runs_by_source(source_runs: list[dict[str, Any]]) -> list[dict
         if not source or source in seen:
             continue
         seen.add(source)
+        latest.append(run)
+    return latest
+
+
+def latest_collector_runs_by_job(collector_runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    latest = []
+    seen = set()
+    sorted_runs = sorted(collector_runs, key=lambda run: str(run.get("checked_at") or ""), reverse=True)
+    for run in sorted_runs:
+        job_name = str(run.get("job_name") or "")
+        if not job_name or job_name in seen:
+            continue
+        seen.add(job_name)
         latest.append(run)
     return latest
 

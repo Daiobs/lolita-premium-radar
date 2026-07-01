@@ -148,6 +148,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["pattern"], "Shell")
         self.assertEqual(trends[0]["platform"], "mercari")
         self.assertEqual(trends[0]["trend"], "rising")
+        self.assertEqual(trends[0]["trend_basis"], "asking_price")
+        self.assertIn("asking price trend", trends[0]["title"])
         self.assertEqual(trends[0]["sample_count"], 3)
         self.assertGreaterEqual(trends[0]["confidence"], 70)
         self.assertIn("previous_window", trends[0]["reason_codes"])
@@ -839,6 +841,43 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[0]["item_count"], 0)
         self.assertEqual(alerts[0]["time"], "2026-06-30T10:05:00+00:00")
 
+    def test_alert_feed_includes_latest_collector_health(self) -> None:
+        collector_runs = [
+            {
+                "job_name": "wunderwelt_new_arrivals",
+                "collector_type": "wunderwelt_market",
+                "status": "degraded",
+                "ok": True,
+                "checked_at": "2026-07-01T00:00:00+00:00",
+                "latency_ms": 1200,
+                "item_count": 0,
+                "error_message": "http 429 degraded",
+            }
+        ]
+
+        feed = build_home_feed([], [], {"brands": []}, {"alerts": []}, [], [], collector_runs=collector_runs)
+        alert = feed["streams"]["alert"][0]
+
+        self.assertEqual(alert["kind"], "degraded")
+        self.assertEqual(alert["job_name"], "wunderwelt_new_arrivals")
+        self.assertEqual(alert["collector_type"], "wunderwelt_market")
+        self.assertEqual(alert["latency_ms"], 1200)
+        self.assertIn("collector_health", alert["reason_codes"])
+
+    def test_low_sample_market_sample_trend_does_not_trigger_high_premium_alert(self) -> None:
+        samples = [
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell", "title": "now", "asking_price": 150, "observed_at": "2026-07-01"},
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell", "title": "old", "asking_price": 100, "observed_at": "2026-06-23"},
+        ]
+        trends = build_market_sample_trends(samples, today=datetime(2026, 7, 1).date())
+
+        feed = build_home_feed([], [], {"brands": []}, {"alerts": []}, [], [], market_samples=samples)
+        alerts = [row for row in feed["streams"]["alert"] if row.get("kind") == "high_premium"]
+
+        self.assertEqual(trends[0]["trend"], "rising")
+        self.assertEqual(trends[0]["sample_count"], 1)
+        self.assertEqual(alerts, [])
+
     def test_alert_feed_uses_latest_source_health_when_runs_are_unsorted(self) -> None:
         source_runs = [
             {
@@ -889,7 +928,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["avg_premium_rate"], 0.5)
         self.assertEqual(trends[0]["price_delta"], 0.5)
         self.assertEqual(trends[0]["sample_count"], 4)
-        self.assertEqual(trends[0]["meta"], "")
+        self.assertEqual(trends[0]["meta"], "asking price trend")
+        self.assertEqual(trends[0]["trend_basis"], "asking_price")
         self.assertIn("sample_supported", trends[0]["reason_codes"])
         self.assertIn("premium_rising", trends[0]["reason_codes"])
 

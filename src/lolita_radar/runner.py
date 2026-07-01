@@ -268,6 +268,7 @@ def run_check_loop(
     interval_seconds: int = 300,
     notify: bool = False,
     on_result: Callable[[CheckLoopResult], None] | None = None,
+    after_check: Callable[[], tuple[bool, str]] | None = None,
 ) -> list[CheckLoopResult]:
     total_cycles = max(1, int(cycles))
     sleep_seconds = max(0, int(interval_seconds))
@@ -281,6 +282,10 @@ def run_check_loop(
             result = CheckLoopResult(cycle=cycle, ok=False, event_count=0, error_message=str(exc), checked_at=checked_at)
         else:
             unhealthy_sources = latest_unhealthy_sources(config_path, db_path)
+            after_ok = True
+            after_error = ""
+            if after_check is not None:
+                after_ok, after_error = after_check()
             if unhealthy_sources:
                 result = CheckLoopResult(
                     cycle=cycle,
@@ -289,6 +294,8 @@ def run_check_loop(
                     error_message="unhealthy sources: " + ", ".join(unhealthy_sources),
                     checked_at=checked_at,
                 )
+            elif not after_ok:
+                result = CheckLoopResult(cycle=cycle, ok=False, event_count=len(events), error_message=after_error, checked_at=checked_at)
             else:
                 result = CheckLoopResult(cycle=cycle, ok=True, event_count=len(events), checked_at=checked_at)
         results.append(result)

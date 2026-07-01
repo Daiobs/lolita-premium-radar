@@ -167,11 +167,31 @@ python -m lolita_radar.cli seed-collectors
 python -m lolita_radar.cli collect
 ```
 
+Run one full operational cycle:
+
+```bash
+python -m lolita_radar.cli run-once
+```
+
+`run-once` executes release/source checks, seeds default collectors when
+`collector_jobs` is empty, runs enabled collectors, and prints Release/Drop/
+Trend/Alert counts plus collector ok/degraded/failed counts.
+
 Collector jobs are stored in SQLite. `official_shop` writes `shop_items` and
 `shop_events`; `closet_child_market` writes public item cards to both
-`shop_events` and `market_samples`; `fixture_market` writes `market_samples`.
-A failed collector run is recorded as failed or degraded and does not stop other
-collectors.
+`shop_events` and `market_samples`; `wunderwelt_market` and `lace_market`
+parse public item-card/product sources; `fixture_market` writes
+`market_samples`. A failed collector run is recorded as failed or degraded and
+does not stop other collectors.
+
+For first deployment, initialize collector state without emitting Drop events:
+
+```bash
+python -m lolita_radar.cli collect --baseline-only
+```
+
+`--baseline-only` is guarded once `shop_items` already exists. Use
+`--force-baseline` only when intentionally rebuilding tracked collector state.
 
 ```python
 from pathlib import Path
@@ -199,6 +219,7 @@ python -m lolita_radar.cli run-loop \
   --db .data/soak/lolita-radar-os-24h.sqlite \
   --cycles 288 \
   --interval-seconds 300 \
+  --include-collectors \
   --log-file .data/soak/lolita-radar-os-24h.log \
   --exit-file .data/soak/lolita-radar-os-24h.exit
 ```
@@ -303,10 +324,12 @@ The feed app renders four lightweight streams:
 
 - Release Feed: brand release, preorder, and restock events from AP, BABY, AATP, Meta, and MMM.
 - Drop Feed: first-seen public `shop_events` from official-shop and public item-card collectors.
-- Trend Feed: rule-based rising/stable/cooling premium signals from `market_samples` with confidence, price_delta, and reason codes.
+- Trend Feed: rule-based asking price trend / 挂价趋势 signals from
+  `market_samples` with confidence, price_delta, sample_count, and reason codes.
 - Alert Feed: system-level market and source-health warnings such as
   high-premium signals, sale-window reminders, high-priority drops, stock
-  availability, degraded sources, and failed sources.
+  availability, degraded sources, failed sources, and failed/degraded
+  collectors.
 
 Public Web API responses are also Feed OS shaped:
 
@@ -345,6 +368,12 @@ Supported MVP collector types:
   Default jobs include public BABY/BABY SF Shopify product JSON endpoints.
 - `closet_child_market`: parses public Closet Child item cards into Drop Feed
   items and secondhand market samples.
+- `wunderwelt_market`: parses public Wunderwelt product JSON or item cards into
+  Drop Feed items and asking-price market samples. Enabled by default.
+- `lace_market`: parses public Lace Market item-card fixtures and compatible
+  public pages into Drop Feed items and asking-price market samples. The default
+  Lace Market job is disabled because the public site may return 403 without an
+  approved access path.
 - `fixture_market`: fixture-backed market sample collector for tests and local
   validation.
 
@@ -352,8 +381,6 @@ Placeholder collector types are present but disabled by default:
 
 - `mercari_market`
 - `yahoo_auction_market`
-- `lace_market`
-- `wunderwelt_market`
 - `taobao_public_shop`
 - `goofish_market`
 

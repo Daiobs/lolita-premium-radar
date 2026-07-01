@@ -9,7 +9,8 @@ from types import FrameType
 from typing import Callable
 
 from .brands import default_brand_weights_path
-from .collector import DEFAULT_COLLECTOR_JOBS, CollectorJob, collector_for_type, run_collector_job
+from .collector import DEFAULT_COLLECTOR_JOBS, CollectorJob, CollectorRun, collector_for_type, run_collector_job
+from .collector.runner import guard_collector_baseline_only
 from .config import default_config_path
 from .core import FeedOsAudit, audit_feed_os
 from .market import default_market_observations_path
@@ -24,8 +25,8 @@ from .runner import (
     run_check_loop,
     verify_check_loop,
 )
-from .web import DEFAULT_WEB_PORT, run_web
-from .storage import connect, list_collector_jobs, upsert_collector_job
+from .web import DEFAULT_WEB_PORT, get_feed_state, run_web
+from .storage import connect, count_collector_jobs, list_collector_jobs, upsert_collector_job
 
 
 DEFAULT_DB_PATH = Path(".data") / "lolita_radar.sqlite"
@@ -81,9 +82,22 @@ def main(argv: list[str] | None = None) -> int:
     collect_parser = subparsers.add_parser("collect", help="run enabled server collectors")
     collect_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
     collect_parser.add_argument("--job", help="collector job name to run")
+    collect_parser.add_argument("--baseline-only", action="store_true", help="store collector state without shop events")
+    collect_parser.add_argument(
+        "--force-baseline",
+        action="store_true",
+        help="allow baseline-only to overwrite existing collector shop state",
+    )
 
     seed_collectors_parser = subparsers.add_parser("seed-collectors", help="add default public collector jobs")
     seed_collectors_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+
+    run_once_parser = subparsers.add_parser("run-once", help="check sources, seed collectors when needed, collect, and summarize feeds")
+    run_once_parser.add_argument("--config", type=Path, default=default_config_path())
+    run_once_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+    run_once_parser.add_argument("--brands", type=Path, default=default_brand_weights_path())
+    run_once_parser.add_argument("--market", type=Path, default=default_market_observations_path())
+    run_once_parser.add_argument("--notify", action="store_true", help="send notifications for release/source checks")
 
     loop_parser = subparsers.add_parser("run-loop", help="run repeated feed checks for long-running operation")
     loop_parser.add_argument("--config", type=Path, default=default_config_path())
@@ -96,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     loop_parser.add_argument("--interval-seconds", type=int, default=300)
     loop_parser.add_argument("--notify", action="store_true", help="send notifications during the loop")
+    loop_parser.add_argument("--include-collectors", action="store_true", help="seed missing collectors and collect each cycle")
     loop_parser.add_argument("--log-file", type=Path, help="write the loop audit table for later verify-loop audit")
     loop_parser.add_argument("--exit-file", type=Path, help="write the loop exit code for later verify-loop audit")
 
@@ -163,19 +178,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "collect":
         connection = connect(args.db)
         try:
-            jobs = list_collector_jobs(connection, enabled_only=True)
-            if args.job:
-                jobs = [job for job in jobs if job["name"] == args.job]
-            runs = []
-            for row in jobs:
-                job = CollectorJob(
-                    name=str(row["name"]),
-                    collector_type=str(row["collector_type"]),
-                    url=str(row.get("url") or ""),
-                    enabled=bool(row.get("enabled", True)),
-                    options=dict(row.get("options") or {}),
-                )
-                runs.append(run_collector_job(connection, job, collector_for_type(job.collector_type)))
+            if args.baseline_only and not args.force_baseline:
+                guard_collector_baseline_only(connection)
+            runs = collect_enabled_collectors(connection, job_name=args.job, baseline_only=args.baseline_only)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         finally:
             connection.close()
         print(format_collector_runs(runs))
@@ -183,19 +191,25 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "seed-collectors":
         connection = connect(args.db)
         try:
-            for job in DEFAULT_COLLECTOR_JOBS:
-                upsert_collector_job(
-                    connection,
-                    name=str(job["name"]),
-                    collector_type=str(job["collector_type"]),
-                    url=str(job.get("url") or ""),
-                    enabled=bool(job.get("enabled", True)),
-                    options=dict(job.get("options") or {}),
-                )
+            seeded = seed_default_collectors(connection)
         finally:
             connection.close()
-        print(f"seeded_collector_jobs={len(DEFAULT_COLLECTOR_JOBS)}")
+        print(f"seeded_collector_jobs={seeded}")
         return 0
+    if args.command == "run-once":
+        try:
+            summary = run_once(
+                config_path=args.config,
+                db_path=args.db,
+                brands_path=args.brands,
+                market_path=args.market,
+                notify=args.notify,
+            )
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        print(format_run_once_summary(summary))
+        return 0 if summary["collector_status_counts"].get("failed", 0) == 0 else 1
     if args.command == "run-loop":
         header = "cycle | checked_at | ok | event_count | error_message"
         loop_started_at = utc_now_iso()
@@ -216,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
                 interval_seconds=args.interval_seconds,
                 notify=args.notify,
                 on_result=on_loop_result,
+                after_check=build_loop_collector_callback(args.db) if args.include_collectors else None,
             )
         except LoopSignalInterrupt as exc:
             print(f"interrupted by {exc.signal_name}", file=sys.stderr)
@@ -267,6 +282,118 @@ def main(argv: list[str] | None = None) -> int:
             port=args.port,
         )
     return 1
+
+
+def seed_default_collectors(connection) -> int:
+    for job in DEFAULT_COLLECTOR_JOBS:
+        upsert_collector_job(
+            connection,
+            name=str(job["name"]),
+            collector_type=str(job["collector_type"]),
+            url=str(job.get("url") or ""),
+            enabled=bool(job.get("enabled", True)),
+            options=dict(job.get("options") or {}),
+        )
+    return len(DEFAULT_COLLECTOR_JOBS)
+
+
+def ensure_default_collectors(connection) -> int:
+    if count_collector_jobs(connection) > 0:
+        return 0
+    return seed_default_collectors(connection)
+
+
+def collect_enabled_collectors(connection, job_name: str | None = None, baseline_only: bool = False) -> list[CollectorRun]:
+    jobs = list_collector_jobs(connection, enabled_only=True)
+    if job_name:
+        jobs = [job for job in jobs if job["name"] == job_name]
+    runs: list[CollectorRun] = []
+    for row in jobs:
+        job = CollectorJob(
+            name=str(row["name"]),
+            collector_type=str(row["collector_type"]),
+            url=str(row.get("url") or ""),
+            enabled=bool(row.get("enabled", True)),
+            options=dict(row.get("options") or {}),
+        )
+        runs.append(run_collector_job(connection, job, collector_for_type(job.collector_type), baseline_only=baseline_only))
+    return runs
+
+
+def run_once(
+    config_path: Path,
+    db_path: Path,
+    brands_path: Path,
+    market_path: Path,
+    notify: bool = False,
+) -> dict[str, object]:
+    release_events = check_sources(config_path=config_path, db_path=db_path, source_name=None, notify=notify)
+    connection = connect(db_path)
+    try:
+        seeded = ensure_default_collectors(connection)
+        collector_runs = collect_enabled_collectors(connection)
+    finally:
+        connection.close()
+    feed_state = get_feed_state(config_path=config_path, db_path=db_path, brands_path=brands_path, market_path=market_path)
+    streams = feed_state["feed"]["streams"]
+    return {
+        "release_event_count": len(release_events),
+        "seeded_collector_jobs": seeded,
+        "feed_counts": {name: len(rows) for name, rows in streams.items()},
+        "collector_status_counts": collector_status_counts(collector_runs),
+        "collector_runs": collector_runs,
+    }
+
+
+def build_loop_collector_callback(db_path: Path) -> Callable[[], tuple[bool, str]]:
+    def collect_for_cycle() -> tuple[bool, str]:
+        connection = connect(db_path)
+        try:
+            ensure_default_collectors(connection)
+            runs = collect_enabled_collectors(connection)
+        finally:
+            connection.close()
+        failed = [run for run in runs if not run.ok]
+        degraded = [run for run in runs if run.status == "degraded"]
+        if failed:
+            return False, "failed collectors: " + ", ".join(run.job_name for run in failed)
+        if degraded:
+            return False, "degraded collectors: " + ", ".join(run.job_name for run in degraded)
+        return True, ""
+
+    return collect_for_cycle
+
+
+def collector_status_counts(runs: list[CollectorRun]) -> dict[str, int]:
+    counts = {"ok": 0, "degraded": 0, "failed": 0}
+    for run in runs:
+        status = run.status if run.status in counts else ("ok" if run.ok else "failed")
+        counts[status] += 1
+    return counts
+
+
+def format_run_once_summary(summary: dict[str, object]) -> str:
+    feed_counts = summary.get("feed_counts")
+    collector_counts = summary.get("collector_status_counts")
+    if not isinstance(feed_counts, dict):
+        feed_counts = {}
+    if not isinstance(collector_counts, dict):
+        collector_counts = {}
+    lines = [
+        "run_once: ok",
+        f"release_events={summary.get('release_event_count', 0)}",
+        f"seeded_collector_jobs={summary.get('seeded_collector_jobs', 0)}",
+        "feed_counts: "
+        f"release={feed_counts.get('release', 0)} "
+        f"drop={feed_counts.get('drop', 0)} "
+        f"trend={feed_counts.get('trend', 0)} "
+        f"alert={feed_counts.get('alert', 0)}",
+        "collector_counts: "
+        f"ok={collector_counts.get('ok', 0)} "
+        f"degraded={collector_counts.get('degraded', 0)} "
+        f"failed={collector_counts.get('failed', 0)}",
+    ]
+    return "\n".join(lines)
 
 
 def format_inspect_results(results: list[InspectResult], limit: int) -> str:

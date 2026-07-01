@@ -8,7 +8,9 @@ from lolita_radar.collector import (
     ClosetChildMarketCollector,
     CollectorJob,
     FixtureMarketCollector,
+    LaceMarketCollector,
     OfficialShopCollector,
+    WunderweltMarketCollector,
     run_collector_job,
 )
 from lolita_radar.models import ShopItem
@@ -18,6 +20,8 @@ from lolita_radar.storage import (
     list_collector_jobs,
     list_collector_runs,
     list_market_samples,
+    list_shop_events,
+    list_shop_items,
     upsert_collector_job,
 )
 
@@ -110,6 +114,39 @@ class CollectorTests(unittest.TestCase):
         self.assertIn("baby_official_store", names)
         self.assertIn("baby_sf_new_arrivals", names)
         self.assertIn("closet_child_new_arrivals", names)
+        self.assertIn("wunderwelt_new_arrivals", names)
+
+    def test_wunderwelt_market_collector_parses_public_cards(self) -> None:
+        result = WunderweltMarketCollector().collect(
+            CollectorJob(
+                name="wunderwelt",
+                collector_type="wunderwelt_market",
+                url="tests/fixtures/wunderwelt_market_cards.html",
+                options={"keywords": ["dress"]},
+            )
+        )
+
+        self.assertEqual(len(result.shop_items), 1)
+        self.assertEqual(len(result.market_samples), 1)
+        self.assertEqual(result.shop_items[0].shop_name, "Wunderwelt")
+        self.assertEqual(result.market_samples[0].brand_alias, "VM")
+        self.assertEqual(result.market_samples[0].asking_price, 39800.0)
+
+    def test_lace_market_collector_parses_public_cards(self) -> None:
+        result = LaceMarketCollector().collect(
+            CollectorJob(
+                name="lace",
+                collector_type="lace_market",
+                url="tests/fixtures/lace_market_cards.html",
+                options={"keywords": ["JSK"]},
+            )
+        )
+
+        self.assertEqual(len(result.shop_items), 1)
+        self.assertEqual(len(result.market_samples), 1)
+        self.assertEqual(result.shop_items[0].currency, "USD")
+        self.assertEqual(result.market_samples[0].brand_alias, "AP")
+        self.assertEqual(result.market_samples[0].pattern, "Shell Garden")
 
     def test_shop_item_storage_creates_drop_price_and_stock_events(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -133,6 +170,47 @@ class CollectorTests(unittest.TestCase):
 
         self.assertEqual([event.event_type.value for event in first], ["DROP"])
         self.assertEqual([event.event_type.value for event in price], ["PRICE_CHANGED"])
+
+    def test_collector_baseline_writes_items_without_shop_events(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "radar.sqlite")
+            try:
+                run = run_collector_job(
+                    connection,
+                    CollectorJob(name="baby_new", collector_type="official_shop", url="tests/fixtures/official_shop_products.html"),
+                    OfficialShopCollector(),
+                    baseline_only=True,
+                )
+                events = list_shop_events(connection)
+                items = list_shop_items(connection)
+            finally:
+                connection.close()
+
+        self.assertTrue(run.ok)
+        self.assertEqual(len(items), 2)
+        self.assertEqual(events, [])
+
+    def test_normal_collect_after_baseline_creates_drop_for_new_item(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = connect(Path(temp_dir) / "radar.sqlite")
+            try:
+                run_collector_job(
+                    connection,
+                    CollectorJob(name="one", collector_type="official_shop", url="tests/fixtures/official_shop_one_product.html"),
+                    OfficialShopCollector(),
+                    baseline_only=True,
+                )
+                run_collector_job(
+                    connection,
+                    CollectorJob(name="two", collector_type="official_shop", url="tests/fixtures/official_shop_products.html"),
+                    OfficialShopCollector(),
+                )
+                events = list_shop_events(connection)
+            finally:
+                connection.close()
+
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["event_type"], "DROP")
 
     def test_fixture_market_collector_and_runner_store_samples(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

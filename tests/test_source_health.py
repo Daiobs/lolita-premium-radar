@@ -250,6 +250,39 @@ class SourceHealthTests(unittest.TestCase):
             self.assertEqual(verify_exit_code, 0)
             self.assertIn("status: complete", verify_stdout.getvalue())
 
+    def test_run_once_seeds_collectors_and_prints_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = self.write_config(root, {"good": "fake_good"})
+            db_path = root / "radar.sqlite"
+            original_adapters = dict(runner.ADAPTERS)
+            original_defaults = cli.DEFAULT_COLLECTOR_JOBS
+            stdout = io.StringIO()
+            try:
+                runner.ADAPTERS.update({"fake_good": FakeGoodAdapter})
+                cli.DEFAULT_COLLECTOR_JOBS = [
+                    {
+                        "name": "fixture_shop",
+                        "collector_type": "official_shop",
+                        "url": "tests/fixtures/official_shop_products.html",
+                        "enabled": True,
+                        "options": {"shop_name": "Fixture Shop", "platform": "fixture"},
+                    }
+                ]
+                with redirect_stdout(stdout):
+                    exit_code = main(["run-once", "--config", str(config_path), "--db", str(db_path)])
+            finally:
+                cli.DEFAULT_COLLECTOR_JOBS = original_defaults
+                runner.ADAPTERS.clear()
+                runner.ADAPTERS.update(original_adapters)
+
+            output = stdout.getvalue()
+            self.assertEqual(exit_code, 0)
+            self.assertIn("run_once: ok", output)
+            self.assertIn("seeded_collector_jobs=1", output)
+            self.assertIn("feed_counts:", output)
+            self.assertIn("collector_counts: ok=1", output)
+
     def test_run_loop_writes_failed_exit_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

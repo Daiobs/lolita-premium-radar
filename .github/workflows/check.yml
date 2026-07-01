@@ -64,5 +64,5 @@ jobs:
           name: feed-os-audit
           path: feed-os-audit.json
           if-no-files-found: ignore
-      - name: Run checks
-        run: python -m lolita_radar.cli check --all
+      - name: Run once
+        run: python -m lolita_radar.cli run-once

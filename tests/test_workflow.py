@@ -16,6 +16,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("if audit_exit != 0 and missing_count == 0", workflow)
         self.assertIn("actions/upload-artifact@v4", workflow)
         self.assertIn("feed-os-audit.json", workflow)
+        self.assertIn("python -m lolita_radar.cli run-once", workflow)
+        self.assertNotIn("python -m lolita_radar.cli check --all", workflow)
 
 
 if __name__ == "__main__":

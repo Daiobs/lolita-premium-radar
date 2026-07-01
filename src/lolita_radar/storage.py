@@ -220,17 +220,21 @@ def diff_and_store(
     return events
 
 
-def diff_and_store_shop_items(connection: sqlite3.Connection, items: Iterable[ShopItem]) -> list[ShopEvent]:
+def diff_and_store_shop_items(
+    connection: sqlite3.Connection,
+    items: Iterable[ShopItem],
+    write_events: bool = True,
+) -> list[ShopEvent]:
     events: list[ShopEvent] = []
     for item in items:
-        event = upsert_shop_item(connection, item)
+        event = upsert_shop_item(connection, item, write_events=write_events)
         if event is not None:
             events.append(event)
     connection.commit()
     return events
 
 
-def upsert_shop_item(connection: sqlite3.Connection, item: ShopItem) -> ShopEvent | None:
+def upsert_shop_item(connection: sqlite3.Connection, item: ShopItem, write_events: bool = True) -> ShopEvent | None:
     now = utc_now_iso()
     identity_key = item.identity_key
     item_title_hash = title_hash(item.title)
@@ -248,6 +252,8 @@ def upsert_shop_item(connection: sqlite3.Connection, item: ShopItem) -> ShopEven
             """,
             shop_item_values(identity_key, item_title_hash, item, keywords_json, now, now),
         )
+        if not write_events:
+            return None
         event = ShopEvent(event_type=ShopEventType.DROP, item=item, created_at=now)
         insert_shop_event(connection, event, identity_key=identity_key, item_title_hash=item_title_hash)
         return event
@@ -284,6 +290,8 @@ def upsert_shop_item(connection: sqlite3.Connection, item: ShopItem) -> ShopEven
         ),
     )
     if previous_price != item.price:
+        if not write_events:
+            return None
         event = ShopEvent(
             event_type=ShopEventType.PRICE_CHANGED,
             item=item,
@@ -294,6 +302,8 @@ def upsert_shop_item(connection: sqlite3.Connection, item: ShopItem) -> ShopEven
         insert_shop_event(connection, event, identity_key=identity_key, item_title_hash=item_title_hash)
         return event
     if previous_availability != item.availability:
+        if not write_events:
+            return None
         event = ShopEvent(
             event_type=ShopEventType.STOCK_CHANGED,
             item=item,
@@ -779,6 +789,16 @@ def count_items_for_sources(connection: sqlite3.Connection, sources: Iterable[st
         ).fetchone()
         counts[str(source)] = int(row["count"])
     return counts
+
+
+def count_shop_items(connection: sqlite3.Connection) -> int:
+    row = connection.execute("SELECT COUNT(*) AS count FROM shop_items").fetchone()
+    return int(row["count"])
+
+
+def count_collector_jobs(connection: sqlite3.Connection) -> int:
+    row = connection.execute("SELECT COUNT(*) AS count FROM collector_jobs").fetchone()
+    return int(row["count"])
 
 
 def record_source_run(

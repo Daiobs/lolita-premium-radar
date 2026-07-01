@@ -28,6 +28,7 @@ from .storage import (
     list_events,
     list_items,
     list_market_samples,
+    list_collector_runs,
     list_shop_events,
     list_source_runs,
     storage_counts,
@@ -218,6 +219,7 @@ def get_feed_state(
         events = list_events(connection, limit=100)
         shop_events = list_shop_events(connection, limit=100)
         market_samples = list_market_samples(connection, limit=500)
+        collector_runs = list_collector_runs(connection, limit=100)
         source_runs = enrich_source_runs(list_source_runs(connection, limit=50))
     finally:
         connection.close()
@@ -249,9 +251,11 @@ def get_feed_state(
             source_urls={source.name: source.url for source in sources.values()},
             shop_events=shop_events,
             market_samples=market_samples,
+            collector_runs=collector_runs,
         ),
         "sources": [source_to_dict(source) for source in sources.values()],
         "source_runs": source_runs,
+        "collector_runs": collector_runs,
         "shop_events": shop_events,
         "market_samples": market_samples,
         "items": items,
