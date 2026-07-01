@@ -9,7 +9,7 @@ from ..trend import build_trend_feed
 
 RELEASE_SOURCES = {"angelic_pretty", "baby_ssb", "alice_and_the_pirates", "metamorphose", "moitie"}
 RELEASE_STATUSES = {"new_arrival", "preorder", "restock"}
-MARKET_ALERT_KINDS = {"high_premium", "sample_gap"}
+MARKET_ALERT_KINDS = {"high_premium"}
 HOME_LINK_LIMIT = 30
 
 

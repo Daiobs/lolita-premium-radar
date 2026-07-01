@@ -451,7 +451,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
     <script>
       const $ = (id) => document.getElementById(id);
       const FEED_LABELS = {
-        zh: { all: "全部 Feed", release: "发售 Feed", drop: "上新 Feed", trend: "趋势 Feed", alert: "提醒 Feed" },
+        zh: { all: "全部 Feed", release: "发售 Feed", drop: "到货 Drop Feed", trend: "趋势 Feed", alert: "提醒 Feed" },
         ja: { all: "すべて", release: "発売 Feed", drop: "入荷 Feed", trend: "トレンド Feed", alert: "アラート Feed" },
       };
       const TEXT = {
@@ -461,7 +461,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
           refresh: "刷新",
           check: "检查",
           releases: "发售",
-          drops: "上新",
+          drops: "到货",
           trends: "趋势",
           alerts: "提醒",
           cta: "打开来源",
@@ -511,7 +511,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
         },
       };
       const FILTER_TEXT = {
-        zh: { all: "全部 / All", release: "发售 / Release", drop: "上新 / Drop", trend: "趋势 / Trend", alert: "提醒 / Alert" },
+        zh: { all: "全部 / All", release: "发售 / Release", drop: "到货 / Drop", trend: "趋势 / Trend", alert: "提醒 / Alert" },
         ja: { all: "すべて", release: "発売", drop: "入荷", trend: "トレンド", alert: "通知" },
       };
       const URGENCY_TEXT = {

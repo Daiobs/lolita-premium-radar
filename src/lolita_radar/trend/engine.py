@@ -25,6 +25,8 @@ def build_trend_feed(
         if not alias:
             continue
         sample_count = safe_count(brand.get("sample_count"))
+        if sample_count < 2:
+            continue
         avg_premium = safe_float(brand.get("avg_premium_rate"))
         movement = momentum_by_alias.get(alias_key(alias), {})
         direction = normalize_direction(movement.get("direction"), avg_premium, sample_count)
@@ -55,6 +57,7 @@ def build_trend_feed(
 
 def trend_brand_rows(market_summary: dict[str, Any], brand_weights: list[dict[str, Any]]) -> list[dict[str, Any]]:
     weights_by_alias = {alias_key(row.get("alias")): row for row in brand_weights}
+    record_urls_by_alias = market_record_urls(market_summary)
     rows = []
     for row in market_summary.get("brands", []):
         raw_alias = str(row.get("brand_alias") or "").strip()
@@ -62,23 +65,18 @@ def trend_brand_rows(market_summary: dict[str, Any], brand_weights: list[dict[st
         alias = str(weight.get("alias") or raw_alias).strip()
         if not alias:
             continue
-        rows.append({**row, "brand_alias": alias, "url": str(row.get("url") or primary_watch_url(weight))})
-    seen = {alias_key(row.get("brand_alias")) for row in rows}
-    for brand in brand_weights:
-        alias = str(brand.get("alias") or "").strip()
-        key = alias_key(alias)
-        if not alias or key in seen:
-            continue
-        rows.append(
-            {
-                "brand_alias": alias,
-                "sample_count": 0,
-                "avg_premium_rate": 0,
-                "max_premium_rate": 0,
-                "url": primary_watch_url(brand),
-            }
-        )
+        rows.append({**row, "brand_alias": alias, "url": str(row.get("url") or record_urls_by_alias.get(alias_key(alias), ""))})
     return rows
+
+
+def market_record_urls(market_summary: dict[str, Any]) -> dict[str, str]:
+    urls: dict[str, str] = {}
+    for record in market_summary.get("records", []):
+        alias = alias_key(record.get("brand_alias"))
+        url = str(record.get("url") or "")
+        if alias and url.startswith(("http://", "https://")) and alias not in urls:
+            urls[alias] = url
+    return urls
 
 
 def alias_key(value: object) -> str:

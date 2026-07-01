@@ -597,8 +597,8 @@ class SourceHealthTests(unittest.TestCase):
             exit_path.write_text("0\n", encoding="utf-8")
             connection = connect(db_path)
             try:
-                record_source_run(connection, "good", ok=True, item_count=1)
-                record_source_run(connection, "good", ok=True, item_count=1)
+                record_source_run(connection, "good", ok=True, item_count=1, checked_at="2026-06-30T01:00:00+00:00")
+                record_source_run(connection, "good", ok=True, item_count=1, checked_at="2026-06-30T02:00:00+00:00")
                 connection.commit()
             finally:
                 connection.close()

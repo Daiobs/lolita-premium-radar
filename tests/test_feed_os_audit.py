@@ -283,7 +283,7 @@ class FeedOsAuditTests(unittest.TestCase):
         original_sample_home_feed = audit_module.sample_home_feed
         try:
             feed = audit_module.sample_home_feed()
-            market_alert = next(row for row in feed["streams"]["alert"] if row.get("kind") == "sample_gap")
+            market_alert = next(row for row in feed["streams"]["alert"] if row.get("kind") == "high_premium")
             market_alert.pop("title_zh", None)
             market_alert.pop("title_ja", None)
             market_alert["use_localized_title"] = False
@@ -1006,7 +1006,7 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("unsupported system alert kind: promo", check.detail)
 
-    def test_runtime_feed_audit_rejects_market_alert_without_localized_titles(self) -> None:
+    def test_runtime_feed_audit_rejects_high_premium_alert_without_localized_titles(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
@@ -1019,15 +1019,15 @@ class FeedOsAuditTests(unittest.TestCase):
                         "alert": [
                             {
                                 "feed_type": "alert",
-                                "kind": "sample_gap",
-                                "title": "BABY",
-                                "reason_codes": ["sample_gap"],
-                                "url": "https://example.com/market/baby",
-                                "visual": self.visual("AL", "!", "sample_gap"),
+                                "kind": "high_premium",
+                                "title": "Shell Garden JSK",
+                                "reason_codes": ["high_premium"],
+                                "url": "https://example.com/market/shell",
+                                "visual": self.visual("AP", "!", "high_premium"),
                             }
                         ],
                     },
-                    "all": [{"feed_type": "alert", "url": "https://example.com/market/baby"}],
+                    "all": [{"feed_type": "alert", "url": "https://example.com/market/shell"}],
                 }
             }
             check = audit_module.audit_runtime_feed_state(

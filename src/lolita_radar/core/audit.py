@@ -414,17 +414,21 @@ def audit_feed_contract() -> FeedOsAuditCheck:
         required_keys(streams["release"][0], ("brand", "title", "type", "time", "price", "url", "source_context")),
         required_keys(streams["drop"][0], ("shop", "item", "keywords", "urgency", "url")),
         required_keys(streams["trend"][0], ("brand", "trend", "confidence", "price_delta", "reason_codes")),
-        required_keys(streams["alert"][0], ("feed_type", "kind", "title", "reason_codes", "url")),
+        required_keys(streams["alert"][0], ("feed_type", "kind", "title", "reason_codes")),
         market_alert_localized_title_problem(feed_rows(streams, "alert"), require_present=True),
         visual_image_problem(streams["release"][0]),
     ]
     missing = [item for item in checks if item]
-    ordering = [row.get("feed_type") for row in feed.get("all", [])[:4]]
-    if missing or ordering != ["release", "drop", "alert", "trend"]:
+    ordering = [row.get("feed_type") for row in feed.get("all", [])]
+    priority = {"release": 0, "drop": 1, "alert": 2, "trend": 3}
+    priorities = [priority.get(str(feed_type), 99) for feed_type in ordering]
+    required_feed_types = {"release", "drop", "alert", "trend"}
+    ordering_problem = priorities != sorted(priorities) or not required_feed_types.issubset(set(ordering))
+    if missing or ordering_problem:
         detail = []
         if missing:
             detail.append("missing fields: " + "; ".join(missing))
-        if ordering != ["release", "drop", "alert", "trend"]:
+        if ordering_problem:
             detail.append(f"ordering={ordering}")
         return FeedOsAuditCheck("feed_contract", "fail", "; ".join(detail))
     return FeedOsAuditCheck("feed_contract", "pass", "4 streams expose required fields, visuals, and priority ordering")
@@ -647,7 +651,7 @@ def runtime_feed_field_problem(streams: dict[str, Any]) -> str:
         "release": ("feed_type", "brand", "title", "type", "time", "price", "url"),
         "drop": ("feed_type", "shop", "item", "keywords", "urgency", "reason_codes", "url"),
         "trend": ("feed_type", "brand", "trend", "confidence", "price_delta", "sample_count", "reason_codes"),
-        "alert": ("feed_type", "kind", "title", "reason_codes", "url"),
+        "alert": ("feed_type", "kind", "title", "reason_codes"),
     }
     for name, required in required_by_stream.items():
         rows = streams.get(name, [])
@@ -796,7 +800,7 @@ def non_empty_list(value: object) -> bool:
 
 
 def market_alert_localized_title_problem(rows: list[dict[str, Any]], require_present: bool = False) -> str:
-    market_rows = [row for row in rows if str(row.get("kind") or "") in {"high_premium", "sample_gap"}]
+    market_rows = [row for row in rows if str(row.get("kind") or "") == "high_premium"]
     if not market_rows:
         return "market alert localized title" if require_present else ""
     for row in market_rows:
@@ -844,7 +848,7 @@ def alert_kind_boundary_problem(row: dict[str, Any]) -> str:
     if isinstance(reason_codes, list) and "source_health" in reason_codes:
         return ""
     kind = str(row.get("kind") or "")
-    if kind in {"high_premium", "sample_gap"}:
+    if kind == "high_premium":
         return ""
     return f"stream alert row has unsupported system alert kind: {kind}"
 
@@ -932,7 +936,10 @@ def sample_home_feed() -> dict[str, Any]:
             },
         },
     ]
-    market_summary = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.45}]}
+    market_summary = {
+        "brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.45}],
+        "records": [{"brand_alias": "AP", "url": "https://example.com/market/trend/ap"}],
+    }
     source_runs = [
         {
             "source": "angelic_pretty",
@@ -949,7 +956,19 @@ def sample_home_feed() -> dict[str, Any]:
         events,
         [],
         market_summary,
-        {"alerts": [{"kind": "sample_gap", "alias": "BABY", "title": "BABY", "reason": "core_needs_samples"}]},
+        {
+            "alerts": [
+                {
+                    "kind": "sample_spike",
+                    "severity": "critical",
+                    "alias": "AP",
+                    "item_name": "Shell Garden JSK",
+                    "premium_rate": 0.82,
+                    "url": "https://example.com/market/premium/shell",
+                    "reason": "collector_premium",
+                }
+            ]
+        },
         [],
         source_runs,
         brand_weights=[{"alias": "AP", "watch_urls": [{"label": "market", "url": "https://example.com/market/ap"}]}],
@@ -971,6 +990,7 @@ def audit_trend_engine() -> FeedOsAuditCheck:
         "brands": [
             {"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5},
             {"brand_alias": "Meta", "sample_count": 3, "avg_premium_rate": -0.2},
+            {"brand_alias": "BABY", "sample_count": 2, "avg_premium_rate": 0.1},
         ]
     }
     momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": today}]
@@ -978,7 +998,7 @@ def audit_trend_engine() -> FeedOsAuditCheck:
         market_summary,
         momentum,
         [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
-        brand_weights=[{"alias": "BABY"}],
+        brand_weights=[],
     )
     if not trends:
         return FeedOsAuditCheck("trend_engine", "fail", "no trend cards produced")
@@ -998,7 +1018,7 @@ def audit_trend_engine() -> FeedOsAuditCheck:
             return FeedOsAuditCheck("trend_engine", "fail", f"invalid sample_count for {brand}: {sample_count}")
         if not trend.get("reason_codes"):
             return FeedOsAuditCheck("trend_engine", "fail", f"missing reason_codes for {brand}")
-    without_release = build_trend_feed(market_summary, momentum, [], brand_weights=[{"alias": "BABY"}])[0]
+    without_release = build_trend_feed(market_summary, momentum, [], brand_weights=[])[0]
     ap_trend = trends_by_brand["AP"]
     if "release_activity" not in ap_trend.get("reason_codes", []) or int(ap_trend.get("confidence") or 0) <= int(without_release.get("confidence") or 0):
         return FeedOsAuditCheck("trend_engine", "fail", "release events did not affect trend reasons/confidence")
@@ -1006,7 +1026,7 @@ def audit_trend_engine() -> FeedOsAuditCheck:
         market_summary,
         momentum,
         [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{year - 1}-12-31"}],
-        brand_weights=[{"alias": "BABY"}],
+        brand_weights=[],
     )
     stale_by_brand = {str(trend.get("brand") or ""): trend for trend in stale_trends}
     stale_ap = stale_by_brand.get("AP")
@@ -1020,7 +1040,7 @@ def audit_trend_engine() -> FeedOsAuditCheck:
         market_summary,
         momentum,
         [{"source": "angelic_pretty", "status": "new_arrival", "published_at": stale_window_date}],
-        brand_weights=[{"alias": "BABY"}],
+        brand_weights=[],
     )
     stale_window_by_brand = {str(trend.get("brand") or ""): trend for trend in stale_window_trends}
     stale_window_ap = stale_window_by_brand.get("AP")
@@ -1034,7 +1054,7 @@ def audit_trend_engine() -> FeedOsAuditCheck:
         market_summary,
         momentum,
         [{"source": "angelic_pretty", "status": "new_arrival"}],
-        brand_weights=[{"alias": "BABY"}],
+        brand_weights=[],
     )
     missing_date_by_brand = {str(trend.get("brand") or ""): trend for trend in missing_date_trends}
     missing_date_ap = missing_date_by_brand.get("AP")

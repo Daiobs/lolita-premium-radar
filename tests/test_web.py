@@ -276,6 +276,7 @@ sources:
     "item_name": "Shell Garden JSK",
     "retail_price": 2000,
     "resale_price": 3000,
+    "url": "https://example.com/market/shell-jsk",
     "observed_at": "2026-06-30"
   },
   {
@@ -283,6 +284,7 @@ sources:
     "item_name": "Shell Garden OP",
     "retail_price": 1800,
     "resale_price": 2700,
+    "url": "https://example.com/market/shell-op",
     "observed_at": "2026-06-30"
   }
 ]
@@ -354,7 +356,8 @@ sources:
             feed_types = [row["feed_type"] for row in feed["all"]]
             priorities = [{"release": 0, "drop": 1, "alert": 2, "trend": 3}[feed_type] for feed_type in feed_types]
             self.assertEqual(priorities, sorted(priorities))
-            self.assertIn("trend", feed_types)
+            self.assertEqual(feed["streams"]["trend"][0]["url"], "https://example.com/market/shell-jsk")
+            self.assertNotIn("goofish.com/search", feed["streams"]["trend"][0]["url"])
 
     def test_feed_payload_is_feed_os_contract_only(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
