@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from lolita_radar.crawler import enrich_source_runs
 from lolita_radar.feed import build_home_feed
 from lolita_radar.source_dates import current_source_date
-from lolita_radar.trend import build_trend_feed
+from lolita_radar.trend import build_market_sample_trends, build_trend_feed
 
 
 class FeedOsTests(unittest.TestCase):
@@ -95,6 +95,81 @@ class FeedOsTests(unittest.TestCase):
         self.assertNotIn("Proxy JSK 预约", alert_titles)
         self.assertEqual(feed["streams"]["alert"][0]["kind"], "high_premium")
         self.assertTrue(all(row["visual"]["mark"] for rows in feed["streams"].values() for row in rows))
+
+    def test_drop_feed_uses_shop_events_when_available(self) -> None:
+        feed = build_home_feed(
+            [],
+            [],
+            {"brands": []},
+            {"alerts": []},
+            [],
+            [],
+            shop_events=[
+                {
+                    "event_type": "DROP",
+                    "identity_key": "shell",
+                    "shop_name": "BABY Official Store",
+                    "platform": "official_store",
+                    "title": "Usakumya JSK Reservation",
+                    "price": "30800",
+                    "currency": "JPY",
+                    "image_url": "https://example.com/usakumya.webp",
+                    "item_url": "https://example.com/usakumya",
+                    "availability": "in_stock",
+                    "matched_keywords": ["JSK", "Reservation"],
+                    "observed_at": "2026-07-01",
+                    "purchase_url": "https://example.com/usakumya",
+                    "priority": "high",
+                }
+            ],
+        )
+
+        drop = feed["streams"]["drop"][0]
+        self.assertEqual(drop["shop"], "BABY Official Store")
+        self.assertEqual(drop["platform"], "official_store")
+        self.assertEqual(drop["price"], "30800 JPY")
+        self.assertEqual(drop["url"], "https://example.com/usakumya")
+        self.assertEqual(drop["visual"]["image_url"], "https://example.com/usakumya.webp")
+        self.assertIn("keyword_match", drop["reason_codes"])
+        self.assertEqual(feed["streams"]["alert"][0]["kind"], "high_priority_drop")
+        self.assertEqual(feed["streams"]["alert"][0]["cta"], "Open shop manually")
+
+    def test_market_samples_drive_trend_feed(self) -> None:
+        samples = [
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell", "title": "now 1", "asking_price": 120, "observed_at": "2026-07-01", "url": "https://example.com/now1"},
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell", "title": "now 2", "asking_price": 118, "observed_at": "2026-06-30", "url": "https://example.com/now2"},
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell", "title": "now 3", "asking_price": 122, "observed_at": "2026-06-29", "url": "https://example.com/now3"},
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell", "title": "old", "asking_price": 100, "observed_at": "2026-06-23", "url": "https://example.com/old"},
+        ]
+
+        trends = build_market_sample_trends(samples, today=datetime(2026, 7, 1).date())
+
+        self.assertEqual(trends[0]["brand"], "AP")
+        self.assertEqual(trends[0]["pattern"], "Shell")
+        self.assertEqual(trends[0]["platform"], "mercari")
+        self.assertEqual(trends[0]["trend"], "rising")
+        self.assertEqual(trends[0]["sample_count"], 3)
+        self.assertGreaterEqual(trends[0]["confidence"], 70)
+        self.assertIn("previous_window", trends[0]["reason_codes"])
+
+    def test_market_sample_trends_cover_stable_cooling_and_low_confidence(self) -> None:
+        samples = [
+            {"platform": "mercari", "brand_alias": "BABY", "pattern": "Kumya", "title": "now", "asking_price": 100, "observed_at": "2026-07-01"},
+            {"platform": "mercari", "brand_alias": "BABY", "pattern": "Kumya", "title": "now2", "asking_price": 103, "observed_at": "2026-06-30"},
+            {"platform": "mercari", "brand_alias": "BABY", "pattern": "Kumya", "title": "now3", "asking_price": 101, "observed_at": "2026-06-29"},
+            {"platform": "mercari", "brand_alias": "BABY", "pattern": "Kumya", "title": "old", "asking_price": 100, "observed_at": "2026-06-23"},
+            {"platform": "yahoo", "brand_alias": "Meta", "pattern": "Swan", "title": "now", "asking_price": 70, "observed_at": "2026-07-01"},
+            {"platform": "yahoo", "brand_alias": "Meta", "pattern": "Swan", "title": "now2", "asking_price": 68, "observed_at": "2026-06-30"},
+            {"platform": "yahoo", "brand_alias": "Meta", "pattern": "Swan", "title": "old", "asking_price": 100, "observed_at": "2026-06-23"},
+        ]
+
+        trends = build_market_sample_trends(samples, today=datetime(2026, 7, 1).date())
+        by_key = {(row["brand"], row["pattern"], row["platform"]): row for row in trends}
+
+        self.assertEqual(by_key[("BABY", "Kumya", "mercari")]["trend"], "stable")
+        self.assertEqual(by_key[("Meta", "Swan", "yahoo")]["trend"], "cooling")
+        self.assertLess(by_key[("Meta", "Swan", "yahoo")]["confidence"], 50)
+        self.assertIn("low_confidence", by_key[("Meta", "Swan", "yahoo")]["reason_codes"])
 
     def test_release_feed_prefers_published_at_over_seen_time(self) -> None:
         events = [
@@ -323,7 +398,10 @@ class FeedOsTests(unittest.TestCase):
             source_urls={"angelic_pretty": "https://example.com/ap-health"},
         )
 
-        self.assertEqual([row["feed_type"] for row in feed["all"][:4]], ["release", "drop", "alert", "trend"])
+        feed_types = [row["feed_type"] for row in feed["all"]]
+        priorities = [{"release": 0, "drop": 1, "alert": 2, "trend": 3}[feed_type] for feed_type in feed_types]
+        self.assertEqual(priorities, sorted(priorities))
+        self.assertEqual(feed["streams"]["trend"][0]["trend"], "rising")
 
     def test_alert_feed_normalizes_high_premium_and_omits_sample_gap(self) -> None:
         market_alerts = {

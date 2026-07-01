@@ -8,7 +8,7 @@ class FeedOsAcceptanceTests(unittest.TestCase):
     def test_required_product_modules_exist(self) -> None:
         root = Path("src/lolita_radar")
 
-        for name in ("feed", "trend", "shop", "crawler", "core"):
+        for name in ("collector", "feed", "trend", "shop", "crawler", "core"):
             self.assertTrue((root / name).is_dir(), name)
 
     def test_feed_contract_outputs_required_fields(self) -> None:
@@ -73,7 +73,10 @@ class FeedOsAcceptanceTests(unittest.TestCase):
         self.assert_required_keys(drop, ("shop", "item", "keywords", "urgency", "url"))
         self.assert_required_keys(trend, ("brand", "trend", "confidence", "price_delta", "reason_codes"))
         self.assert_required_keys(alert, ("feed_type", "kind", "title", "reason_codes"))
-        self.assertEqual([row["feed_type"] for row in feed["all"][:4]], ["release", "drop", "alert", "trend"])
+        feed_types = [row["feed_type"] for row in feed["all"]]
+        priorities = [{"release": 0, "drop": 1, "alert": 2, "trend": 3}[feed_type] for feed_type in feed_types]
+        self.assertEqual(priorities, sorted(priorities))
+        self.assertEqual(trend["trend"], "rising")
 
     def test_source_tree_keeps_forbidden_product_directions_out(self) -> None:
         haystack = "\n".join(

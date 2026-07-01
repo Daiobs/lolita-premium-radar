@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import math
+from datetime import date, datetime, timedelta
+from statistics import median
 from typing import Any
 
-from ..source_dates import is_current_source_date
+from ..source_dates import current_source_date, is_current_source_date
 
 
 TREND_DIRECTIONS = {"rising", "stable", "cooling"}
@@ -53,6 +55,62 @@ def build_trend_feed(
             }
         )
     return sorted(trends, key=lambda row: (int(row["confidence"]), float(row.get("avg_premium_rate") or 0)), reverse=True)
+
+
+def build_market_sample_trends(samples: list[dict[str, Any]], today: date | None = None) -> list[dict[str, Any]]:
+    if today is None:
+        today = current_source_date()
+    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for sample in samples:
+        key = (
+            str(sample.get("brand_alias") or "").strip(),
+            str(sample.get("pattern") or "").strip(),
+            str(sample.get("platform") or "").strip(),
+        )
+        if not all(key):
+            continue
+        grouped.setdefault(key, []).append(sample)
+
+    trends = []
+    for (brand, pattern, platform), rows in grouped.items():
+        current_rows = [row for row in rows if in_window(row.get("observed_at"), today - timedelta(days=6), today)]
+        previous_rows = [row for row in rows if in_window(row.get("observed_at"), today - timedelta(days=13), today - timedelta(days=7))]
+        if not current_rows:
+            continue
+        current_prices = [safe_float(row.get("asking_price")) for row in current_rows if safe_float(row.get("asking_price")) > 0]
+        previous_prices = [safe_float(row.get("asking_price")) for row in previous_rows if safe_float(row.get("asking_price")) > 0]
+        if not current_prices:
+            continue
+        current_median = median(current_prices)
+        previous_median = median(previous_prices) if previous_prices else current_median
+        delta = 0.0 if previous_median <= 0 else (current_median - previous_median) / previous_median
+        direction = sample_trend_direction(delta)
+        sample_count = len(current_prices)
+        confidence = sample_trend_confidence(sample_count, previous_prices, delta)
+        reasons = sample_trend_reasons(sample_count, previous_prices, delta)
+        latest = sorted(current_rows, key=lambda row: str(row.get("observed_at") or ""), reverse=True)[0]
+        trends.append(
+            {
+                "id": f"trend:{brand}:{pattern}:{platform}",
+                "feed_type": "trend",
+                "kind": direction,
+                "trend": direction,
+                "brand": brand,
+                "pattern": pattern,
+                "platform": platform,
+                "title": f"{brand} {pattern} {direction}",
+                "meta": platform,
+                "time": str(latest.get("observed_at") or ""),
+                "url": str(latest.get("url") or ""),
+                "confidence": confidence,
+                "avg_premium_rate": round(delta, 4),
+                "price_delta": round(delta, 4),
+                "sample_count": sample_count,
+                "reason_codes": reasons,
+                "visual": trend_visual(brand, direction),
+            }
+        )
+    return sorted(trends, key=lambda row: (int(row["confidence"]), abs(float(row.get("price_delta") or 0))), reverse=True)
 
 
 def trend_brand_rows(market_summary: dict[str, Any], brand_weights: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -189,3 +247,47 @@ def trend_visual(alias: str, direction: str) -> dict[str, str]:
         "tone": direction or "trend",
         "image_url": "",
     }
+
+
+def parse_sample_date(value: object) -> date | None:
+    text = str(value or "")[:10]
+    try:
+        return datetime.strptime(text, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def in_window(value: object, start: date, end: date) -> bool:
+    parsed = parse_sample_date(value)
+    return parsed is not None and start <= parsed <= end
+
+
+def sample_trend_direction(delta: float) -> str:
+    if delta >= 0.15:
+        return "rising"
+    if delta <= -0.15:
+        return "cooling"
+    return "stable"
+
+
+def sample_trend_confidence(sample_count: int, previous_prices: list[float], delta: float) -> int:
+    sample_points = min(60, sample_count * 15)
+    previous_points = 20 if previous_prices else 0
+    movement_points = min(20, round(abs(delta) * 60))
+    if sample_count < 3:
+        return min(49, sample_points + previous_points + movement_points)
+    return min(100, sample_points + previous_points + movement_points)
+
+
+def sample_trend_reasons(sample_count: int, previous_prices: list[float], delta: float) -> list[str]:
+    reasons = ["sample_supported" if sample_count >= 3 else "low_confidence"]
+    if previous_prices:
+        reasons.append("previous_window")
+    reasons.append(
+        "premium_rising"
+        if delta >= 0.15
+        else "premium_cooling"
+        if delta <= -0.15
+        else "premium_stable"
+    )
+    return reasons

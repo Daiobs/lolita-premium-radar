@@ -9,6 +9,7 @@ from types import FrameType
 from typing import Callable
 
 from .brands import default_brand_weights_path
+from .collector import CollectorJob, collector_for_type, run_collector_job
 from .config import default_config_path
 from .core import FeedOsAudit, audit_feed_os
 from .market import default_market_observations_path
@@ -24,6 +25,7 @@ from .runner import (
     verify_check_loop,
 )
 from .web import DEFAULT_WEB_PORT, run_web
+from .storage import connect, list_collector_jobs
 
 
 DEFAULT_DB_PATH = Path(".data") / "lolita_radar.sqlite"
@@ -75,6 +77,10 @@ def main(argv: list[str] | None = None) -> int:
     health_parser = subparsers.add_parser("health", help="show latest source run health")
     health_parser.add_argument("--config", type=Path, default=default_config_path())
     health_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+
+    collect_parser = subparsers.add_parser("collect", help="run enabled server collectors")
+    collect_parser.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+    collect_parser.add_argument("--job", help="collector job name to run")
 
     loop_parser = subparsers.add_parser("run-loop", help="run repeated feed checks for long-running operation")
     loop_parser.add_argument("--config", type=Path, default=default_config_path())
@@ -151,6 +157,26 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "health":
         print(format_health_rows(latest_source_health(config_path=args.config, db_path=args.db)))
         return 0
+    if args.command == "collect":
+        connection = connect(args.db)
+        try:
+            jobs = list_collector_jobs(connection, enabled_only=True)
+            if args.job:
+                jobs = [job for job in jobs if job["name"] == args.job]
+            runs = []
+            for row in jobs:
+                job = CollectorJob(
+                    name=str(row["name"]),
+                    collector_type=str(row["collector_type"]),
+                    url=str(row.get("url") or ""),
+                    enabled=bool(row.get("enabled", True)),
+                    options=dict(row.get("options") or {}),
+                )
+                runs.append(run_collector_job(connection, job, collector_for_type(job.collector_type)))
+        finally:
+            connection.close()
+        print(format_collector_runs(runs))
+        return 0 if all(run.ok for run in runs) else 1
     if args.command == "run-loop":
         header = "cycle | checked_at | ok | event_count | error_message"
         loop_started_at = utc_now_iso()
@@ -254,6 +280,17 @@ def format_inspect_results(results: list[InspectResult], limit: int) -> str:
             lines.append("items: []")
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
+
+
+def format_collector_runs(runs: list) -> str:
+    if not runs:
+        return "collector_runs: []"
+    lines = ["job | type | status | item_count | latency_ms | error"]
+    for run in runs:
+        lines.append(
+            f"{run.job_name} | {run.collector_type} | {run.status} | {run.item_count} | {run.latency_ms} | {run.error_message}"
+        )
+    return "\n".join(lines)
 
 
 def write_exit_file(path: Path | None, exit_code: int) -> None:
