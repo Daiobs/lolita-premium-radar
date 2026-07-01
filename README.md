@@ -163,12 +163,15 @@ python -m lolita_radar.cli health
 Run enabled server collectors:
 
 ```bash
+python -m lolita_radar.cli seed-collectors
 python -m lolita_radar.cli collect
 ```
 
 Collector jobs are stored in SQLite. `official_shop` writes `shop_items` and
-`shop_events`; `fixture_market` writes `market_samples`. A failed collector run
-is recorded as failed or degraded and does not stop other collectors.
+`shop_events`; `closet_child_market` writes public item cards to both
+`shop_events` and `market_samples`; `fixture_market` writes `market_samples`.
+A failed collector run is recorded as failed or degraded and does not stop other
+collectors.
 
 ```python
 from pathlib import Path
@@ -339,9 +342,9 @@ Collector tables:
 Supported MVP collector types:
 
 - `official_shop`: parses public product/listing cards into `shop_items`.
-  Intended first targets are BABY official store new/reservation pages,
-  Metamorphose official new arrivals, Wunderwelt new arrivals, and Closet Child
-  Lolita new arrivals.
+  Default jobs include public BABY/BABY SF Shopify product JSON endpoints.
+- `closet_child_market`: parses public Closet Child item cards into Drop Feed
+  items and secondhand market samples.
 - `fixture_market`: fixture-backed market sample collector for tests and local
   validation.
 
@@ -351,7 +354,6 @@ Placeholder collector types are present but disabled by default:
 - `yahoo_auction_market`
 - `lace_market`
 - `wunderwelt_market`
-- `closet_child_market`
 - `taobao_public_shop`
 - `goofish_market`
 

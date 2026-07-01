@@ -24,6 +24,7 @@ class ReadmeTests(unittest.TestCase):
         self.assertIn("pull_request", readme)
         self.assertIn("Feed OS audit JSON", readme)
         self.assertIn("collector/   server-side collectors", readme)
+        self.assertIn("python -m lolita_radar.cli seed-collectors", readme)
         self.assertIn("python -m lolita_radar.cli collect", readme)
         self.assertIn("collector_jobs", readme)
         self.assertIn("shop_items", readme)

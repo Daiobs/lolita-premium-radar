@@ -232,7 +232,8 @@ def shop_event_card(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def shop_event_reasons(event_type: str, keywords: list[str], availability: str) -> list[str]:
-    reasons = [event_type.lower()]
+    normalized_event = event_type.lower()
+    reasons = ["new_shop_item" if normalized_event == "drop" else normalized_event]
     if keywords:
         reasons.append("keyword_match")
     if availability in {"in_stock", "available"}:
@@ -244,7 +245,7 @@ def priority_for_drop(keywords: list[str], availability: str) -> str:
     lowered = {keyword.casefold() for keyword in keywords}
     if availability in {"in_stock", "available"} and lowered & {"jsk", "op", "予約", "preorder"}:
         return "high"
-    return "normal"
+    return "medium"
 
 
 def purchase_assist_alert(row: dict[str, Any]) -> dict[str, Any] | None:

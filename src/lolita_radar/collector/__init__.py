@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from .base import BaseCollector, CollectorJob, CollectorResult, CollectorRun
+from .closet_child import ClosetChildMarketCollector
+from .defaults import DEFAULT_COLLECTOR_JOBS
 from .official_shop import OfficialShopCollector
 from .market import FixtureMarketCollector
 from .placeholders import (
-    ClosetChildMarketCollector,
     GoofishMarketCollector,
     LaceMarketCollector,
     MercariMarketCollector,
@@ -21,6 +22,7 @@ __all__ = [
     "CollectorRun",
     "OfficialShopCollector",
     "FixtureMarketCollector",
+    "DEFAULT_COLLECTOR_JOBS",
     "MercariMarketCollector",
     "YahooAuctionMarketCollector",
     "LaceMarketCollector",

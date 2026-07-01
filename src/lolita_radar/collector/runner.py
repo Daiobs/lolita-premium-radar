@@ -4,10 +4,10 @@ from time import monotonic
 
 from ..storage import diff_and_store_shop_items, insert_market_samples, record_collector_run
 from .base import BaseCollector, CollectorJob, CollectorRun
+from .closet_child import ClosetChildMarketCollector
 from .market import FixtureMarketCollector
 from .official_shop import OfficialShopCollector
 from .placeholders import (
-    ClosetChildMarketCollector,
     GoofishMarketCollector,
     LaceMarketCollector,
     MercariMarketCollector,

@@ -3,7 +3,14 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from lolita_radar.collector import CollectorJob, FixtureMarketCollector, OfficialShopCollector, run_collector_job
+from lolita_radar.collector import (
+    DEFAULT_COLLECTOR_JOBS,
+    ClosetChildMarketCollector,
+    CollectorJob,
+    FixtureMarketCollector,
+    OfficialShopCollector,
+    run_collector_job,
+)
 from lolita_radar.models import ShopItem
 from lolita_radar.storage import (
     connect,
@@ -37,6 +44,72 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(first.availability, "in_stock")
         self.assertEqual(first.matched_keywords, ["JSK", "Reservation"])
         self.assertEqual(first.priority, "high")
+
+    def test_official_shop_collector_parses_shopify_products_json(self) -> None:
+        result = OfficialShopCollector().collect(
+            CollectorJob(
+                name="baby_json",
+                collector_type="official_shop",
+                url="tests/fixtures/shopify_products.json",
+                options={
+                    "parser": "shopify_products_json",
+                    "shop_name": "BABY Official Store",
+                    "platform": "official_store",
+                    "currency": "JPY",
+                    "base_url": "https://store.babyssb.co.jp/en",
+                    "keywords": ["JSK", "Reservation"],
+                },
+            )
+        )
+
+        self.assertEqual(len(result.shop_items), 2)
+        first = result.shop_items[0]
+        self.assertEqual(first.title, "Royal Bear JSK Reservation")
+        self.assertEqual(first.price, "32780")
+        self.assertEqual(first.currency, "JPY")
+        self.assertEqual(first.availability, "in_stock")
+        self.assertEqual(first.item_url, "https://store.babyssb.co.jp/en/products/royal-bear-jsk-reservation")
+        self.assertEqual(first.image_url, "https://example.com/royal-bear.webp")
+        self.assertEqual(first.observed_at, "2026-07-01")
+        self.assertEqual(first.priority, "high")
+
+    def test_closet_child_collector_parses_real_item_cards(self) -> None:
+        result = ClosetChildMarketCollector().collect(
+            CollectorJob(
+                name="closet_child",
+                collector_type="closet_child_market",
+                url="tests/fixtures/closet_child_new.html",
+                options={
+                    "shop_name": "Closet Child",
+                    "platform": "closet_child",
+                    "currency": "JPY",
+                    "observed_at": "2026-07-01",
+                    "keywords": ["ワンピース", "Angelic Pretty"],
+                },
+            )
+        )
+
+        self.assertEqual(len(result.shop_items), 2)
+        self.assertEqual(len(result.market_samples), 2)
+        first = result.shop_items[0]
+        self.assertEqual(first.title, "Moi-meme-Moitie / サイドギャザー十字架ワンピース")
+        self.assertEqual(first.price, "77000")
+        self.assertEqual(first.currency, "JPY")
+        self.assertEqual(first.availability, "in_stock")
+        self.assertEqual(first.item_url, "https://www.closetchildonlineshop.com/product/943274")
+        self.assertEqual(first.image_url, "https://www.closetchildonlineshop.com/data/closetchild/product/20260701.jpg")
+        self.assertEqual(first.matched_keywords, ["ワンピース"])
+        sample = result.market_samples[0]
+        self.assertEqual(sample.platform, "closet_child")
+        self.assertEqual(sample.brand_alias, "MMM")
+        self.assertEqual(sample.asking_price, 77000.0)
+        self.assertEqual(sample.condition, "used")
+
+    def test_default_collector_jobs_include_real_public_sources(self) -> None:
+        names = {str(job["name"]) for job in DEFAULT_COLLECTOR_JOBS}
+        self.assertIn("baby_official_store", names)
+        self.assertIn("baby_sf_new_arrivals", names)
+        self.assertIn("closet_child_new_arrivals", names)
 
     def test_shop_item_storage_creates_drop_price_and_stock_events(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
