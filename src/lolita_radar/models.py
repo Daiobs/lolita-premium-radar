@@ -20,6 +20,12 @@ class EventType(str, Enum):
     CONTENT_CHANGED = "content_changed"
 
 
+class ShopEventType(str, Enum):
+    DROP = "DROP"
+    PRICE_CHANGED = "PRICE_CHANGED"
+    STOCK_CHANGED = "STOCK_CHANGED"
+
+
 @dataclass(frozen=True)
 class RadarItem:
     source: str
@@ -50,6 +56,55 @@ class RadarEvent:
     created_at: str = ""
 
 
+@dataclass(frozen=True)
+class ShopItem:
+    shop_name: str
+    platform: str
+    title: str
+    price: str = ""
+    currency: str = ""
+    image_url: str = ""
+    item_url: str = ""
+    availability: str = ""
+    matched_keywords: list[str] = field(default_factory=list)
+    observed_at: str = ""
+    sale_at: str = ""
+    remind_at: str = ""
+    purchase_url: str = ""
+    priority: str = ""
+
+    @property
+    def title_hash(self) -> str:
+        return title_hash(self.title)
+
+    @property
+    def identity_key(self) -> str:
+        return shop_item_identity_key(self.item_url, self.title)
+
+
+@dataclass(frozen=True)
+class ShopEvent:
+    event_type: ShopEventType
+    item: ShopItem
+    previous_price: str = ""
+    previous_availability: str = ""
+    created_at: str = ""
+
+
+@dataclass(frozen=True)
+class MarketSample:
+    platform: str
+    brand_alias: str
+    pattern: str
+    title: str
+    asking_price: float
+    currency: str = ""
+    condition: str = ""
+    url: str = ""
+    image_url: str = ""
+    observed_at: str = ""
+
+
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -62,6 +117,16 @@ def item_identity_hash(source: str, url: str, title: str) -> str:
 def item_content_hash(content: str) -> str:
     normalized = " ".join(str(content or "").split())
     return sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def title_hash(title: str) -> str:
+    normalized = " ".join(str(title or "").strip().lower().split())
+    return sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def shop_item_identity_key(item_url: str, title: str) -> str:
+    value = str(item_url or "").strip().lower() or title_hash(title)
+    return sha256(value.encode("utf-8")).hexdigest()
 
 
 def classify_title(title: str) -> ItemStatus:

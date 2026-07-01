@@ -4,7 +4,7 @@ from typing import Any
 
 from ..shop import build_drop_signal
 from ..source_dates import CURRENT_SOURCE_WINDOW_DAYS, is_current_source_date
-from ..trend import build_trend_feed
+from ..trend import build_market_sample_trends, build_trend_feed
 
 
 RELEASE_SOURCES = {"angelic_pretty", "baby_ssb", "alice_and_the_pirates", "metamorphose", "moitie"}
@@ -22,11 +22,24 @@ def build_home_feed(
     source_runs: list[dict[str, Any]],
     brand_weights: list[dict[str, Any]] | None = None,
     source_urls: dict[str, str] | None = None,
+    shop_events: list[dict[str, Any]] | None = None,
+    market_samples: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     release = release_feed(events, items)
-    drop = drop_feed(events, items)
-    trend = build_trend_feed(market_summary, momentum, events, brand_weights=brand_weights or [])
-    alert = alert_feed(events, market_alerts, source_runs, source_urls=source_urls or {})
+    drop = drop_feed(events, items, shop_events=shop_events or [])
+    trend = (
+        build_market_sample_trends(market_samples)
+        if market_samples
+        else build_trend_feed(market_summary, momentum, events, brand_weights=brand_weights or [])
+    )
+    alert = alert_feed(
+        events,
+        market_alerts,
+        source_runs,
+        source_urls=source_urls or {},
+        shop_events=shop_events or [],
+        trends=trend,
+    )
     streams = {
         "release": release,
         "drop": drop,
@@ -59,7 +72,13 @@ def release_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> l
     return unique_cards(sort_cards(rows))[:HOME_LINK_LIMIT]
 
 
-def drop_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def drop_feed(
+    events: list[dict[str, Any]],
+    items: list[dict[str, Any]],
+    shop_events: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    if shop_events:
+        return unique_cards(sort_cards([shop_event_card(row) for row in shop_events]))[:HOME_LINK_LIMIT]
     rows = [drop_card(row) for row in events if is_current_drop_row(row)]
     rows.extend(drop_card(row) for row in items if is_current_drop_row(row))
     return unique_cards(sort_cards(rows))[:HOME_LINK_LIMIT]
@@ -86,6 +105,8 @@ def alert_feed(
     market_alerts: dict[str, Any],
     source_runs: list[dict[str, Any]],
     source_urls: dict[str, str] | None = None,
+    shop_events: list[dict[str, Any]] | None = None,
+    trends: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     alerts = []
     urls = source_urls or {}
@@ -115,6 +136,31 @@ def alert_feed(
             }
         )
         market_count += 1
+    for event in shop_events or []:
+        assist = purchase_assist_alert(event)
+        if assist:
+            alerts.append(assist)
+    for trend in trends or []:
+        if trend.get("trend") == "rising" and int(trend.get("confidence") or 0) >= 70:
+            alerts.append(
+                {
+                    "id": f"alert:trend:{trend.get('id')}",
+                    "feed_type": "alert",
+                    "kind": "high_premium",
+                    "brand": str(trend.get("brand") or ""),
+                    "title": str(trend.get("title") or "Market trend rising"),
+                    "title_zh": f"高溢价: {trend.get('title')}",
+                    "title_ja": f"高プレミア: {trend.get('title')}",
+                    "use_localized_title": True,
+                    "meta": str(trend.get("meta") or ""),
+                    "premium_rate": trend.get("price_delta", ""),
+                    "time": str(trend.get("time") or ""),
+                    "url": str(trend.get("url") or ""),
+                    "reason_codes": ["high_premium", "market_trend"],
+                    "visual": visual_token("alert", str(trend.get("brand") or "Market"), "high_premium"),
+                    "cta": "Open shop manually",
+                }
+            )
     for run in latest_source_runs_by_source(source_runs):
         if str(run.get("status") or "") in {"failed", "degraded"}:
             source = str(run.get("source") or "")
@@ -141,6 +187,100 @@ def alert_feed(
                 }
             )
     return unique_cards(sort_cards(alerts))[:HOME_LINK_LIMIT]
+
+
+def shop_event_card(row: dict[str, Any]) -> dict[str, Any]:
+    title = str(row.get("title") or "")
+    keywords = [str(keyword) for keyword in row.get("matched_keywords", [])] if isinstance(row.get("matched_keywords"), list) else []
+    shop = str(row.get("shop_name") or "")
+    platform = str(row.get("platform") or "")
+    event_type = str(row.get("event_type") or "DROP")
+    availability = str(row.get("availability") or "")
+    price = str(row.get("price") or "")
+    currency = str(row.get("currency") or "")
+    url = str(row.get("purchase_url") or row.get("item_url") or "")
+    return {
+        "id": f"drop:{row.get('identity_key') or row.get('title_hash') or url or title}",
+        "feed_type": "drop",
+        "kind": event_type.lower(),
+        "type": event_type,
+        "brand": shop,
+        "shop": shop,
+        "platform": platform,
+        "item": title,
+        "title": title,
+        "title_zh": title_hint(title, "shop_news", " ".join(keywords), language="zh"),
+        "title_ja": title_hint(title, "shop_news", " ".join(keywords), language="ja"),
+        "meta": " · ".join(part for part in (shop, platform) if part),
+        "time": str(row.get("observed_at") or row.get("created_at") or ""),
+        "time_kind": "published",
+        "url": url,
+        "price": " ".join(part for part in (price, currency) if part),
+        "availability": availability,
+        "keywords": keywords,
+        "urgency": str(row.get("priority") or priority_for_drop(keywords, availability)),
+        "reason_codes": shop_event_reasons(event_type, keywords, availability),
+        "source_context": " · ".join(part for part in (availability, price, currency) if part),
+        "source_label": platform or shop,
+        "sale_at": str(row.get("sale_at") or ""),
+        "remind_at": str(row.get("remind_at") or ""),
+        "purchase_url": url,
+        "priority": str(row.get("priority") or ""),
+        "visual": visual_token("drop", shop or "Shop", "shop_news", image_url=str(row.get("image_url") or "")),
+        "cta": "Open shop manually",
+    }
+
+
+def shop_event_reasons(event_type: str, keywords: list[str], availability: str) -> list[str]:
+    normalized_event = event_type.lower()
+    reasons = ["new_shop_item" if normalized_event == "drop" else normalized_event]
+    if keywords:
+        reasons.append("keyword_match")
+    if availability in {"in_stock", "available"}:
+        reasons.append("stock_available")
+    return reasons
+
+
+def priority_for_drop(keywords: list[str], availability: str) -> str:
+    lowered = {keyword.casefold() for keyword in keywords}
+    if availability in {"in_stock", "available"} and lowered & {"jsk", "op", "予約", "preorder"}:
+        return "high"
+    return "medium"
+
+
+def purchase_assist_alert(row: dict[str, Any]) -> dict[str, Any] | None:
+    event_type = str(row.get("event_type") or "")
+    availability = str(row.get("availability") or "")
+    priority = str(row.get("priority") or "")
+    title = str(row.get("title") or "")
+    url = str(row.get("purchase_url") or row.get("item_url") or "")
+    if row.get("sale_at") and row.get("remind_at"):
+        kind = "sale_window"
+        title_zh = f"发售窗口即将开始: {title}"
+    elif event_type == "DROP" and priority == "high":
+        kind = "high_priority_drop"
+        title_zh = f"高优先级到货: {title}"
+    elif event_type == "STOCK_CHANGED" and availability in {"in_stock", "available"}:
+        kind = "stock_available"
+        title_zh = f"库存可用: {title}"
+    else:
+        return None
+    return {
+        "id": f"alert:{kind}:{row.get('identity_key') or url or title}",
+        "feed_type": "alert",
+        "kind": kind,
+        "brand": str(row.get("shop_name") or ""),
+        "title": title,
+        "title_zh": title_zh,
+        "title_ja": title,
+        "use_localized_title": True,
+        "meta": str(row.get("platform") or ""),
+        "time": str(row.get("remind_at") or row.get("observed_at") or row.get("created_at") or ""),
+        "url": url,
+        "reason_codes": [kind],
+        "visual": visual_token("alert", str(row.get("shop_name") or "Shop"), kind),
+        "cta": "Open shop manually",
+    }
 
 
 def latest_source_runs_by_source(source_runs: list[dict[str, Any]]) -> list[dict[str, Any]]:

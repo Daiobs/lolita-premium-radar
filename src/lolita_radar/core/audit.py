@@ -848,7 +848,7 @@ def alert_kind_boundary_problem(row: dict[str, Any]) -> str:
     if isinstance(reason_codes, list) and "source_health" in reason_codes:
         return ""
     kind = str(row.get("kind") or "")
-    if kind == "high_premium":
+    if kind in {"high_premium", "sale_window", "high_priority_drop", "stock_available"}:
         return ""
     return f"stream alert row has unsupported system alert kind: {kind}"
 

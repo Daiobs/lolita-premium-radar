@@ -26,6 +26,7 @@ Product structure:
 
 ```text
 lolita-radar
+├── collector/   server-side collectors for public shop and market pages
 ├── feed/        home feed stream
 ├── trend/       rule-based premium trend analysis
 ├── shop/        public shop and item drop model
@@ -39,11 +40,16 @@ The current OS includes:
 - Feed home with Release, Drop, Trend, and Alert streams.
 - Rule-based trend engine with rising/stable/cooling, confidence, price_delta,
   and reasons.
-- Shop -> Item model for public proxy-shop/Taobao-style DROP signals.
+- Server Collector MVP for public shop item cards and fixture-backed market
+  samples.
+- Shop -> Item model for official-shop, secondhand-shop, and public item card
+  DROP signals.
 - Official brand adapters for Angelic Pretty, BABY, AATP, Metamorphose, and
   Moi-meme-Moitie public release/news pages.
 - `GenericPageAdapter` for arbitrary public pages with keyword matching.
-- SQLite `items`, `events`, and `source_runs` tables.
+- SQLite `items`, `events`, `source_runs`, `collector_jobs`,
+  `collector_runs`, `shop_sources`, `shop_items`, `shop_events`,
+  `market_sources`, and `market_samples` tables.
 - Deduplication by `source + url/title hash`.
 - `new_item` events for first-seen items.
 - `update` events when title or status changes.
@@ -152,6 +158,37 @@ Show latest source health:
 
 ```bash
 python -m lolita_radar.cli health
+```
+
+Run enabled server collectors:
+
+```bash
+python -m lolita_radar.cli seed-collectors
+python -m lolita_radar.cli collect
+```
+
+Collector jobs are stored in SQLite. `official_shop` writes `shop_items` and
+`shop_events`; `closet_child_market` writes public item cards to both
+`shop_events` and `market_samples`; `fixture_market` writes `market_samples`.
+A failed collector run is recorded as failed or degraded and does not stop other
+collectors.
+
+```python
+from pathlib import Path
+from lolita_radar.storage import connect, upsert_collector_job
+
+connection = connect(Path(".data/lolita_radar.sqlite"))
+upsert_collector_job(
+    connection,
+    name="baby_official_new",
+    collector_type="official_shop",
+    url="tests/fixtures/official_shop_products.html",
+    options={
+        "shop_name": "BABY Official Store",
+        "platform": "official_store",
+        "keywords": ["JSK", "OP", "Reservation", "予約"],
+    },
+)
 ```
 
 Run a 24-hour lightweight check loop:
@@ -265,10 +302,11 @@ Trend `release_activity` uses the same source-date window.
 The feed app renders four lightweight streams:
 
 - Release Feed: brand release, preorder, and restock events from AP, BABY, AATP, Meta, and MMM.
-- Drop Feed: first-seen public proxy-shop or Taobao-style Shop -> Item links from `generic_page` sources.
-- Trend Feed: rule-based rising/stable/cooling premium signals with confidence, price_delta, and reason codes.
+- Drop Feed: first-seen public `shop_events` from official-shop and public item-card collectors.
+- Trend Feed: rule-based rising/stable/cooling premium signals from `market_samples` with confidence, price_delta, and reason codes.
 - Alert Feed: system-level market and source-health warnings such as
-  high-premium signals, sample gaps, degraded sources, and failed sources.
+  high-premium signals, sale-window reminders, high-priority drops, stock
+  availability, degraded sources, and failed sources.
 
 Public Web API responses are also Feed OS shaped:
 
@@ -281,6 +319,49 @@ Public Web API responses are also Feed OS shaped:
   the public Web API.
 
 No AI/ML model, checkout automation, login automation, CAPTCHA bypass, queue bypass, or risk-control bypass is included.
+
+## Server Collector MVP
+
+Collectors are server-side monitors for public pages. They only fetch, parse,
+structure, compare, persist, and alert. They never add to cart, submit orders,
+pay, reserve queue slots, bypass platform controls, or manage account pools.
+Every purchase-related CTA must open a source URL for human review and manual
+action. The UI CTA for purchase-assist cards is `Open shop manually`.
+
+Collector tables:
+
+- `collector_jobs`: configured collector name, type, URL, options, enabled flag,
+  consecutive failures, and degraded state.
+- `collector_runs`: each run's ok/degraded/failed status, latency, item count,
+  and error message.
+- `shop_sources`, `shop_items`, `shop_events`: public shop item state and
+  derived `DROP`, `PRICE_CHANGED`, and `STOCK_CHANGED` events.
+- `market_sources`, `market_samples`: secondhand market samples used by Trend
+  Feed.
+
+Supported MVP collector types:
+
+- `official_shop`: parses public product/listing cards into `shop_items`.
+  Default jobs include public BABY/BABY SF Shopify product JSON endpoints.
+- `closet_child_market`: parses public Closet Child item cards into Drop Feed
+  items and secondhand market samples.
+- `fixture_market`: fixture-backed market sample collector for tests and local
+  validation.
+
+Placeholder collector types are present but disabled by default:
+
+- `mercari_market`
+- `yahoo_auction_market`
+- `lace_market`
+- `wunderwelt_market`
+- `taobao_public_shop`
+- `goofish_market`
+
+Taobao and Goofish/Xianyu are intentionally placeholders in this phase. Stable
+collection may require an authorized session, platform permission, browser
+fallback, or a public API. The default project does not include login
+automation, automated purchasing, queue bypass, risk-control bypass, proxy
+pools, or account pools.
 
 ## GitHub Actions
 
@@ -343,6 +424,26 @@ python -m unittest discover -s tests
 - Optional adapter for Innocent World public news pages.
 - Disabled in the default config until the target public URL is confirmed.
 
+`official_shop`
+
+- Parses public product cards into `ShopItem` rows.
+- Stores `shop_name`, `platform`, `title`, `price`, `currency`, `image_url`,
+  `item_url`, `availability`, `matched_keywords`, `observed_at`, optional
+  `sale_at`, `remind_at`, `purchase_url`, and `priority`.
+- First-seen item URL/title hash creates a `DROP` event.
+- Price changes create `PRICE_CHANGED`.
+- Availability changes create `STOCK_CHANGED`.
+- Drop Feed renders image, title, price, shop, platform, URL, and keyword chips.
+
+`fixture_market`
+
+- Parses fixture market cards into `MarketSample` rows.
+- Trend Feed groups samples by `brand_alias + pattern + platform`.
+- The current 7-day median asking price is compared with the previous 7-day
+  median.
+- `delta >= 15%` is `rising`; `delta <= -15%` is `cooling`; otherwise `stable`.
+- `sample_count < 3` is low confidence.
+
 `generic_page`
 
 - Fetches any public URL.
@@ -367,11 +468,12 @@ python -m unittest discover -s tests
 - `max_content_chars` limits stored/hashable text size.
 - `title_template` lets a source keep a stable item title.
 
-Drop Feed treats non-page-level `generic_page` rows as public Shop -> Item
-signals. DROP candidates require a first-seen `new_item` event, concrete item
-context, and one of the configured item/action keywords such as `JSK`, `OP`,
-`再贩`, `预约`, or `尾款`. Explicit `content_changed` rows are kept out of Drop
-Feed so copy edits and outer-page noise do not masquerade as new items.
+`generic_page` remains available for public page monitoring, but Drop Feed now
+prefers structured `shop_events` from collectors. Legacy `generic_page` DROP
+candidates still require a first-seen `new_item` event, concrete item context,
+and one of the configured item/action keywords such as `JSK`, `OP`, `再贩`,
+`预约`, or `尾款`. Explicit `content_changed` rows are kept out of Drop Feed so
+copy edits and outer-page noise do not masquerade as new items.
 Reservation/restock keywords are ranked as higher urgency.
 
 ## Notifications

@@ -23,7 +23,15 @@ from .market import (
 )
 from .models import RadarEvent
 from .runner import check_sources
-from .storage import connect, list_events, list_items, list_source_runs, storage_counts
+from .storage import (
+    connect,
+    list_events,
+    list_items,
+    list_market_samples,
+    list_shop_events,
+    list_source_runs,
+    storage_counts,
+)
 
 
 DEFAULT_WEB_PORT = 8766
@@ -208,6 +216,8 @@ def get_feed_state(
         counts = storage_counts(connection)
         items = list_items(connection, limit=100)
         events = list_events(connection, limit=100)
+        shop_events = list_shop_events(connection, limit=100)
+        market_samples = list_market_samples(connection, limit=500)
         source_runs = enrich_source_runs(list_source_runs(connection, limit=50))
     finally:
         connection.close()
@@ -237,9 +247,13 @@ def get_feed_state(
             source_runs,
             brand_weights,
             source_urls={source.name: source.url for source in sources.values()},
+            shop_events=shop_events,
+            market_samples=market_samples,
         ),
         "sources": [source_to_dict(source) for source in sources.values()],
         "source_runs": source_runs,
+        "shop_events": shop_events,
+        "market_samples": market_samples,
         "items": items,
         "events": events,
     }
@@ -672,7 +686,7 @@ FEED_INDEX_HTML = r"""<!doctype html>
             ${meta}
             ${detail}
             ${reasons}
-            <div class="foot"><span>${escapeHtml(timeLabel(row))}</span><span class="cta">${hasUrl ? text.cta : text.noLink}</span></div>
+            <div class="foot"><span>${escapeHtml(timeLabel(row))}</span><span class="cta">${hasUrl ? escapeHtml(row.cta || text.cta) : text.noLink}</span></div>
           </div>
         </${tag}>`;
       }
