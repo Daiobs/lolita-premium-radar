@@ -371,6 +371,14 @@ FEED_INDEX_HTML = r"""<!doctype html>
       .summary-card strong { display: block; font-size: 22px; line-height: 1; }
       .summary-card span { color: var(--muted); }
       .filters { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; }
+      .quick-filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 12px; }
+      .quick-filters select, .quick-filters button {
+        min-height: 32px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 0 10px;
+      }
       .feed-stream { display: grid; gap: 10px; }
       .feed-card {
         display: grid;
@@ -381,6 +389,9 @@ FEED_INDEX_HTML = r"""<!doctype html>
       }
       .feed-card:hover { border-color: #d5b5c0; transform: translateY(-1px); }
       .feed-card.no-link { cursor: default; }
+      .feed-card.trend-card {
+        grid-template-columns: minmax(0, 1fr);
+      }
       .visual {
         min-height: 74px;
         border: 1px solid rgba(37, 31, 40, .08);
@@ -395,9 +406,23 @@ FEED_INDEX_HTML = r"""<!doctype html>
       }
       .visual.drop { background: linear-gradient(145deg, var(--teal), #335d59); }
       .visual.trend { background: linear-gradient(145deg, var(--blue), #334f67); }
+      .trend-card .visual.trend {
+        min-height: 34px;
+        grid-auto-flow: column;
+        grid-template-columns: auto 1fr;
+        align-content: center;
+        justify-items: start;
+        justify-content: start;
+        padding: 0 12px;
+      }
+      .trend-card .visual.trend strong { font-size: 14px; }
+      .trend-card .visual.trend span { font-size: 12px; }
       .visual.alert { background: linear-gradient(145deg, var(--warn), #7b3431); }
       .visual.has-image { background: #f2e8ec; }
       .visual img { width: 100%; height: 100%; min-height: 74px; object-fit: cover; display: block; }
+      .visual.drop.has-image { background: #fff; align-content: stretch; justify-items: stretch; }
+      .visual.drop.has-image img { object-fit: contain; padding: 4px; box-sizing: border-box; background: #fff; }
+      .visual.image-failed { background: linear-gradient(145deg, var(--teal), #335d59); }
       .visual strong { font: 700 18px/1 Georgia, "Times New Roman", serif; }
       .visual span { font-size: 11px; opacity: .9; }
       .feed-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 8px; }
@@ -413,6 +438,16 @@ FEED_INDEX_HTML = r"""<!doctype html>
       .meta { margin: 7px 0 0; color: var(--muted); overflow-wrap: anywhere; }
       .reasons { margin: 7px 0 0; color: var(--blue); font-size: 12px; overflow-wrap: anywhere; }
       .detail-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      .trust-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+      .confidence-bar { width: 86px; height: 7px; border-radius: 999px; background: #eadce2; overflow: hidden; }
+      .confidence-bar span { display: block; height: 100%; background: var(--blue); }
+      .evidence-list { display: grid; gap: 4px; margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+      .evidence-list p { margin: 0; overflow-wrap: anywhere; }
+      .evidence-list a { color: var(--blue); }
+      .card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      .card-actions button { min-height: 28px; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 0 8px; color: var(--ink); }
+      .feed-card.is-dismissed { opacity: .58; }
+      .feed-card.is-watched { border-color: var(--rose); }
       .chip {
         border: 1px solid var(--line);
         border-radius: 999px;
@@ -433,7 +468,9 @@ FEED_INDEX_HTML = r"""<!doctype html>
         .actions { width: 100%; }
         .actions button { flex: 1; }
         .feed-card { grid-template-columns: 58px minmax(0, 1fr); gap: 10px; }
+        .feed-card.trend-card { grid-template-columns: minmax(0, 1fr); }
         .visual { min-height: 58px; }
+        .trend-card .visual.trend { min-height: 32px; }
         .visual img { min-height: 58px; }
       }
     </style>
@@ -464,6 +501,12 @@ FEED_INDEX_HTML = r"""<!doctype html>
         <button data-filter="trend" type="button"></button>
         <button data-filter="alert" type="button"></button>
       </nav>
+      <section class="quick-filters" aria-label="Quick filters">
+        <select id="brandFilter"></select>
+        <select id="platformFilter"></select>
+        <button id="stockFilter" type="button"></button>
+        <button id="watchFilter" type="button"></button>
+      </section>
       <section id="feedStream" class="feed-stream" aria-live="polite"></section>
     </main>
     <script>
@@ -499,6 +542,17 @@ FEED_INDEX_HTML = r"""<!doctype html>
           itemCount: "条目",
           priceDelta: "价差",
           sourceContext: "来源摘要",
+          allBrands: "全部品牌",
+          allPlatforms: "全部平台",
+          inStockOnly: "仅看有货",
+          watchedOnly: "仅看关注",
+          dataSource: "数据源",
+          sourceType: "来源类型",
+          askingTrend: "挂价趋势",
+          observe: "观察",
+          dismiss: "忽略",
+          watched: "已关注",
+          dismissed: "已忽略",
         },
         ja: {
           tagline: "ロリィタ発売情報と二次流通シグナル",
@@ -526,6 +580,17 @@ FEED_INDEX_HTML = r"""<!doctype html>
           itemCount: "件数",
           priceDelta: "価格差",
           sourceContext: "ソース要約",
+          allBrands: "全ブランド",
+          allPlatforms: "全プラットフォーム",
+          inStockOnly: "在庫ありのみ",
+          watchedOnly: "ウォッチのみ",
+          dataSource: "データ元",
+          sourceType: "ソース種別",
+          askingTrend: "出品価格トレンド",
+          observe: "ウォッチ",
+          dismiss: "非表示",
+          watched: "ウォッチ中",
+          dismissed: "非表示",
         },
       };
       const FILTER_TEXT = {
@@ -621,6 +686,11 @@ FEED_INDEX_HTML = r"""<!doctype html>
       let state = {};
       let activeFilter = "all";
       let language = localStorage.getItem("lolitaRadarLanguage") || "zh";
+      let brandFilter = "all";
+      let platformFilter = "all";
+      let inStockOnly = false;
+      let watchedOnly = false;
+      let cardState = JSON.parse(localStorage.getItem("lolitaRadarCardState") || "{}");
       async function api(path, options = {}) {
         const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
         if (!response.ok) throw new Error(await response.text());
@@ -643,6 +713,8 @@ FEED_INDEX_HTML = r"""<!doctype html>
         document.querySelectorAll("[data-filter]").forEach((button) => {
           button.textContent = FILTER_TEXT[language][button.dataset.filter] || button.dataset.filter;
         });
+        $("stockFilter").textContent = text.inStockOnly;
+        $("watchFilter").textContent = text.watchedOnly;
       }
       function render() {
         renderChrome();
@@ -651,7 +723,9 @@ FEED_INDEX_HTML = r"""<!doctype html>
         $("dropsCount").textContent = feed.summary?.drops ?? feed.streams?.drop?.length ?? 0;
         $("trendsCount").textContent = feed.summary?.trends || 0;
         $("alertsCount").textContent = feed.summary?.alerts || 0;
-        const rows = activeFilter === "all" ? (feed.all || []) : (feed.streams?.[activeFilter] || []);
+        renderQuickFilters(feed);
+        const rawRows = activeFilter === "all" ? (feed.all || []) : (feed.streams?.[activeFilter] || []);
+        const rows = applyQuickFilters(rawRows);
         const emptyLabel = FEED_LABELS[language][activeFilter] || activeFilter;
         $("feedStream").innerHTML = rows.length ? rows.map(cardHtml).join("") : `<div class="empty">${escapeHtml(TEXT[language].emptyPrefix)} ${escapeHtml(emptyLabel)}</div>`;
       }
@@ -659,10 +733,6 @@ FEED_INDEX_HTML = r"""<!doctype html>
         const type = row.feed_type || "alert";
         const text = TEXT[language];
         const hasUrl = Boolean(row.url);
-        const tag = hasUrl ? "a" : "article";
-        const attrs = hasUrl
-          ? `href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer"`
-          : `aria-disabled="true"`;
         const meta = metaHtml(row, text);
         const reasons = reasonHtml(row.reason_codes);
         const titleAlt = titleAltHtml(row);
@@ -671,11 +741,16 @@ FEED_INDEX_HTML = r"""<!doctype html>
         const visual = row.visual || {};
         const title = titleText(row);
         const imageUrl = visual.image_url || "";
+        const fallbackVisual = `<strong>${escapeHtml(visual.initials || row.brand || "-")}</strong><span>${escapeHtml(visual.mark || type.slice(0, 1).toUpperCase())}</span>`;
         const visualInner = imageUrl
-          ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy">`
-          : `<strong>${escapeHtml(visual.initials || row.brand || "-")}</strong><span>${escapeHtml(visual.mark || type.slice(0, 1).toUpperCase())}</span>`;
+          ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-initials="${escapeHtml(visual.initials || row.brand || "-")}" data-mark="${escapeHtml(visual.mark || type.slice(0, 1).toUpperCase())}" onerror="fallbackVisual(this)">`
+          : fallbackVisual;
         const kind = kindLabel(row);
-        return `<${tag} class="feed-card ${hasUrl ? "" : "no-link"}" ${attrs}>
+        const stateForCard = cardState[row.id] || {};
+        const cta = hasUrl
+          ? `<a class="cta" href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer">${escapeHtml(row.cta || text.cta)}</a>`
+          : `<span class="cta">${text.noLink}</span>`;
+        return `<article class="feed-card ${escapeHtml(type)}-card ${stateForCard.dismissed ? "is-dismissed" : ""} ${stateForCard.watched ? "is-watched" : ""} ${hasUrl ? "" : "no-link"}" ${hasUrl ? "" : `aria-disabled="true"`}>
           <div class="visual ${escapeHtml(type)} ${imageUrl ? "has-image" : ""}" aria-hidden="true">
             ${visualInner}
           </div>
@@ -689,10 +764,43 @@ FEED_INDEX_HTML = r"""<!doctype html>
             ${sourceContext}
             ${meta}
             ${detail}
+            ${trustHtml(row)}
+            ${evidenceHtml(row)}
             ${reasons}
-            <div class="foot"><span>${escapeHtml(timeLabel(row))}</span><span class="cta">${hasUrl ? escapeHtml(row.cta || text.cta) : text.noLink}</span></div>
+            ${actionHtml(row)}
+            <div class="foot"><span>${escapeHtml(timeLabel(row))}</span>${cta}</div>
           </div>
-        </${tag}>`;
+        </article>`;
+      }
+      function renderQuickFilters(feed) {
+        const rows = feed.all || [];
+        const brands = [...new Set(rows.map((row) => row.brand).filter(Boolean))].sort();
+        const platforms = [...new Set(rows.map((row) => row.platform || row.meta).filter(Boolean))].sort();
+        $("brandFilter").innerHTML = optionHtml("all", TEXT[language].allBrands, brandFilter) + brands.map((brand) => optionHtml(brand, brand, brandFilter)).join("");
+        $("platformFilter").innerHTML = optionHtml("all", TEXT[language].allPlatforms, platformFilter) + platforms.map((platform) => optionHtml(platform, platform, platformFilter)).join("");
+        $("stockFilter").classList.toggle("active", inStockOnly);
+        $("watchFilter").classList.toggle("active", watchedOnly);
+      }
+      function optionHtml(value, label, selected) {
+        return `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`;
+      }
+      function applyQuickFilters(rows) {
+        return rows.filter((row) => {
+          const local = cardState[row.id] || {};
+          if (brandFilter !== "all" && row.brand !== brandFilter) return false;
+          if (platformFilter !== "all" && (row.platform || row.meta) !== platformFilter) return false;
+          if (inStockOnly && !["in_stock", "available"].includes(String(row.availability || ""))) return false;
+          if (watchedOnly && !local.watched) return false;
+          return true;
+        });
+      }
+      function fallbackVisual(img) {
+        const visual = img.parentElement;
+        if (!visual) return;
+        visual.classList.add("image-failed");
+        const initials = escapeHtml(img.dataset.initials || "-");
+        const mark = escapeHtml(img.dataset.mark || "D");
+        visual.innerHTML = `<strong>${initials}</strong><span>${mark}</span>`;
       }
       function titleText(row) {
         const localized = localizedTitle(row);
@@ -739,6 +847,31 @@ FEED_INDEX_HTML = r"""<!doctype html>
         if (row.source_label) chips.push(row.source_label);
         if (row.time_kind) chips.push((TEXT[language][row.time_kind] || row.time_kind) + (row.time ? ` · ${displayDate(row.time)}` : ""));
         return chips.length ? `<div class="detail-row">${chips.slice(0, 5).map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join("")}</div>` : "";
+      }
+      function trustHtml(row) {
+        const chips = [];
+        if (row.data_source) chips.push(`${TEXT[language].dataSource} · ${row.data_source}`);
+        if (row.source_type || row.trend_basis) chips.push(`${TEXT[language].sourceType} · ${row.source_type || row.trend_basis}`);
+        const confidence = Number(row.confidence);
+        const bar = Number.isFinite(confidence) ? `<span class="confidence-bar"><span style="width:${Math.max(0, Math.min(100, confidence))}%"></span></span>` : "";
+        return chips.length || bar ? `<div class="trust-row">${chips.map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join("")}${bar}</div>` : "";
+      }
+      function evidenceHtml(row) {
+        const evidence = Array.isArray(row.evidence) ? row.evidence.slice(0, 4) : [];
+        if (!evidence.length) return "";
+        return `<div class="evidence-list">${evidence.map((item) => {
+          const label = `${item.platform || ""} ${item.asking_price || ""} ${item.currency || ""} ${item.observed_at || ""}`.trim();
+          const title = item.title || label || item.url || "";
+          return `<p>${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(title)}</a>` : escapeHtml(title)}${label ? ` · ${escapeHtml(label)}` : ""}</p>`;
+        }).join("")}</div>`;
+      }
+      function actionHtml(row) {
+        if (!row.id || !["alert", "trend"].includes(row.feed_type)) return "";
+        const local = cardState[row.id] || {};
+        return `<div class="card-actions">
+          <button type="button" data-card-action="watch" data-card-id="${escapeHtml(row.id)}">${escapeHtml(local.watched ? TEXT[language].watched : TEXT[language].observe)}</button>
+          <button type="button" data-card-action="dismiss" data-card-id="${escapeHtml(row.id)}">${escapeHtml(local.dismissed ? TEXT[language].dismissed : TEXT[language].dismiss)}</button>
+        </div>`;
       }
       function urgencyLabel(value) {
         const raw = String(value || "");
@@ -795,6 +928,35 @@ FEED_INDEX_HTML = r"""<!doctype html>
           document.querySelectorAll("[data-filter]").forEach((item) => item.classList.toggle("active", item === button));
           render();
         });
+      });
+      $("brandFilter").addEventListener("change", (event) => {
+        brandFilter = event.target.value || "all";
+        render();
+      });
+      $("platformFilter").addEventListener("change", (event) => {
+        platformFilter = event.target.value || "all";
+        render();
+      });
+      $("stockFilter").addEventListener("click", () => {
+        inStockOnly = !inStockOnly;
+        render();
+      });
+      $("watchFilter").addEventListener("click", () => {
+        watchedOnly = !watchedOnly;
+        render();
+      });
+      $("feedStream").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-card-action]");
+        if (!button) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const id = button.dataset.cardId;
+        const action = button.dataset.cardAction;
+        if (!id) return;
+        cardState[id] = cardState[id] || {};
+        cardState[id][action === "watch" ? "watched" : "dismissed"] = !cardState[id][action === "watch" ? "watched" : "dismissed"];
+        localStorage.setItem("lolitaRadarCardState", JSON.stringify(cardState));
+        render();
       });
       $("refreshBtn").addEventListener("click", load);
       $("langBtn").addEventListener("click", () => {

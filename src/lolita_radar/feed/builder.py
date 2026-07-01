@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..pattern import pattern_identity
 from ..shop import build_drop_signal
 from ..source_dates import CURRENT_SOURCE_WINDOW_DAYS, is_current_source_date
 from ..trend import build_market_sample_trends, build_trend_feed
@@ -57,8 +58,39 @@ def build_home_feed(
             "shops": unique_shop_count(drop),
         },
         "streams": streams,
+        "patterns": pattern_summaries(drop, trend),
         "all": merge_streams(streams),
     }
+
+
+def pattern_summaries(drop_rows: list[dict[str, Any]], trend_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    patterns: dict[str, dict[str, Any]] = {}
+    for row in drop_rows:
+        identity = pattern_identity(row.get("title") or row.get("item"), row.get("brand"))
+        if not identity.key:
+            continue
+        entry = patterns.setdefault(
+            identity.key,
+            {"brand": identity.brand_alias, "pattern": identity.pattern, "drop_count": 0, "trend_count": 0, "sample_count": 0, "urls": []},
+        )
+        entry["drop_count"] += 1
+        if row.get("url"):
+            entry["urls"].append(row["url"])
+    for row in trend_rows:
+        identity = pattern_identity(row.get("pattern") or row.get("title"), row.get("brand"))
+        if not identity.key:
+            continue
+        entry = patterns.setdefault(
+            identity.key,
+            {"brand": identity.brand_alias, "pattern": identity.pattern, "drop_count": 0, "trend_count": 0, "sample_count": 0, "urls": []},
+        )
+        entry["trend_count"] += 1
+        entry["sample_count"] = max(int(entry.get("sample_count") or 0), int(row.get("sample_count") or 0))
+        if row.get("url"):
+            entry["urls"].append(row["url"])
+    for row in patterns.values():
+        row["urls"] = list(dict.fromkeys(str(url) for url in row.get("urls", []) if str(url)))[:5]
+    return sorted(patterns.values(), key=lambda row: (int(row["trend_count"]), int(row["drop_count"]), int(row["sample_count"])), reverse=True)
 
 
 def release_feed(events: list[dict[str, Any]], items: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -238,6 +270,8 @@ def shop_event_card(row: dict[str, Any]) -> dict[str, Any]:
         "brand": shop,
         "shop": shop,
         "platform": platform,
+        "source_type": "official_shop" if platform == "official_store" else "secondhand_shop",
+        "data_source": "shop_events",
         "item": title,
         "title": title,
         "title_zh": title_hint(title, "shop_news", " ".join(keywords), language="zh"),

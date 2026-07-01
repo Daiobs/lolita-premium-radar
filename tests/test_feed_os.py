@@ -34,7 +34,7 @@ class FeedOsTests(unittest.TestCase):
                 "created_at": "2026-06-30T10:01:00+00:00",
                 "metadata": {
                     "shop": {"name": "Tokyo Proxy", "url": "https://example.com/shop"},
-                    "item": {"title": "Shell Garden JSK", "url": "https://example.com/shop/shell"},
+                    "item": {"title": "Angelic Pretty Shell Garden JSK", "url": "https://example.com/shop/shell"},
                     "matched_keywords": ["JSK", "预约"],
                     "context": "2026-06-30 预约 Shell Garden JSK",
                 },
@@ -78,12 +78,16 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["release"][0]["visual"]["mark"], "R")
         self.assertEqual(feed["streams"]["drop"][0]["feed_type"], "drop")
         self.assertEqual(feed["streams"]["drop"][0]["shop"], "Tokyo Proxy")
-        self.assertEqual(feed["streams"]["drop"][0]["item"], "Shell Garden JSK")
+        self.assertEqual(feed["streams"]["drop"][0]["item"], "Angelic Pretty Shell Garden JSK")
         self.assertEqual(feed["streams"]["drop"][0]["urgency"], "high")
         self.assertEqual(feed["streams"]["drop"][0]["keywords"], ["JSK", "预约"])
         self.assertEqual(feed["streams"]["drop"][0]["visual"]["mark"], "D")
         self.assertEqual(feed["streams"]["drop"][0]["meta"], "Tokyo Proxy")
         self.assertEqual(feed["streams"]["drop"][0]["source_context"], "2026-06-30 预约 Shell Garden JSK")
+        shell_pattern = next(row for row in feed["patterns"] if row["pattern"] == "Shell Garden JSK")
+        self.assertEqual(shell_pattern["brand"], "AP")
+        self.assertEqual(shell_pattern["drop_count"], 1)
+        self.assertEqual(shell_pattern["trend_count"], 0)
         self.assertNotIn("keywords:", feed["streams"]["drop"][0]["meta"])
         self.assertNotIn("urgency:", feed["streams"]["drop"][0]["meta"])
         self.assertIn("keyword_match", feed["streams"]["drop"][0]["reason_codes"])
@@ -131,6 +135,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(drop["url"], "https://example.com/usakumya")
         self.assertEqual(drop["visual"]["image_url"], "https://example.com/usakumya.webp")
         self.assertIn("keyword_match", drop["reason_codes"])
+        self.assertEqual(drop["data_source"], "shop_events")
+        self.assertEqual(drop["source_type"], "official_shop")
         self.assertEqual(feed["streams"]["alert"][0]["kind"], "high_priority_drop")
         self.assertEqual(feed["streams"]["alert"][0]["cta"], "Open shop manually")
 
@@ -149,10 +155,64 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["platform"], "mercari")
         self.assertEqual(trends[0]["trend"], "rising")
         self.assertEqual(trends[0]["trend_basis"], "asking_price")
+        self.assertEqual(trends[0]["data_source"], "market_samples")
+        self.assertEqual(trends[0]["source_type"], "asking_price")
         self.assertIn("asking price trend", trends[0]["title"])
         self.assertEqual(trends[0]["sample_count"], 3)
         self.assertGreaterEqual(trends[0]["confidence"], 70)
         self.assertIn("previous_window", trends[0]["reason_codes"])
+        self.assertEqual(len(trends[0]["evidence"]), 3)
+        self.assertEqual(trends[0]["evidence"][0]["url"], "https://example.com/now1")
+        self.assertEqual(trends[0]["sample_urls"], ["https://example.com/now1", "https://example.com/now2", "https://example.com/now3"])
+
+    def test_market_sample_trends_fallback_from_generic_pattern_to_title(self) -> None:
+        samples = [
+            {"platform": "wunderwelt", "brand_alias": "AP", "pattern": "new_arrivals", "title": "Angelic Pretty Shell Garden JSK pink", "asking_price": 120, "observed_at": "2026-07-01"},
+            {"platform": "wunderwelt", "brand_alias": "AP", "pattern": "new_arrivals", "title": "Angelic Pretty Shell Garden JSK sax", "asking_price": 118, "observed_at": "2026-06-30"},
+            {"platform": "wunderwelt", "brand_alias": "AP", "pattern": "new_arrivals", "title": "Angelic Pretty Shell Garden JSK white", "asking_price": 122, "observed_at": "2026-06-29"},
+        ]
+
+        trends = build_market_sample_trends(samples, today=datetime(2026, 7, 1).date())
+
+        self.assertEqual(trends[0]["brand"], "AP")
+        self.assertEqual(trends[0]["pattern"], "Shell Garden JSK")
+        self.assertEqual(trends[0]["sample_count"], 3)
+
+    def test_home_feed_patterns_merge_drop_and_market_sample_trends(self) -> None:
+        samples = [
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell Garden JSK", "title": "Shell Garden JSK pink", "asking_price": 120, "observed_at": "2026-07-01", "url": "https://example.com/now1"},
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell Garden JSK", "title": "Shell Garden JSK sax", "asking_price": 118, "observed_at": "2026-06-30", "url": "https://example.com/now2"},
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell Garden JSK", "title": "Shell Garden JSK", "asking_price": 122, "observed_at": "2026-06-29", "url": "https://example.com/now3"},
+            {"platform": "mercari", "brand_alias": "AP", "pattern": "Shell Garden JSK", "title": "Shell Garden old", "asking_price": 100, "observed_at": "2026-06-23", "url": "https://example.com/old"},
+        ]
+
+        feed = build_home_feed(
+            [],
+            [],
+            {"brands": []},
+            {"alerts": []},
+            [],
+            [],
+            shop_events=[
+                {
+                    "event_type": "DROP",
+                    "identity_key": "shell",
+                    "shop_name": "BABY Official Store",
+                    "platform": "official_store",
+                    "title": "Angelic Pretty Shell Garden JSK pink",
+                    "item_url": "https://example.com/drop",
+                    "observed_at": "2026-07-01",
+                }
+            ],
+            market_samples=samples,
+        )
+        shell = next(row for row in feed["patterns"] if row["pattern"] == "Shell Garden JSK")
+
+        self.assertEqual(shell["brand"], "AP")
+        self.assertEqual(shell["drop_count"], 1)
+        self.assertEqual(shell["trend_count"], 1)
+        self.assertEqual(shell["sample_count"], 3)
+        self.assertEqual(shell["urls"][:2], ["https://example.com/drop", "https://example.com/now1"])
 
     def test_market_sample_trends_cover_stable_cooling_and_low_confidence(self) -> None:
         samples = [
@@ -930,6 +990,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["sample_count"], 4)
         self.assertEqual(trends[0]["meta"], "asking price trend")
         self.assertEqual(trends[0]["trend_basis"], "asking_price")
+        self.assertEqual(trends[0]["data_source"], "market_summary")
+        self.assertEqual(trends[0]["source_type"], "asking_price")
         self.assertIn("sample_supported", trends[0]["reason_codes"])
         self.assertIn("premium_rising", trends[0]["reason_codes"])
 

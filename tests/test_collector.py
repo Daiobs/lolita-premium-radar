@@ -106,6 +106,7 @@ class CollectorTests(unittest.TestCase):
         sample = result.market_samples[0]
         self.assertEqual(sample.platform, "closet_child")
         self.assertEqual(sample.brand_alias, "MMM")
+        self.assertEqual(sample.pattern, "サイドギャザー十字架ワンピース")
         self.assertEqual(sample.asking_price, 77000.0)
         self.assertEqual(sample.condition, "used")
 
@@ -115,6 +116,9 @@ class CollectorTests(unittest.TestCase):
         self.assertIn("baby_sf_new_arrivals", names)
         self.assertIn("closet_child_new_arrivals", names)
         self.assertIn("wunderwelt_new_arrivals", names)
+        options_by_name = {str(job["name"]): job.get("options", {}) for job in DEFAULT_COLLECTOR_JOBS}
+        self.assertNotIn("group_pattern", options_by_name["closet_child_new_arrivals"])
+        self.assertNotIn("group_pattern", options_by_name["wunderwelt_new_arrivals"])
 
     def test_wunderwelt_market_collector_parses_public_cards(self) -> None:
         result = WunderweltMarketCollector().collect(
@@ -130,6 +134,7 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(len(result.market_samples), 1)
         self.assertEqual(result.shop_items[0].shop_name, "Wunderwelt")
         self.assertEqual(result.market_samples[0].brand_alias, "VM")
+        self.assertEqual(result.market_samples[0].pattern, "Rose Ribbon Dress")
         self.assertEqual(result.market_samples[0].asking_price, 39800.0)
 
     def test_lace_market_collector_parses_public_cards(self) -> None:

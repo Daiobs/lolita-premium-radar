@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from statistics import median
 from typing import Any
 
+from ..pattern import GENERIC_PATTERN_LABELS, pattern_identity
 from ..source_dates import current_source_date, is_current_source_date
 
 
@@ -55,6 +56,8 @@ def build_trend_feed(
                 "price_delta": round(avg_premium, 4),
                 "sample_count": sample_count,
                 "reason_codes": reasons,
+                "data_source": "market_summary",
+                "source_type": "asking_price",
                 "visual": trend_visual(alias, direction),
             }
         )
@@ -66,14 +69,18 @@ def build_market_sample_trends(samples: list[dict[str, Any]], today: date | None
         today = current_source_date()
     grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     for sample in samples:
+        identity = pattern_identity(
+            sample_pattern_text(sample),
+            sample.get("brand_alias") or sample.get("title"),
+        )
         key = (
-            str(sample.get("brand_alias") or "").strip(),
-            str(sample.get("pattern") or "").strip(),
+            identity.brand_alias or str(sample.get("brand_alias") or "").strip(),
+            identity.pattern or str(sample.get("pattern") or "").strip(),
             str(sample.get("platform") or "").strip(),
         )
         if not all(key):
             continue
-        grouped.setdefault(key, []).append(sample)
+        grouped.setdefault(key, []).append({**sample, "brand_alias": key[0], "pattern": key[1], "pattern_key": identity.key})
 
     trends = []
     for (brand, pattern, platform), rows in grouped.items():
@@ -93,6 +100,7 @@ def build_market_sample_trends(samples: list[dict[str, Any]], today: date | None
         confidence = sample_trend_confidence(sample_count, previous_prices, delta)
         reasons = sample_trend_reasons(sample_count, previous_prices, delta)
         latest = sorted(current_rows, key=lambda row: str(row.get("observed_at") or ""), reverse=True)[0]
+        evidence = sample_evidence(current_rows)
         trends.append(
             {
                 "id": f"trend:{brand}:{pattern}:{platform}",
@@ -115,10 +123,21 @@ def build_market_sample_trends(samples: list[dict[str, Any]], today: date | None
                 "price_delta": round(delta, 4),
                 "sample_count": sample_count,
                 "reason_codes": reasons,
+                "data_source": "market_samples",
+                "source_type": "asking_price",
+                "evidence": evidence,
+                "sample_urls": [row["url"] for row in evidence if row.get("url")],
                 "visual": trend_visual(brand, direction),
             }
         )
     return sorted(trends, key=lambda row: (int(row["confidence"]), abs(float(row.get("price_delta") or 0))), reverse=True)
+
+
+def sample_pattern_text(sample: dict[str, Any]) -> object:
+    pattern = str(sample.get("pattern") or "").strip()
+    if pattern.casefold() in GENERIC_PATTERN_LABELS:
+        return sample.get("title")
+    return pattern or sample.get("title")
 
 
 def trend_brand_rows(market_summary: dict[str, Any], brand_weights: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -143,6 +162,25 @@ def market_record_urls(market_summary: dict[str, Any]) -> dict[str, str]:
         if alias and url.startswith(("http://", "https://")) and alias not in urls:
             urls[alias] = url
     return urls
+
+
+def sample_evidence(rows: list[dict[str, Any]], limit: int = 5) -> list[dict[str, Any]]:
+    sorted_rows = sorted(rows, key=lambda row: str(row.get("observed_at") or ""), reverse=True)
+    evidence = []
+    for row in sorted_rows[:limit]:
+        evidence.append(
+            {
+                "title": str(row.get("title") or ""),
+                "asking_price": safe_float(row.get("asking_price")),
+                "currency": str(row.get("currency") or ""),
+                "platform": str(row.get("platform") or ""),
+                "condition": str(row.get("condition") or ""),
+                "url": str(row.get("url") or ""),
+                "image_url": str(row.get("image_url") or ""),
+                "observed_at": str(row.get("observed_at") or ""),
+            }
+        )
+    return evidence
 
 
 def alias_key(value: object) -> str:

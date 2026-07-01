@@ -4,6 +4,7 @@ import json
 from urllib.parse import urljoin
 
 from ..models import MarketSample, ShopItem, utc_now_iso
+from ..pattern import GENERIC_PATTERN_LABELS, normalize_brand, normalize_pattern
 from .base import CollectorJob, CollectorResult
 from .html_cards import CardParser
 from .official_shop import fetch_for_job, matched_keywords, priority_for_keywords
@@ -53,7 +54,7 @@ def parse_market_cards(job: CollectorJob, html: str) -> CollectorResult:
         title = str(card.get("title") or "").strip()
         url = urljoin(job.url, str(card.get("url") or ""))
         price = normalize_price(str(card.get("price") or card.get("asking-price") or ""))
-        brand = normalize_brand(str(card.get("brand") or ""))
+        brand = normalize_brand(str(card.get("brand") or ""), title)
         if not title or not url or not price:
             continue
         matched = matched_keywords(title, keywords)
@@ -79,7 +80,7 @@ def parse_market_cards(job: CollectorJob, html: str) -> CollectorResult:
                 MarketSample(
                     platform=str(card.get("platform") or platform),
                     brand_alias=brand,
-                    pattern=group_pattern or str(card.get("pattern") or "new_arrivals"),
+                    pattern=group_pattern or card_pattern(card.get("pattern"), title, brand),
                     title=title,
                     asking_price=float(price),
                     currency=str(card.get("currency") or currency),
@@ -103,7 +104,7 @@ def parse_shopify_market_products(job: CollectorJob, raw: str) -> CollectorResul
     condition = str(job.options.get("condition") or "used")
     base_url = str(job.options.get("base_url") or job.url.split("/products.json", 1)[0])
     observed_fallback = str(job.options.get("observed_at") or utc_now_iso()[:10])
-    group_pattern = str(job.options.get("group_pattern") or "new_arrivals")
+    group_pattern = str(job.options.get("group_pattern") or "").strip()
     keywords = [str(item) for item in job.options.get("keywords", [])] if isinstance(job.options.get("keywords"), list) else []
     items: list[ShopItem] = []
     samples: list[MarketSample] = []
@@ -125,7 +126,7 @@ def parse_shopify_market_products(job: CollectorJob, raw: str) -> CollectorResul
         url = urljoin(base_url + "/", f"products/{handle}")
         observed_at = str(product.get("published_at") or observed_fallback)[:10]
         matched = matched_keywords(title, keywords)
-        brand = normalize_brand(str(product.get("vendor") or ""))
+        brand = normalize_brand(str(product.get("vendor") or ""), title)
         items.append(
             ShopItem(
                 shop_name=shop_name,
@@ -147,7 +148,7 @@ def parse_shopify_market_products(job: CollectorJob, raw: str) -> CollectorResul
                 MarketSample(
                     platform=platform,
                     brand_alias=brand,
-                    pattern=group_pattern,
+                    pattern=group_pattern or normalize_pattern(title, brand),
                     title=title,
                     asking_price=float(price),
                     currency=currency,
@@ -164,20 +165,8 @@ def normalize_price(raw: str) -> str:
     return "".join(char for char in raw if char.isdigit() or char == ".")
 
 
-def normalize_brand(raw: str) -> str:
-    normalized = raw.casefold()
-    if "angelic pretty" in normalized:
-        return "AP"
-    if "alice and the pirates" in normalized or "pirates" in normalized:
-        return "AATP"
-    if "baby" in normalized or "btssb" in normalized:
-        return "BABY"
-    if "metamorphose" in normalized:
-        return "META"
-    if "moi meme moitie" in normalized or "moi-meme-moitie" in normalized or "moi-même-moitié" in normalized or "moitie" in normalized:
-        return "MMM"
-    if "innocent world" in normalized:
-        return "IW"
-    if "victorian maiden" in normalized:
-        return "VM"
-    return raw.strip().upper()[:24] if raw.strip() else ""
+def card_pattern(raw_pattern: object, title: str, brand: str) -> str:
+    pattern = str(raw_pattern or "").strip()
+    if not pattern or pattern.casefold() in GENERIC_PATTERN_LABELS:
+        return normalize_pattern(title, brand)
+    return normalize_pattern(pattern, brand)

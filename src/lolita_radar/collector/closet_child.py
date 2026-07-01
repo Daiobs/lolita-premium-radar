@@ -5,6 +5,7 @@ from html import unescape
 from urllib.parse import urljoin
 
 from ..models import MarketSample, ShopItem, utc_now_iso
+from ..pattern import normalize_brand, normalize_pattern
 from .base import CollectorJob, CollectorResult
 from .official_shop import fetch_for_job, matched_keywords, priority_for_keywords
 
@@ -65,7 +66,7 @@ def parse_closet_child(job: CollectorJob, html: str) -> CollectorResult:
                 MarketSample(
                     platform=platform,
                     brand_alias=brand_alias,
-                    pattern=group_pattern or pattern_from_title(title) or pattern_fallback,
+                    pattern=group_pattern or normalize_pattern(title, brand_alias) or pattern_fallback,
                     title=title,
                     asking_price=float(price),
                     currency=currency,
@@ -101,24 +102,4 @@ def normalize_price(raw: str) -> str:
 
 
 def brand_from_title(title: str) -> str:
-    normalized = title.casefold()
-    if "angelic pretty" in normalized:
-        return "AP"
-    if "alice and the pirates" in normalized or "pirates" in normalized:
-        return "AATP"
-    if "baby" in normalized or "btssb" in normalized:
-        return "BABY"
-    if "metamorphose" in normalized:
-        return "META"
-    if "moi-meme-moitie" in normalized or "moi-même-moitié" in normalized or "moitie" in normalized:
-        return "MMM"
-    if "innocent world" in normalized:
-        return "IW"
-    return ""
-
-
-def pattern_from_title(title: str) -> str:
-    parts = [part.strip() for part in re.split(r"\s*/\s*", title, maxsplit=1)]
-    if len(parts) == 2 and parts[1]:
-        return parts[1][:80]
-    return ""
+    return normalize_brand("", title)
