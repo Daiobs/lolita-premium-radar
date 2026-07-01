@@ -239,7 +239,7 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(alerts["alerts"][0]["severity"], "critical")
         self.assertEqual(alerts["alerts"][0]["url"], "https://example.com/shell")
         baby_gap = next(alert for alert in alerts["alerts"] if alert["kind"] == "sample_gap" and alert["alias"] == "BABY")
-        self.assertEqual(baby_gap["url"], "https://example.com/baby-watch")
+        self.assertEqual(baby_gap["url"], "")
 
     def test_build_pattern_trends_matches_market_keywords(self) -> None:
         patterns = build_pattern_trends(

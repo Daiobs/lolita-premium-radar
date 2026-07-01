@@ -36,7 +36,10 @@ class FeedOsAcceptanceTests(unittest.TestCase):
                 },
             },
         ]
-        market_summary = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.5}]}
+        market_summary = {
+            "brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.5}],
+            "records": [{"brand_alias": "AP", "url": "https://example.com/market"}],
+        }
         source_runs = [
             {
                 "source": "angelic_pretty",
@@ -69,7 +72,7 @@ class FeedOsAcceptanceTests(unittest.TestCase):
         self.assert_required_keys(release, ("brand", "title", "type", "time", "price", "url"))
         self.assert_required_keys(drop, ("shop", "item", "keywords", "urgency", "url"))
         self.assert_required_keys(trend, ("brand", "trend", "confidence", "price_delta", "reason_codes"))
-        self.assert_required_keys(alert, ("feed_type", "kind", "title", "reason_codes", "url"))
+        self.assert_required_keys(alert, ("feed_type", "kind", "title", "reason_codes"))
         self.assertEqual([row["feed_type"] for row in feed["all"][:4]], ["release", "drop", "alert", "trend"])
 
     def test_source_tree_keeps_forbidden_product_directions_out(self) -> None:

@@ -1,8 +1,9 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from lolita_radar.crawler import enrich_source_runs
 from lolita_radar.feed import build_home_feed
+from lolita_radar.source_dates import current_source_date
 from lolita_radar.trend import build_trend_feed
 
 
@@ -44,7 +45,19 @@ class FeedOsTests(unittest.TestCase):
                 {"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.45, "max_premium_rate": 0.7}
             ]
         }
-        market_alerts = {"alerts": [{"kind": "sample_gap", "alias": "BABY", "reason": "core_needs_samples"}]}
+        market_alerts = {
+            "alerts": [
+                {
+                    "kind": "sample_spike",
+                    "severity": "critical",
+                    "alias": "AP",
+                    "item_name": "Shell Garden JSK",
+                    "premium_rate": 0.82,
+                    "url": "https://example.com/market/shell",
+                    "reason": "collector_premium",
+                }
+            ]
+        }
 
         feed = build_home_feed(events, [], market_summary, market_alerts, [], [])
 
@@ -79,9 +92,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["streams"]["trend"][0]["price_delta"], 0.45)
         self.assertEqual(feed["streams"]["trend"][0]["visual"]["mark"], "T")
         alert_titles = {row["title"] for row in feed["streams"]["alert"]}
-        self.assertNotIn("Shell Garden JSK", alert_titles)
         self.assertNotIn("Proxy JSK 预约", alert_titles)
-        self.assertEqual(feed["streams"]["alert"][0]["reason_codes"], ["sample_gap"])
+        self.assertEqual(feed["streams"]["alert"][0]["kind"], "high_premium")
         self.assertTrue(all(row["visual"]["mark"] for rows in feed["streams"].values() for row in rows))
 
     def test_release_feed_prefers_published_at_over_seen_time(self) -> None:
@@ -147,6 +159,9 @@ class FeedOsTests(unittest.TestCase):
         self.assertIn("2026.06.30", card["source_context"])
 
     def test_release_feed_requires_current_source_publish_time(self) -> None:
+        source_today = current_source_date()
+        future_date = (source_today + timedelta(days=1)).strftime("%Y-%m-%d")
+        stale_current_year_date = (source_today - timedelta(days=120)).strftime("%Y-%m-%d")
         events = [
             {
                 "source": "angelic_pretty",
@@ -156,6 +171,24 @@ class FeedOsTests(unittest.TestCase):
                 "url": "https://example.com/ap/old",
                 "published_at": "2025-12-31",
                 "created_at": "2026-06-30T10:00:00+00:00",
+            },
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Stale Current Year JSK",
+                "url": "https://example.com/ap/stale-current-year",
+                "published_at": stale_current_year_date,
+                "created_at": "2026-06-30T10:03:00+00:00",
+            },
+            {
+                "source": "angelic_pretty",
+                "event_type": "new_item",
+                "status": "new_arrival",
+                "title": "Future Source Date JSK",
+                "url": "https://example.com/ap/future",
+                "published_at": future_date,
+                "created_at": "2026-06-30T10:04:00+00:00",
             },
             {
                 "source": "metamorphose",
@@ -182,6 +215,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(release_titles, ["Current Usakumya"])
         self.assertEqual(feed["streams"]["release"][0]["time"], "2026-06-29")
         self.assertEqual(feed["streams"]["release"][0]["time_kind"], "published")
+        self.assertNotIn("Stale Current Year JSK", release_titles)
+        self.assertNotIn("Future Source Date JSK", release_titles)
 
     def test_release_feed_combines_events_and_items_to_fill_current_links(self) -> None:
         events = [
@@ -242,6 +277,7 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(len({row["url"] for row in feed["all"]}), 30)
 
     def test_home_all_feed_uses_feed_type_priority(self) -> None:
+        today = current_source_date().strftime("%Y-%m-%d")
         events = [
             {
                 "source": "angelic_pretty",
@@ -249,7 +285,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "new_arrival",
                 "title": "Release",
                 "url": "https://example.com/release",
-                "published_at": "2026-01-01",
+                "published_at": today,
             },
             {
                 "source": "generic_page",
@@ -257,7 +293,7 @@ class FeedOsTests(unittest.TestCase):
                 "status": "shop_news",
                 "title": "Shop drop",
                 "url": "https://example.com/drop",
-                "published_at": "2026-01-01",
+                "published_at": today,
                 "metadata": {"item_title": "Shop drop JSK", "matched_keywords": ["JSK"]},
             },
         ]
@@ -271,7 +307,10 @@ class FeedOsTests(unittest.TestCase):
                 "error_message": "timeout",
             }
         ]
-        market_summary = {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.8}]}
+        market_summary = {
+            "brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.8}],
+            "records": [{"brand_alias": "AP", "url": "https://example.com/market/ap"}],
+        }
 
         feed = build_home_feed(
             events,
@@ -286,7 +325,7 @@ class FeedOsTests(unittest.TestCase):
 
         self.assertEqual([row["feed_type"] for row in feed["all"][:4]], ["release", "drop", "alert", "trend"])
 
-    def test_alert_feed_normalizes_high_premium_and_sample_gap(self) -> None:
+    def test_alert_feed_normalizes_high_premium_and_omits_sample_gap(self) -> None:
         market_alerts = {
             "alerts": [
                 {
@@ -330,12 +369,10 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts[1]["kind"], "high_premium")
         self.assertEqual(alerts[1]["premium_rate"], 0.55)
         self.assertIn("brand_heat", alerts[1]["reason_codes"])
-        self.assertEqual(alerts[2]["kind"], "sample_gap")
-        self.assertEqual(alerts[2]["title_zh"], "样本不足: ALICE and the PIRATES")
-        self.assertEqual(alerts[2]["title_ja"], "サンプル不足: ALICE and the PIRATES")
-        self.assertIn("sample_gap", alerts[2]["reason_codes"])
+        self.assertEqual(len(alerts), 2)
+        self.assertTrue(all(alert["kind"] == "high_premium" for alert in alerts))
 
-    def test_alert_feed_keeps_unknown_market_alert_kinds_out(self) -> None:
+    def test_alert_feed_keeps_unknown_and_sample_gap_market_alert_kinds_out(self) -> None:
         market_alerts = {
             "alerts": [
                 {
@@ -358,8 +395,7 @@ class FeedOsTests(unittest.TestCase):
         feed = build_home_feed([], [], {"brands": []}, market_alerts, [], [])
         alerts = feed["streams"]["alert"]
 
-        self.assertEqual([alert["kind"] for alert in alerts], ["sample_gap"])
-        self.assertEqual(alerts[0]["brand"], "BABY")
+        self.assertEqual(alerts, [])
 
     def test_alert_feed_filters_market_kinds_before_limit(self) -> None:
         noisy_alerts = [
@@ -368,11 +404,13 @@ class FeedOsTests(unittest.TestCase):
         ]
         noisy_alerts.append(
             {
-                "kind": "sample_gap",
-                "severity": "sample_gap",
-                "alias": "BABY",
-                "title": "BABY",
-                "reason": "core_needs_samples",
+                "kind": "sample_spike",
+                "severity": "critical",
+                "alias": "AP",
+                "item_name": "Shell Garden JSK",
+                "premium_rate": 0.82,
+                "url": "https://example.com/market/shell",
+                "reason": "collector_premium",
             }
         )
 
@@ -380,8 +418,8 @@ class FeedOsTests(unittest.TestCase):
         alerts = feed["streams"]["alert"]
 
         self.assertEqual(len(alerts), 1)
-        self.assertEqual(alerts[0]["kind"], "sample_gap")
-        self.assertEqual(alerts[0]["brand"], "BABY")
+        self.assertEqual(alerts[0]["kind"], "high_premium")
+        self.assertEqual(alerts[0]["brand"], "AP")
 
     def test_alert_feed_is_limited_to_thirty_rows(self) -> None:
         source_runs = [
@@ -524,6 +562,9 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(feed["summary"]["drops"], 0)
 
     def test_drop_feed_requires_current_source_publish_time(self) -> None:
+        source_today = current_source_date()
+        future_date = (source_today + timedelta(days=1)).strftime("%Y-%m-%d")
+        stale_current_year_date = (source_today - timedelta(days=120)).strftime("%Y-%m-%d")
         events = [
             {
                 "source": "generic_page",
@@ -533,6 +574,24 @@ class FeedOsTests(unittest.TestCase):
                 "url": "https://example.com/shop/old",
                 "published_at": "2025-12-31",
                 "metadata": {"shop_name": "Proxy Shop", "item_title": "Old JSK", "matched_keywords": ["JSK", "预约"]},
+            },
+            {
+                "source": "generic_page",
+                "event_type": "new_item",
+                "status": "shop_news",
+                "title": "Stale Current Year JSK 预约",
+                "url": "https://example.com/shop/stale-current-year",
+                "published_at": stale_current_year_date,
+                "metadata": {"shop_name": "Proxy Shop", "item_title": "Stale Current Year JSK", "matched_keywords": ["JSK", "预约"]},
+            },
+            {
+                "source": "generic_page",
+                "event_type": "new_item",
+                "status": "shop_news",
+                "title": "Future Source Date JSK 预约",
+                "url": "https://example.com/shop/future",
+                "published_at": future_date,
+                "metadata": {"shop_name": "Proxy Shop", "item_title": "Future Source Date JSK", "matched_keywords": ["JSK", "预约"]},
             },
             {
                 "source": "generic_page",
@@ -560,6 +619,8 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(drop_titles, ["Current JSK"])
         self.assertEqual(feed["streams"]["drop"][0]["time"], "2026-06-30")
         self.assertEqual(feed["streams"]["drop"][0]["time_kind"], "published")
+        self.assertNotIn("Stale Current Year JSK", drop_titles)
+        self.assertNotIn("Future Source Date JSK", drop_titles)
 
     def test_drop_feed_combines_events_and_items_to_fill_current_links(self) -> None:
         events = [
@@ -726,11 +787,14 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(alerts, [])
 
     def test_trend_engine_outputs_direction_confidence_and_reasons(self) -> None:
-        current_year = datetime.now(timezone.utc).year
+        today = current_source_date().strftime("%Y-%m-%d")
         trends = build_trend_feed(
-            {"brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}]},
-            [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
-            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+            {
+                "brands": [{"brand_alias": "AP", "sample_count": 4, "avg_premium_rate": 0.5}],
+                "records": [{"brand_alias": "AP", "url": "https://example.com/market/shell"}],
+            },
+            [{"brand_alias": "AP", "direction": "rising", "observed_at": today}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
             brand_weights=[
                 {
                     "alias": "AP",
@@ -742,7 +806,7 @@ class FeedOsTests(unittest.TestCase):
 
         self.assertEqual(trends[0]["kind"], "rising")
         self.assertEqual(trends[0]["trend"], "rising")
-        self.assertEqual(trends[0]["url"], "https://www.goofish.com/search?q=AP")
+        self.assertEqual(trends[0]["url"], "https://example.com/market/shell")
         self.assertGreaterEqual(trends[0]["confidence"], 60)
         self.assertEqual(trends[0]["avg_premium_rate"], 0.5)
         self.assertEqual(trends[0]["price_delta"], 0.5)
@@ -769,14 +833,9 @@ class FeedOsTests(unittest.TestCase):
             [],
         )
 
-        self.assertEqual(trends[0]["kind"], "stable")
-        self.assertEqual(trends[0]["confidence"], 15)
-        self.assertEqual(trends[0]["avg_premium_rate"], 0)
-        self.assertEqual(trends[0]["sample_count"], 0)
-        self.assertIn("sample_gap", trends[0]["reason_codes"])
-        self.assertIn("premium_stable", trends[0]["reason_codes"])
+        self.assertEqual(trends, [])
 
-    def test_trend_engine_outputs_sample_gap_for_weighted_brand_without_samples(self) -> None:
+    def test_trend_engine_omits_sample_gap_for_weighted_brand_without_samples(self) -> None:
         trends = build_trend_feed(
             {"brands": []},
             [],
@@ -790,18 +849,17 @@ class FeedOsTests(unittest.TestCase):
             ],
         )
 
-        self.assertEqual(trends[0]["brand"], "AP")
-        self.assertEqual(trends[0]["kind"], "stable")
-        self.assertEqual(trends[0]["url"], "https://jp.mercari.com/search?keyword=AP")
-        self.assertEqual(trends[0]["meta"], "")
-        self.assertIn("sample_gap", trends[0]["reason_codes"])
+        self.assertEqual(trends, [])
 
     def test_trend_engine_normalizes_brand_aliases_for_watch_urls_and_momentum(self) -> None:
-        current_year = datetime.now(timezone.utc).year
+        today = current_source_date().strftime("%Y-%m-%d")
         trends = build_trend_feed(
-            {"brands": [{"brand_alias": " ap ", "sample_count": 3, "avg_premium_rate": 0.4}]},
-            [{"brand_alias": "AP", "direction": "rising", "observed_at": "2026-06-30"}],
-            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+            {
+                "brands": [{"brand_alias": " ap ", "sample_count": 3, "avg_premium_rate": 0.4}],
+                "records": [{"brand_alias": "AP", "url": "https://example.com/market/ap"}],
+            },
+            [{"brand_alias": "AP", "direction": "rising", "observed_at": today}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
             brand_weights=[
                 {
                     "alias": "AP",
@@ -815,36 +873,46 @@ class FeedOsTests(unittest.TestCase):
         self.assertEqual(trends[0]["brand"], "AP")
         self.assertEqual(trends[0]["id"], "trend:AP")
         self.assertEqual(trends[0]["kind"], "rising")
-        self.assertEqual(trends[0]["url"], "https://www.goofish.com/search?q=AP")
-        self.assertEqual(trends[0]["time"], "2026-06-30")
+        self.assertEqual(trends[0]["url"], "https://example.com/market/ap")
+        self.assertEqual(trends[0]["time"], today)
         self.assertIn("momentum_observed", trends[0]["reason_codes"])
         self.assertIn("release_activity", trends[0]["reason_codes"])
 
     def test_trend_engine_ignores_stale_release_events(self) -> None:
-        current_year = datetime.now(timezone.utc).year
+        current_year = current_source_date().year
         stale_year = current_year - 1
+        source_today = current_source_date()
+        today = source_today.strftime("%Y-%m-%d")
+        stale_window_date = (source_today - timedelta(days=120)).strftime("%Y-%m-%d")
         base_market = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.4}]}
-        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": f"{current_year}-06-30"}]
+        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": today}]
 
         stale_trends = build_trend_feed(
             base_market,
             momentum,
             [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{stale_year}-12-31"}],
         )
+        stale_window_trends = build_trend_feed(
+            base_market,
+            momentum,
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": stale_window_date}],
+        )
         current_trends = build_trend_feed(
             base_market,
             momentum,
-            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
         )
 
         self.assertNotIn("release_activity", stale_trends[0]["reason_codes"])
+        self.assertNotIn("release_activity", stale_window_trends[0]["reason_codes"])
         self.assertIn("release_activity", current_trends[0]["reason_codes"])
         self.assertGreater(current_trends[0]["confidence"], stale_trends[0]["confidence"])
+        self.assertGreater(current_trends[0]["confidence"], stale_window_trends[0]["confidence"])
 
     def test_trend_engine_ignores_release_events_without_source_publish_time(self) -> None:
-        current_year = datetime.now(timezone.utc).year
+        today = current_source_date().strftime("%Y-%m-%d")
         base_market = {"brands": [{"brand_alias": "AP", "sample_count": 3, "avg_premium_rate": 0.4}]}
-        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": f"{current_year}-06-30"}]
+        momentum = [{"brand_alias": "AP", "direction": "rising", "observed_at": today}]
 
         missing_date_trends = build_trend_feed(
             base_market,
@@ -854,7 +922,7 @@ class FeedOsTests(unittest.TestCase):
         current_trends = build_trend_feed(
             base_market,
             momentum,
-            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": f"{current_year}-06-30"}],
+            [{"source": "angelic_pretty", "status": "new_arrival", "published_at": today}],
         )
 
         self.assertNotIn("release_activity", missing_date_trends[0]["reason_codes"])

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 
 from ..shop import build_drop_signal
+from ..source_dates import CURRENT_SOURCE_WINDOW_DAYS, is_current_source_date
 from ..trend import build_trend_feed
 
 
 RELEASE_SOURCES = {"angelic_pretty", "baby_ssb", "alice_and_the_pirates", "metamorphose", "moitie"}
 RELEASE_STATUSES = {"new_arrival", "preorder", "restock"}
-MARKET_ALERT_KINDS = {"high_premium", "sample_gap"}
+MARKET_ALERT_KINDS = {"high_premium"}
 HOME_LINK_LIMIT = 30
 
 
@@ -323,16 +323,6 @@ def feed_time(row: dict[str, Any]) -> tuple[str, str]:
     if published_at:
         return published_at, "published"
     return "", ""
-
-
-def is_current_source_date(value: str) -> bool:
-    if len(value) < 4 or not value[:4].isdigit():
-        return False
-    return int(value[:4]) >= current_year()
-
-
-def current_year() -> int:
-    return datetime.now(timezone.utc).year
 
 
 def localized_status_label(status: str) -> str:

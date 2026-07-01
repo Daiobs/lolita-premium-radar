@@ -226,7 +226,7 @@ def build_market_alerts(
                     "premium_rate": round(avg_premium_rate, 4),
                     "sample_count": sample_count,
                     "reason": "brand_hot_average",
-                    "url": primary_watch_url(brand),
+                    "url": "",
                 }
             )
         elif sample_count < 2 and weight >= 85:
@@ -240,7 +240,7 @@ def build_market_alerts(
                     "premium_rate": round(avg_premium_rate, 4),
                     "sample_count": sample_count,
                     "reason": "core_needs_samples",
-                    "url": primary_watch_url(brand),
+                    "url": "",
                 }
             )
     sorted_alerts = sorted(

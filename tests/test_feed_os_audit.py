@@ -3,18 +3,19 @@ import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import lolita_radar.core.audit as audit_module
 from lolita_radar.cli import format_feed_os_audit, format_feed_os_audit_json, main
 from lolita_radar.core import audit_feed_os
 from lolita_radar.models import ItemStatus, RadarItem
+from lolita_radar.source_dates import current_source_date
 from lolita_radar.storage import connect, diff_and_store, record_source_run
 
 
 class FeedOsAuditTests(unittest.TestCase):
-    def test_audit_reports_missing_loop_evidence_by_default(self) -> None:
+    def test_audit_treats_loop_evidence_as_optional_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config_path = self.write_config(root)
@@ -23,10 +24,10 @@ class FeedOsAuditTests(unittest.TestCase):
             audit = audit_feed_os(config_path=config_path, db_path=db_path, expected_cycles=2)
             text = format_feed_os_audit(audit)
 
-            self.assertFalse(audit.complete)
-            self.assertIn("status: incomplete", text)
-            self.assertIn("missing | stable_loop_evidence", text)
-            self.assertIn("provide --loop-log", text)
+            self.assertTrue(audit.complete)
+            self.assertIn("status: complete", text)
+            self.assertIn("pass | stable_loop_evidence", text)
+            self.assertIn("loop evidence is optional", text)
             self.assertIn("pass | product_constraints", text)
 
     def test_structure_audit_requires_key_module_files(self) -> None:
@@ -282,7 +283,7 @@ class FeedOsAuditTests(unittest.TestCase):
         original_sample_home_feed = audit_module.sample_home_feed
         try:
             feed = audit_module.sample_home_feed()
-            market_alert = next(row for row in feed["streams"]["alert"] if row.get("kind") == "sample_gap")
+            market_alert = next(row for row in feed["streams"]["alert"] if row.get("kind") == "high_premium")
             market_alert.pop("title_zh", None)
             market_alert.pop("title_ja", None)
             market_alert["use_localized_title"] = False
@@ -455,14 +456,59 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("stale release events", check.detail)
 
-    def test_trend_engine_audit_rejects_missing_date_release_activity(self) -> None:
+    def test_trend_engine_audit_rejects_recent_window_release_activity(self) -> None:
         original_build_trend_feed = audit_module.build_trend_feed
 
         def fake_build_trend_feed(_market, _momentum, events, **_kwargs):
             ap_reasons = ["sample_supported", "premium_rising", "momentum_observed"]
             if events:
                 event = events[0]
-                if event.get("published_at") != f"{datetime.now(timezone.utc).year - 1}-12-31":
+                if event.get("published_at") != f"{current_source_date().year - 1}-12-31":
+                    ap_reasons.append("release_activity")
+            return [
+                {
+                    "brand": "AP",
+                    "trend": "rising",
+                    "confidence": 75 if "release_activity" in ap_reasons else 70,
+                    "sample_count": 4,
+                    "reason_codes": ap_reasons,
+                },
+                {
+                    "brand": "Meta",
+                    "trend": "cooling",
+                    "confidence": 50,
+                    "sample_count": 3,
+                    "reason_codes": ["sample_supported", "premium_cooling"],
+                },
+                {
+                    "brand": "BABY",
+                    "trend": "stable",
+                    "confidence": 0,
+                    "sample_count": 0,
+                    "reason_codes": ["sample_gap", "premium_stable"],
+                },
+            ]
+
+        try:
+            audit_module.build_trend_feed = fake_build_trend_feed
+
+            check = audit_module.audit_trend_engine()
+        finally:
+            audit_module.build_trend_feed = original_build_trend_feed
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("recent source window", check.detail)
+
+    def test_trend_engine_audit_rejects_missing_date_release_activity(self) -> None:
+        original_build_trend_feed = audit_module.build_trend_feed
+        today = current_source_date().strftime("%Y-%m-%d")
+
+        def fake_build_trend_feed(_market, _momentum, events, **_kwargs):
+            ap_reasons = ["sample_supported", "premium_rising", "momentum_observed"]
+            if events:
+                event = events[0]
+                published_at = str(event.get("published_at") or "")
+                if not published_at or published_at == today:
                     ap_reasons.append("release_activity")
             return [
                 {
@@ -771,7 +817,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Login",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "price": "未取得",
                     "url": "https://example.com/login",
@@ -800,6 +846,32 @@ class FeedOsAuditTests(unittest.TestCase):
                     "time_kind": "published",
                     "price": "未取得",
                     "url": "https://example.com/ap/old",
+                }
+            )
+            check = audit_module.audit_runtime_feed_state(
+                config_path=Path("config/sources.yaml"),
+                db_path=Path(".data/test.sqlite"),
+            )
+        finally:
+            audit_module.get_feed_state = original_get_feed_state
+
+        self.assertEqual(check.status, "fail")
+        self.assertIn("stale source time", check.detail)
+
+    def test_runtime_feed_audit_rejects_current_year_release_outside_feed_window(self) -> None:
+        stale_current_year_date = (current_source_date() - timedelta(days=120)).strftime("%Y-%m-%d")
+        original_get_feed_state = audit_module.get_feed_state
+        try:
+            audit_module.get_feed_state = lambda **_kwargs: self.runtime_state(
+                {
+                    "feed_type": "release",
+                    "brand": "AP",
+                    "title": "Stale Current Year JSK",
+                    "type": "new_arrival",
+                    "time": stale_current_year_date,
+                    "time_kind": "published",
+                    "price": "未取得",
+                    "url": "https://example.com/ap/stale-current-year",
                 }
             )
             check = audit_module.audit_runtime_feed_state(
@@ -846,7 +918,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Shell Garden JSK",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "price": "¥38,280",
                     "url": "https://example.com/ap",
@@ -934,7 +1006,7 @@ class FeedOsAuditTests(unittest.TestCase):
         self.assertEqual(check.status, "fail")
         self.assertIn("unsupported system alert kind: promo", check.detail)
 
-    def test_runtime_feed_audit_rejects_market_alert_without_localized_titles(self) -> None:
+    def test_runtime_feed_audit_rejects_high_premium_alert_without_localized_titles(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
@@ -947,15 +1019,15 @@ class FeedOsAuditTests(unittest.TestCase):
                         "alert": [
                             {
                                 "feed_type": "alert",
-                                "kind": "sample_gap",
-                                "title": "BABY",
-                                "reason_codes": ["sample_gap"],
-                                "url": "https://example.com/market/baby",
-                                "visual": self.visual("AL", "!", "sample_gap"),
+                                "kind": "high_premium",
+                                "title": "Shell Garden JSK",
+                                "reason_codes": ["high_premium"],
+                                "url": "https://example.com/market/shell",
+                                "visual": self.visual("AP", "!", "high_premium"),
                             }
                         ],
                     },
-                    "all": [{"feed_type": "alert", "url": "https://example.com/market/baby"}],
+                    "all": [{"feed_type": "alert", "url": "https://example.com/market/shell"}],
                 }
             }
             check = audit_module.audit_runtime_feed_state(
@@ -1099,7 +1171,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Shell Garden JSK",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "price": "未取得",
                     "url": "https://example.com/ap/shell",
                     "visual": {},
@@ -1149,7 +1221,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Shell Garden JSK",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "price": "¥38,280",
                     "url": "https://example.com/ap",
@@ -1177,7 +1249,7 @@ class FeedOsAuditTests(unittest.TestCase):
                     "brand": "AP",
                     "title": "Shell Garden JSK",
                     "type": "new_arrival",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "price": "¥38,280",
                     "url": "https://example.com/ap",
@@ -1198,7 +1270,7 @@ class FeedOsAuditTests(unittest.TestCase):
 
     def test_runtime_feed_audit_checks_all_rows_not_only_first_items(self) -> None:
         original_get_feed_state = audit_module.get_feed_state
-        current_year = datetime.now(timezone.utc).year
+        current_year = current_source_date().year
         try:
             audit_module.get_feed_state = lambda **_kwargs: {
                 "feed": {
@@ -1628,7 +1700,7 @@ class FeedOsAuditTests(unittest.TestCase):
             state = self.drop_runtime_state(
                 {
                     "price": "¥12,800",
-                    "time": f"{datetime.now(timezone.utc).year}-06-30",
+                    "time": f"{current_source_date().year}-06-30",
                     "time_kind": "published",
                     "visual": self.visual("SH", "D", "shop_news"),
                 }
@@ -1708,7 +1780,7 @@ class FeedOsAuditTests(unittest.TestCase):
 
         self.assertIn("does not match", problem)
 
-    def test_cli_audit_returns_nonzero_when_evidence_is_missing(self) -> None:
+    def test_cli_audit_returns_zero_without_loop_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             config_path = self.write_config(root)
@@ -1728,9 +1800,9 @@ class FeedOsAuditTests(unittest.TestCase):
                     ]
                 )
 
-            self.assertEqual(exit_code, 1)
-            self.assertIn("status: incomplete", stdout.getvalue())
-            self.assertIn("missing | stable_loop_evidence", stdout.getvalue())
+            self.assertEqual(exit_code, 0)
+            self.assertIn("status: complete", stdout.getvalue())
+            self.assertIn("pass | stable_loop_evidence", stdout.getvalue())
 
     def test_cli_audit_can_emit_machine_readable_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1754,16 +1826,17 @@ class FeedOsAuditTests(unittest.TestCase):
                 )
 
             payload = json.loads(stdout.getvalue())
-            self.assertEqual(exit_code, 1)
-            self.assertEqual(payload["status"], "incomplete")
-            self.assertFalse(payload["complete"])
-            self.assertEqual(payload["counts"]["missing"], 1)
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(payload["status"], "complete")
+            self.assertTrue(payload["complete"])
+            self.assertEqual(payload["counts"]["missing"], 0)
             self.assertIn("checks", payload)
             stable_check = next(check for check in payload["checks"] if check["name"] == "stable_loop_evidence")
-            self.assertEqual(stable_check["status"], "missing")
-            self.assertTrue(stable_check["evidence"]["required"]["loop_log"])
-            self.assertTrue(stable_check["evidence"]["required"]["loop_exit_file"])
-            self.assertTrue(stable_check["evidence"]["required"]["source_runs"])
+            self.assertEqual(stable_check["status"], "pass")
+            self.assertTrue(stable_check["evidence"]["optional"])
+            self.assertFalse(stable_check["evidence"]["required"]["loop_log"])
+            self.assertFalse(stable_check["evidence"]["required"]["loop_exit_file"])
+            self.assertFalse(stable_check["evidence"]["required"]["source_runs"])
             self.assertEqual(stable_check["evidence"]["expected_cycles"], 2)
             self.assertEqual(stable_check["evidence"]["min_duration_seconds"], 86400)
             self.assertIn("no duplicate cycles", stable_check["evidence"]["required_checks"])

@@ -1,3 +1,3 @@
-from .builder import build_home_feed
+from .builder import CURRENT_SOURCE_WINDOW_DAYS, build_home_feed, is_current_source_date
 
-__all__ = ["build_home_feed"]
+__all__ = ["CURRENT_SOURCE_WINDOW_DAYS", "build_home_feed", "is_current_source_date"]
